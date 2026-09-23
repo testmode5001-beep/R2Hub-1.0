@@ -1,0 +1,177 @@
+OCR em 335 PDFs (pulando 17 já lidos por texto)…
+  70/335…
+  80/335…
+  90/335…
+  100/335…
+  110/335…
+  120/335…
+  130/335…
+  140/335…
+  150/335…
+  160/335…
+  170/335…
+  180/335…
+  190/335…
+  200/335…
+  210/335…
+  220/335…
+  230/335…
+  240/335…
+Image too small to scale!! (2x48 vs min width of 3)
+Line cannot be recognized!!
+  250/335…
+  260/335…
+  270/335…
+Image too small to scale!! (1x48 vs min width of 3)
+Line cannot be recognized!!
+Image too small to scale!! (1x48 vs min width of 3)
+Line cannot be recognized!!
+Image too small to scale!! (1x48 vs min width of 3)
+Line cannot be recognized!!
+Image too small to scale!! (1x48 vs min width of 3)
+Line cannot be recognized!!
+  280/335…
+  290/335…
+  300/335…
+  310/335…
+  320/335…
+  330/335…
+
+OCR concluído: 335 lidos, 0 falhas, 197 com diâmetro extraído.
+Divergências (134):
+  · 018.01: catálogo Ø50 (Z50) ≠ ficha Ø509 (Z504) · 50x50
+  · 020.02: SEM Z — ficha Ø559 (Z554) · 87x40
+  · 076.01: catálogo Ø49 (Z49) ≠ ficha Ø490 (Z485) · 115x150,94
+  · 091.01: catálogo Ø53 (Z53) ≠ ficha Ø530 (Z525) · 50x80
+  · 093.01: catálogo Ø96 (Z95) ≠ ficha Ø950 (Z941) · 57x295,45
+  · 094.01: catálogo Ø79 (Z79) ≠ ficha Ø790 (Z782)
+  · 095.01: catálogo Ø79 (Z79) ≠ ficha Ø790 (Z782) · 70x122
+  · 100x60: SEM Z — ficha Ø810 (Z802) · 100x60
+  · 110.01: catálogo Ø38 (Z38) ≠ ficha Ø938 (Z929) · 45x39,8
+  · 117.01: catálogo Ø51 (Z51) ≠ ficha Ø519 (Z514) · 50x37
+  · 135.01: catálogo Ø42 (Z42) ≠ ficha Ø242 (Z240) · 134x33
+  · 146.01: catálogo Ø48 (Z48) ≠ ficha Ø248 (Z246) · 60x30
+  · 165.01: catálogo Ø51 (Z51) ≠ ficha Ø519 (Z514) · 17x37
+  · 190.01: catálogo Ø47 (Z47) ≠ ficha Ø530 (Z525) · 55x162,5
+  · 198.01: catálogo Ø50 (Z50) ≠ ficha Ø609 (Z603) · 46x34,7
+  · 204.01: SEM Z — ficha Ø750 (Z743) · 35x115
+  · 265.01: SEM Z — ficha Ø242 (Z240) · 134x33
+  · A011.02: SEM Z — ficha Ø948 (Z939) · 134x30
+  · FAC0006.04: SEM Z — ficha Ø54 (Z54) · 38,66x40
+  · FAC0007.01: SEM Z — ficha Ø380 (Z377) · 24x12
+  · FAC0021.01: catálogo Ø51 (Z51) ≠ ficha Ø519 (Z514) · 35x20
+  · FAC0022.01: catálogo Ø79 (Z79) ≠ ficha Ø790 (Z782) · 35x121,09
+  · FAC0025.01: SEM Z — ficha Ø469 (Z465) · 38,66x70
+  · FAC0029.01: SEM Z — ficha Ø61 (Z61) · 40x35
+  · FAC0056.02: catálogo Ø86 (Z86) ≠ ficha Ø860 (Z851) · 70x135,09
+  · FAC0062.03: SEM Z — ficha Ø55 (Z55) · 59,5x40
+  · FAC0063.02: SEM Z — ficha Ø53 (Z53) · 59,5x80
+  · FAC0064.01: SEM Z — ficha Ø67 (Z67) · 150x30
+  · FAC0065.03: SEM Z — ficha Ø48 (Z48) · 134x30
+  · FAC0068.01: SEM Z — ficha Ø709 (Z702) · 59,5x70
+  · FAC0069.01: catálogo Ø54 (Z54) ≠ ficha Ø549 (Z544) · 50x40
+  · FAC0070.01: SEM Z — ficha Ø740 (Z733) · 60x75
+  · FAC0071.02: SEM Z — ficha Ø50 (Z50) · 59,5x50
+  · FAC0072.03: SEM Z — ficha Ø630 (Z624) · 59,5x96
+  · FAC0073.01: SEM Z — ficha Ø619 (Z613) · 59,5x35
+  · FAC0074.01: SEM Z — ficha Ø469 (Z465) · 100x45
+  · FAC0075.06: SEM Z — ficha Ø520 (Z515) · 105x30
+  · FAC0076.01: SEM Z — ficha Ø489 (Z484) · 50x75
+  · FAC0078.01: SEM Z — ficha Ø540 (Z535) · 38x40
+  · FAC0080.01: SEM Z — ficha Ø810 (Z802) · 38,66x124
+  · FAC0081.01: SEM Z — ficha Ø609 (Z603) · 90x60
+  · FAC0082.01: SEM Z — ficha Ø50 (Z50) · 50x50
+  · FAC0085.02: SEM Z — ficha Ø720 (Z713) · 80x110
+  · FAC0086.01: SEM Z — ficha Ø520 (Z515) · 60x160,36
+  · FAC0089.02: SEM Z — ficha Ø65 (Z65)
+  · FAC0092.01: SEM Z — ficha Ø65 (Z65) · 1200x65
+  · FAC0096.01: SEM Z — ficha Ø50 (Z50) · 100x50
+  · FAC0097.01: SEM Z — ficha Ø650 (Z644) · 65x65,068
+  · FAC0100.01: SEM Z — ficha Ø71 (Z71) · 60x45,19
+  · FAC0101.01: SEM Z — ficha Ø70 (Z70) · 134x110
+  · FAC0102.01: SEM Z — ficha Ø500 (Z495) · 105x75
+  · FAC0103.01: SEM Z — ficha Ø49 (Z49) · 102x151
+  · FAC0111.01: SEM Z — ficha Ø790 (Z782) · 85x120,9
+  · FAC0113.01: SEM Z — ficha Ø53 (Z53) · 80x80
+  · FAC0114.01: SEM Z — ficha Ø650 (Z644) · 100x100
+  · FAC0115.01: SEM Z — ficha Ø740 (Z733) · 80x113
+  · FAC0116.01: SEM Z — ficha Ø51 (Z51) · 26x37
+  · FAC0119.01: SEM Z — ficha Ø700 (Z693) · 45x71
+  · FAC0120.01: SEM Z — ficha Ø619 (Z613) · 105x63,879
+  · FAC0121.01: SEM Z — ficha Ø65 (Z65) · 100x201,2
+  · FAC0125.01: SEM Z — ficha Ø550 (Z545) · 80x34,6
+  · FAC0130.01: SEM Z — ficha Ø709 (Z702) · 70x70
+  · FAC0131.01: SEM Z — ficha Ø79 (Z79) · 40x121
+  · FAC0134.01: SEM Z — ficha Ø41 (Z41) · 77x62
+  · FAC0135.01: SEM Z — ficha Ø810 (Z802) · 105x60
+  · FAC0136.01: SEM Z — ficha Ø720 (Z713) · 80x110,1
+  · FAC0138.01: SEM Z — ficha Ø42 (Z42) · 80x30
+  · FAC0139.01: SEM Z — ficha Ø52 (Z52) · 90x30,17
+  · FAC0140.01: SEM Z — ficha Ø55 (Z55) · 90x55
+  · FAC0142.01: SEM Z — ficha Ø550 (Z545) · 90x55
+  · FAC0143.01: SEM Z — ficha Ø819 (Z811) · 80x124
+  · FAC0144.01: SEM Z — ficha Ø559 (Z554) · 40x40
+  · FAC0145.01: SEM Z — ficha Ø48 (Z48) · 132x38
+  · FAC0147.01: SEM Z — ficha Ø943 (Z934) · 134x45
+  · FAC0148.01: SEM Z — ficha Ø480 (Z475) · 35x22,13
+  · FAC0152.01: SEM Z — ficha Ø530 (Z525) · 60x80
+  · FAC0153.01: SEM Z — ficha Ø52 (Z52) · 100x160,38
+  · FAC0154.01: SEM Z — ficha Ø700 (Z693) · 48x107
+  · FAC0161.01: SEM Z — ficha Ø810 (Z802) · 70x82
+  · FAC0164.01: SEM Z — ficha Ø50 (Z50) · 102x76
+  · FAC0167.01: SEM Z — ficha Ø53 (Z53) · 59,5x60
+  · FAC0168.01: SEM Z — ficha Ø70 (Z70) · 138x219,9
+  · FAC0170.01: SEM Z — ficha Ø630 (Z624) · 108x63
+  · FAC0171.01: SEM Z — ficha Ø720 (Z713) · 135x75,40
+  · FAC0175.01: SEM Z — ficha Ø919 (Z910) · 59,5x140
+  · FAC0178.01: SEM Z — ficha Ø509 (Z504) · 50x75
+  · FAC0179.01: SEM Z — ficha Ø720 (Z713) · 59,5x110
+  · FAC0181.01: SEM Z — ficha Ø780 (Z772) · 104,84x120
+  · FAC0184.01: SEM Z — ficha Ø72 (Z72) · 110x110
+  · FAC0185.01: SEM Z — ficha Ø530 (Z525) · 52x164
+  · FAC0186.01: SEM Z — ficha Ø650 (Z644) · 50x100
+  · FAC0216.01: SEM Z — ficha Ø720 (Z713) · 80x110
+  · FAC0221.01: SEM Z — ficha Ø780 (Z772) · 59,5x120
+  · FAC0222.01: catálogo Ø59 (Z59) ≠ ficha Ø599 (Z593) · 60x182
+  · FAC0231.01: SEM Z — ficha Ø720 (Z713) · 64x73
+  · FAC0232.01: SEM Z — ficha Ø650 (Z644) · 30x201
+  · FAC0233.01: catálogo Ø55 (Z55) ≠ ficha Ø550 (Z545) · 60x170
+  · FAC0235.01: SEM Z — ficha Ø789 (Z781) · 70x242
+  · FAC0245.01: catálogo Ø81 (Z81) ≠ ficha Ø810 (Z802) · 80x60
+  · FAC0248.01: catálogo Ø84 (Z84) ≠ ficha Ø849 (Z841) · 90x129,5
+  · FAC0248: SEM Z — ficha Ø849 (Z841) · 90x129,5
+  · FAC0252.01: SEM Z — ficha Ø549 (Z544) · 50x40
+  · FAC0254.01: catálogo Ø53 (Z53) ≠ ficha Ø530 (Z525) · 70x80
+  · FAC0255.01: catálogo Ø78 (Z78) ≠ ficha Ø780 (Z772) · 105x120
+  · FAC0256.01: catálogo Ø70 (Z70) ≠ ficha Ø819 (Z811) · 45x82
+  · FAC0257.01: catálogo Ø78 (Z78) ≠ ficha Ø780 (Z772) · 100x120
+  · FAC0259.01: catálogo Ø65 (Z65) ≠ ficha Ø650 (Z644) · 60x100
+  · FAC0261.01: catálogo Ø65 (Z65) ≠ ficha Ø650 (Z644) · 70x100
+  · FAC0262.01: catálogo Ø66 (Z66) ≠ ficha Ø669 (Z662) · 100x100
+  · FAC0264.01: catálogo Ø66 (Z66) ≠ ficha Ø669 (Z662) · 160x103,67
+  · FAC0267.01: catálogo Ø97 (Z96) ≠ ficha Ø969 (Z959) · 40x148
+  · FAC0270.01: SEM Z — ficha Ø720 (Z713) · 80x110
+  · Faca-59,5x50: SEM Z — ficha Ø509 (Z504) · 59,5x50
+  · Rossi 59,5x80: SEM Z — ficha Ø720 (Z713) · 80x110
+  · SN02.01: SEM Z — ficha Ø650 (Z644) · 45x48
+  · SN1.01: SEM Z — ficha Ø609 (Z603) · 60x91
+  · SN10.01: catálogo Ø65 (Z65) ≠ ficha Ø659 (Z653) · 40x100
+  · SN11.01: catálogo Ø52 (Z52) ≠ ficha Ø520 (Z515) · 49x24,5
+  · SN13.01: SEM Z — ficha Ø720 (Z713) · 60x72
+  · SN15.01: catálogo Ø81 (Z81) ≠ ficha Ø819 (Z811) · 125x125
+  · SN22.01: SEM Z — ficha Ø550 (Z545)
+  · SN23.01: SEM Z — ficha Ø659 (Z653) · 160x32,967
+  · SN28.01: SEM Z — ficha Ø700 (Z693) · 130x110
+  · SN34.01: SEM Z — ficha Ø480 (Z475) · 134x50
+  · SN35.01: catálogo Ø81 (Z81) ≠ ficha Ø819 (Z811) · 30x25
+  · SN37.01: SEM Z — ficha Ø519 (Z514) · 110x50
+  · SN38.01: SEM Z — ficha Ø599 (Z593) · 59,5x90
+  · SN39.01: catálogo Ø91 (Z91) ≠ ficha Ø919 (Z910) · 90x140
+  · SN41.01: SEM Z — ficha Ø969 (Z959) · 30x148,38
+  · SN42.01: SEM Z — ficha Ø789 (Z781) · 50x120
+  · SN43.01: SEM Z — ficha Ø780 (Z772) · 80x120
+  · SN44.01: catálogo Ø58 (Z58) ≠ ficha Ø580 (Z574) · 34x23
+  · SN6.01: SEM Z — ficha Ø720 (Z713) · 42x110
+  · SN9.01: catálogo Ø103 (Z102) ≠ ficha Ø102 (Z101) · 80x157
+
+Detalhe completo: scripts/varredura-ocr-resultado.json

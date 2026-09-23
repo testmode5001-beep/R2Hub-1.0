@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#FFE815">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Substrato">
+<title>Largura do Substrato · R2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:opsz,wght,SOFT@9..144,100..900,0..100&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F1F1F1; --card:#fff; --muted:#F1F1F1; --muted-fg:#8A8A8A;
+  --fg:#252425; --border:#E0E0E0; --border2:#C8C8C8;
+  --yellow:#FFE815;
+  --success-bg:#d4edda; --success-fg:#155724;
+  --danger-bg:#fde8e8; --danger-fg:#c0392b;
+  --sh:0 1px 0 rgba(0,0,0,.04),0 16px 32px -24px rgba(0,0,0,.22);
+  --sh-pill:0 1px 4px rgba(0,0,0,.09);
+  --font-sans:'Inter',system-ui,sans-serif;
+  --font-display:'Fraunces',Georgia,serif;
+}
+[data-theme="dark"]{
+  --bg:#18181B; --card:#242428; --muted:#2A2A2E; --muted-fg:#6A6A7A;
+  --fg:#F0F0F2; --border:#35353D; --border2:#4A4A55;
+  --success-bg:#0d2b18; --success-fg:#4ade80;
+  --danger-bg:#2b0f0f; --danger-fg:#f87171;
+  --sh:0 1px 0 rgba(0,0,0,.2),0 16px 32px -24px rgba(0,0,0,.5);
+  --sh-pill:0 1px 4px rgba(0,0,0,.3);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:14px}
+body{font-family:var(--font-sans);background:var(--bg);color:var(--fg);-webkit-font-smoothing:antialiased;min-height:100vh;transition:background .2s,color .2s}
+.fd{font-family:var(--font-display);font-variation-settings:"SOFT" 100}
+.app{max-width:1040px;margin:0 auto;padding:20px 18px 80px}
+/* Padrão de duas colunas (inputs | resultado) — igual às outras calculadoras.
+   Colunas com a MESMA altura; o card de resultado preenche a coluna. */
+.duo{margin-bottom:18px}
+@media(min-width:760px){
+  .duo{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:stretch}
+  .duo>.res{display:flex;flex-direction:column}
+  .duo>.res>*:not(:first-child):not(:last-child){flex:1 1 0}
+  .duo>.res>*:not(:first-child):not(:last-child)>*{display:flex;flex-direction:column;justify-content:center}
+}
+.card{background:var(--card);border-radius:20px;box-shadow:var(--sh);transition:background .2s}
+.lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--muted-fg);margin-bottom:8px}
+.inp-wrap{background:var(--muted);border-radius:14px;padding:12px 16px;border:1.5px solid transparent;transition:border-color .15s}
+.inp{width:100%;background:transparent;border:none;outline:none;font-family:var(--font-display);font-size:32px;font-weight:900;color:var(--fg);letter-spacing:-1px;-moz-appearance:textfield}
+.inp::-webkit-outer-spin-button,.inp::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.inp-sm{font-size:22px;font-weight:800;letter-spacing:-.5px}
+.btn{border:none;border-radius:14px;font-family:var(--font-sans);font-weight:700;font-size:13.5px;padding:12px 16px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;background:var(--fg);color:var(--yellow);transition:transform .08s}
+.btn:active{transform:scale(.985)}
+.btn-ghost{background:var(--card);color:var(--fg);border:1.5px solid var(--border)}
+.icon-btn{width:40px;height:40px;border-radius:50%;border:1.5px solid var(--border);background:var(--card);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;box-shadow:var(--sh-pill);color:var(--fg)}
+.chip{background:var(--muted);border:1.5px solid var(--border);border-radius:20px;padding:6px 12px;font-size:12px;font-weight:700;color:var(--fg);cursor:pointer;transition:all .12s;font-family:var(--font-sans)}
+.chip:hover{border-color:var(--border2)}
+.chip.active{background:var(--fg);color:var(--yellow);border-color:var(--fg)}
+.chip.fits{border-color:var(--success-fg);color:var(--success-fg)}
+.chip.small{opacity:.4;text-decoration:line-through}
+.seg{display:flex;background:var(--muted);border-radius:12px;padding:3px;gap:3px}
+.seg button{flex:1;border:none;background:none;border-radius:9px;padding:7px 8px;font-family:var(--font-sans);font-size:11.5px;font-weight:700;color:var(--muted-fg);cursor:pointer;transition:all .12s}
+.seg button.on{background:var(--card);color:var(--fg);box-shadow:var(--sh-pill)}
+.brk{display:flex;justify-content:space-between;align-items:baseline;padding:7px 0;font-size:12.5px;border-bottom:1px dashed var(--border)}
+.brk:last-child{border-bottom:none}
+.brk .k{color:var(--muted-fg)}
+.brk .v{font-family:'JetBrains Mono',monospace;font-weight:500;font-size:12px}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Header -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:28px">
+    <div>
+      <h1 class="fd" style="font-size:38px;font-weight:900;line-height:.95;letter-spacing:-1.5px">
+        Largura do<br>substrato.
+      </h1>
+      <p style="margin-top:8px;font-size:13px;color:var(--muted-fg)">
+        Informe a largura da etiqueta e as carreiras do clichê.
+      </p>
+    </div>
+    <button class="icon-btn" onclick="toggleTheme()" aria-label="Tema">
+      <svg id="theme-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"></svg>
+    </button>
+  </div>
+
+  <div class="duo">
+  <!-- Inputs -->
+  <div class="card" style="padding:20px">
+    <label style="display:block">
+      <div class="lbl">Largura da etiqueta (mm)</div>
+      <div class="inp-wrap" id="w-larg">
+        <input id="larg" class="inp" type="number" inputmode="decimal" step="0.01" min="0" placeholder="ex.: 38,66"
+          oninput="calc()" onfocus="foco('w-larg',1)" onblur="foco('w-larg',0)">
+      </div>
+    </label>
+
+    <label style="display:block;margin-top:18px">
+      <div class="lbl">Quantidade de carreiras</div>
+      <div class="inp-wrap" id="w-carr">
+        <input id="carr" class="inp inp-sm" type="number" inputmode="numeric" step="1" min="1" placeholder="ex.: 6"
+          oninput="calc()" onfocus="foco('w-carr',1)" onblur="foco('w-carr',0)">
+      </div>
+      <div id="carr-chips" style="display:flex;flex-wrap:wrap;gap:7px;margin-top:10px"></div>
+    </label>
+
+    <div style="margin-top:18px">
+      <div class="lbl">Camerom</div>
+      <div class="seg">
+        <button id="seg-cam-entre" onclick="setCam('entre')">Entre as carreiras</button>
+        <button id="seg-cam-borda" onclick="setCam('borda')">Nas bordas</button>
+      </div>
+      <div style="font-size:11px;color:var(--muted-fg);margin-top:7px" id="cam-nota"></div>
+    </div>
+
+  </div>
+
+  <!-- Resultado -->
+  <div class="res" style="border-radius:24px;overflow:hidden;background:var(--fg);box-shadow:var(--sh)">
+    <div style="background:var(--yellow);padding:18px 22px 14px">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#252425;opacity:.6;margin-bottom:4px">Largura mínima do substrato</div>
+      <div style="display:flex;align-items:baseline;gap:6px">
+        <span id="r-total" class="fd" style="font-size:48px;font-weight:900;letter-spacing:-2px;line-height:1;color:#252425">—</span>
+        <span style="font-size:16px;font-weight:700;color:#252425">mm</span>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;border-top:1px solid rgba(255,255,255,.08)">
+      <div style="padding:16px 22px;border-right:1px solid rgba(255,255,255,.08)">
+        <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:rgba(255,255,255,.4);margin-bottom:6px">Bloco de arte</div>
+        <div id="r-arte" class="fd" style="font-size:24px;font-weight:700;color:#fff;letter-spacing:-.5px">—</div>
+      </div>
+      <div style="padding:16px 22px">
+        <div id="r-bordas-lbl" style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:rgba(255,255,255,.4);margin-bottom:6px">Perda total</div>
+        <div id="r-bordas" class="fd" style="font-size:24px;font-weight:700;color:var(--yellow);letter-spacing:-.5px">—</div>
+      </div>
+    </div>
+    <div id="r-formula" style="padding:10px 22px;border-top:1px solid rgba(255,255,255,.07);font-size:10px;font-family:'JetBrains Mono',monospace;color:rgba(255,255,255,.3)">
+      Informe os dados acima
+    </div>
+  </div>
+  </div>
+
+  <!-- Composição -->
+  <div class="card" style="padding:16px 20px;margin-top:18px">
+    <div class="lbl" style="margin-bottom:4px">Composição</div>
+    <div id="brk"></div>
+  </div>
+
+  <!-- Estoque -->
+  <div class="card" style="padding:16px 20px;margin-top:18px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div class="lbl" style="margin:0">Bobinas em estoque (mm)</div>
+      <button onclick="resetEstoque()" style="background:none;border:none;color:var(--muted-fg);font-size:11px;font-weight:700;cursor:pointer;padding:2px 4px">restaurar</button>
+    </div>
+    <div id="est-chips" style="display:flex;flex-wrap:wrap;gap:7px"></div>
+    <div style="display:flex;gap:7px;margin-top:12px">
+      <div class="inp-wrap" style="flex:1;padding:8px 14px">
+        <input id="est-nova" class="inp inp-sm" type="number" inputmode="decimal" step="1" min="1" placeholder="nova largura"
+          onkeydown="if(event.key==='Enter'){addEstoque();event.preventDefault();}">
+      </div>
+      <button class="btn" onclick="addEstoque()" style="flex:0 0 auto;padding:10px 18px;font-size:16px">+</button>
+    </div>
+    <div style="font-size:11px;color:var(--muted-fg);margin-top:8px">Duplo clique num chip para remover</div>
+    <div id="est-result" style="margin-top:14px"></div>
+  </div>
+
+  <!-- Ações -->
+  <div style="display:flex;gap:8px;margin-top:18px">
+    <button class="btn" onclick="salvar()" style="flex:0 0 auto;padding:12px 20px">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>Salvar
+    </button>
+    <button class="btn btn-ghost" onclick="copiar()" style="flex:1;white-space:nowrap">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+      <span id="copy-lbl">Copiar o resultado</span>
+    </button>
+  </div>
+
+  <!-- Histórico -->
+  <div style="margin-top:22px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div class="lbl" style="margin:0">Histórico</div>
+      <button onclick="limpar()" style="background:none;border:none;color:var(--muted-fg);font-size:11px;font-weight:700;cursor:pointer;padding:2px 4px">limpar</button>
+    </div>
+    <div id="hist"></div>
+  </div>
+
+  <div style="text-align:center;margin-top:26px;font-size:10px;color:var(--muted-fg);letter-spacing:.04em">
+    R2 ETIQUETAS · v1.0
+  </div>
+
+</div>
+
+<script>
+/* ═══ CONSTANTES FIXAS ═══
+   Perda (espaçamento entre carreiras) ....... 3 mm
+   Camerom .................................. 1 mm de cada lado
+   Folga entre camerom e a arte ............. 1 mm de cada lado
+   ═══════════════════════ */
+const PERDA   = 3;
+const CAMEROM = 1;
+const FOLGA   = 1;
+// Camerom "entre as carreiras": há uma perda de 3 mm depois de CADA carreira,
+// inclusive a última — o camerom mora dentro dela (folga 1 + camerom 1 + folga 1)
+// e a perda final já faz as vezes de borda. Nada é somado nas pontas.
+//     mínimo = carreiras × (largura + 3)
+// Camerom "nas bordas": perda só ENTRE as carreiras, e cada borda leva
+// camerom (1) + folga (1) = 2 mm.
+//     mínimo = carreiras × largura + (carreiras − 1) × 3 + 4
+const REGRA = {
+  entre: { nEsp: n => n,     borda: 0                    },
+  borda: { nEsp: n => n - 1, borda: (CAMEROM + FOLGA) * 2 },
+};
+
+const LS_HIST = 'r2sub:hist';
+const LS_EST  = 'r2sub:estoque';
+const LS_KEYS = ['larg','carr'];
+const CARR_PRESETS = [1,2,3,4,5,6,7,8];
+const ESTOQUE_PADRAO = [50,70,80,100,110,120,140,160,180,200,220,250];
+
+let cam  = localStorage.getItem('r2sub:cam')  || 'entre';
+let hist = (()=>{ try{ return JSON.parse(localStorage.getItem(LS_HIST)||'[]'); }catch(e){ return []; } })();
+let estoque = (()=>{ try{ const e=JSON.parse(localStorage.getItem(LS_EST)); return Array.isArray(e)?e:[...ESTOQUE_PADRAO]; }catch(e){ return [...ESTOQUE_PADRAO]; } })();
+
+/* ═══ HELPERS ═══ */
+const $ = id => document.getElementById(id);
+const num = id => { const v = parseFloat(($(id)?.value||'').replace(',','.')); return Number.isFinite(v) ? v : NaN; };
+const fmt = (n,d=2) => Number.isFinite(n) ? n.toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d}) : '—';
+const int = n => Number.isFinite(n) ? n.toLocaleString('pt-BR') : '—';
+function foco(id,on){ const e=$(id); if(e) e.style.borderColor = on ? 'var(--fg)' : 'transparent'; }
+
+/* ═══ CÁLCULO ═══
+   entre as carreiras → carreiras × (largura + 3)
+   nas bordas         → carreiras × largura + (carreiras − 1) × 3 + 4
+   ══════════════ */
+function calcular(larg, carr, c){
+  const r = REGRA[c] || REGRA.entre;
+  const nEsp = r.nEsp(carr);
+  const espTotal = nEsp * PERDA;
+  const arte = carr * larg + espTotal;
+  return { nEsp, espTotal, arte, borda: r.borda, total: arte + r.borda };
+}
+
+function calc(){
+  const larg = num('larg'), carr = num('carr');
+  const ok = Number.isFinite(larg) && Number.isFinite(carr) && larg > 0 && carr >= 1;
+
+  segUI();
+
+  if(!ok){
+    $('r-total').textContent  = '—';
+    $('r-arte').textContent   = '—';
+    $('r-bordas').textContent = '—';
+    $('r-formula').textContent = 'Informe os dados acima';
+    $('brk').innerHTML = `<div style="font-size:12px;color:var(--muted-fg);padding:8px 0">— aguardando os dados —</div>`;
+    renderEstoque(NaN);
+    return;
+  }
+
+  const c = calcular(larg, Math.round(carr), cam);
+
+  $('r-total').textContent  = fmt(c.total);
+  if(cam === 'entre'){
+    $('r-arte').textContent      = fmt(carr*larg) + ' mm';
+    document.querySelector('#r-arte').previousElementSibling.textContent = 'Só etiquetas';
+    $('r-bordas-lbl').textContent = 'Perda total';
+    $('r-bordas').textContent     = fmt(c.espTotal) + ' mm';
+  } else {
+    $('r-arte').textContent      = fmt(c.arte) + ' mm';
+    document.querySelector('#r-arte').previousElementSibling.textContent = 'Bloco de arte';
+    $('r-bordas-lbl').textContent = 'Bordas';
+    $('r-bordas').textContent     = '+' + fmt(c.borda,0) + ' mm';
+  }
+  $('r-formula').textContent = (cam === 'entre')
+    ? `${int(Math.round(carr))} × (${fmt(larg)} + ${PERDA}) = ${fmt(c.total)} mm`
+    : `${int(Math.round(carr))} × ${fmt(larg)} + ${c.nEsp} × ${PERDA} + ${fmt(c.borda,0)} = ${fmt(c.total)} mm`;
+
+  const linhas = (cam === 'entre')
+    ? [
+        ['Etiquetas', `${int(Math.round(carr))} × ${fmt(larg)}`, fmt(carr*larg)],
+        ['Perda <span style="opacity:.6">(inclui o camerom, uma após cada carreira)</span>', `${c.nEsp} × ${fmt(PERDA,0)}`, fmt(c.espTotal)],
+      ]
+    : [
+        ['Etiquetas', `${int(Math.round(carr))} × ${fmt(larg)}`, fmt(carr*larg)],
+        ['Perda entre carreiras', `${c.nEsp} × ${fmt(PERDA,0)}`, fmt(c.espTotal)],
+        ['Folga arte ↔ camerom', `2 × ${fmt(FOLGA,0)}`, fmt(FOLGA*2)],
+        ['Camerom nas bordas', `2 × ${fmt(CAMEROM,0)}`, fmt(CAMEROM*2)],
+      ];
+  $('brk').innerHTML = linhas.map(([k,calc,v]) =>
+    `<div class="brk"><span class="k">${k} <span style="opacity:.6">(${calc})</span></span><span class="v">${v}</span></div>`
+  ).join('') +
+  `<div class="brk" style="border-top:1.5px solid var(--border);border-bottom:none;margin-top:4px;padding-top:10px">
+     <span class="k" style="color:var(--fg);font-weight:700">Largura mínima</span>
+     <span class="v" style="font-weight:700;font-size:14px">${fmt(c.total)} mm</span>
+   </div>`;
+
+  renderEstoque(c.total);
+  renderChips();
+  LS_KEYS.forEach(k => localStorage.setItem('r2sub-'+k, $(k).value));
+}
+
+function setCam(c){ cam = c; localStorage.setItem('r2sub:cam', c); calc(); }
+function segUI(){
+  $('seg-cam-entre').classList.toggle('on', cam === 'entre');
+  $('seg-cam-borda').classList.toggle('on', cam === 'borda');
+  $('cam-nota').innerHTML = cam === 'entre'
+    ? 'Uma perda de 3&nbsp;mm depois de cada carreira, inclusive a última <span style="opacity:.7">(1 folga + 1 camerom + 1 folga)</span> — ela mesma faz a borda.'
+    : 'Camerom de 1&nbsp;mm em cada borda, com 1&nbsp;mm de folga até a arte.';
+}
+
+function renderChips(){
+  const atual = Math.round(num('carr'));
+  $('carr-chips').innerHTML = CARR_PRESETS
+    .map(c => `<button class="chip${c===atual?' active':''}" onclick="setCarr(${c})">${c}</button>`)
+    .join('');
+}
+function setCarr(c){ $('carr').value = c; calc(); }
+
+/* ═══ ESTOQUE ═══ */
+function salvarEstoque(){ localStorage.setItem(LS_EST, JSON.stringify(estoque)); }
+function addEstoque(){
+  const v = parseFloat(($('est-nova').value||'').replace(',','.'));
+  if(Number.isFinite(v) && v > 0 && !estoque.includes(v)){
+    estoque.push(v); estoque.sort((a,b)=>a-b); salvarEstoque();
+  }
+  $('est-nova').value = '';
+  calc();
+}
+function removeEstoque(v){ estoque = estoque.filter(x => x !== v); salvarEstoque(); calc(); }
+function resetEstoque(){ estoque = [...ESTOQUE_PADRAO]; salvarEstoque(); calc(); }
+
+function renderEstoque(minimo){
+  const temMin = Number.isFinite(minimo);
+  $('est-chips').innerHTML = estoque.map(v => {
+    let cls = 'chip';
+    if(temMin) cls += (v >= minimo) ? ' fits' : ' small';
+    return `<button class="${cls}" ondblclick="removeEstoque(${v})" title="Duplo clique para remover">${int(v)}</button>`;
+  }).join('') || `<span style="font-size:12px;color:var(--muted-fg)">Nenhuma bobina cadastrada</span>`;
+
+  const box = $('est-result');
+  if(!temMin){ box.innerHTML = ''; return; }
+
+  const servem = estoque.filter(v => v >= minimo).sort((a,b)=>a-b);
+  if(!servem.length){
+    box.innerHTML = `<div style="background:var(--danger-bg);color:var(--danger-fg);border-radius:14px;padding:12px 14px;font-size:12.5px;font-weight:600">
+      Nenhuma bobina em estoque atende ${fmt(minimo)} mm.</div>`;
+    return;
+  }
+  const esc = servem[0], sobra = esc - minimo;
+  box.innerHTML = `<div style="background:var(--success-bg);color:var(--success-fg);border-radius:14px;padding:12px 14px">
+    <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;opacity:.75;margin-bottom:3px">Bobina indicada</div>
+    <div style="display:flex;align-items:baseline;gap:8px">
+      <span class="fd" style="font-size:26px;font-weight:800;letter-spacing:-.8px">${int(esc)} mm</span>
+      <span style="font-size:12px;font-weight:600">sobra ${fmt(sobra)} mm (${fmt(sobra/2)} por lado)</span>
+    </div>
+  </div>`;
+}
+
+/* ═══ COPIAR ═══ */
+function copiar(){
+  const larg = num('larg'), carr = Math.round(num('carr'));
+  if(!(larg > 0 && carr >= 1)) return;
+  const c = calcular(larg, carr, cam);
+  const servem = estoque.filter(v => v >= c.total).sort((a,b)=>a-b);
+  const txt = `Largura mínima do substrato: ${fmt(c.total)} mm\n`
+    + (cam === 'entre'
+      ? `${carr} carreiras × (${fmt(larg)} + ${PERDA}) mm — camerom entre as carreiras`
+      : `${carr} carreiras × ${fmt(larg)} mm + ${c.nEsp} × ${PERDA} mm + ${fmt(c.borda,0)} mm de bordas`)
+    + (servem.length ? `\nBobina indicada: ${int(servem[0])} mm (sobra ${fmt(servem[0]-c.total)} mm)` : `\nSem bobina em estoque que atenda.`);
+  const feito = () => { const l=$('copy-lbl'); l.textContent='Copiado'; setTimeout(()=>l.textContent='Copiar o resultado',1400); };
+  if(navigator.clipboard?.writeText){ navigator.clipboard.writeText(txt).then(feito).catch(()=>fallback(txt,feito)); }
+  else fallback(txt, feito);
+}
+function fallback(txt, cb){
+  const ta=document.createElement('textarea');
+  ta.value=txt; ta.style.position='fixed'; ta.style.opacity='0';
+  document.body.appendChild(ta); ta.select();
+  try{ document.execCommand('copy'); cb(); }catch(e){}
+  document.body.removeChild(ta);
+}
+
+/* ═══ HISTÓRICO ═══ */
+function salvar(){
+  const larg = num('larg'), carr = Math.round(num('carr'));
+  if(!(larg > 0 && carr >= 1)) return;
+  const c = calcular(larg, carr, cam);
+  const servem = estoque.filter(v => v >= c.total).sort((a,b)=>a-b);
+  hist.unshift({ larg, carr, cam, total: c.total, bobina: servem[0] ?? null, ts: Date.now() });
+  hist = hist.slice(0,20);
+  localStorage.setItem(LS_HIST, JSON.stringify(hist));
+  renderHist();
+}
+function remover(ts){ hist = hist.filter(h => h.ts !== ts); localStorage.setItem(LS_HIST, JSON.stringify(hist)); renderHist(); }
+function limpar(){ if(!hist.length) return; hist = []; localStorage.setItem(LS_HIST,'[]'); renderHist(); }
+function reusar(ts){
+  const h = hist.find(x => x.ts === ts); if(!h) return;
+  $('larg').value = h.larg; $('carr').value = h.carr;
+  cam = h.cam || 'entre'; localStorage.setItem('r2sub:cam', cam);
+  calc(); window.scrollTo({top:0,behavior:'smooth'});
+}
+function renderHist(){
+  const w = $('hist');
+  if(!hist.length){
+    w.innerHTML = `<div class="card" style="padding:18px;text-align:center;font-size:12px;color:var(--muted-fg)">— nenhum cálculo ainda —</div>`;
+    return;
+  }
+  w.innerHTML = hist.map(h => {
+    const d = new Date(h.ts);
+    return `<div class="card" style="padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px">
+      <div style="flex:1;min-width:0;cursor:pointer" onclick="reusar(${h.ts})">
+        <div class="fd" style="font-size:20px;font-weight:800;letter-spacing:-.5px">${fmt(h.total)} mm</div>
+        <div style="font-size:11px;color:var(--muted-fg);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+          ${h.carr} × ${fmt(h.larg)} mm${h.bobina ? ` · bobina ${int(h.bobina)}` : ''}
+        </div>
+      </div>
+      <div style="font-size:10px;color:var(--muted-fg);white-space:nowrap">${d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})}</div>
+      <button onclick="remover(${h.ts})" aria-label="Remover" style="background:none;border:none;color:var(--muted-fg);cursor:pointer;padding:4px;line-height:0">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>`;
+  }).join('');
+}
+
+/* ═══ TEMA ═══ */
+function toggleTheme(){
+  const t = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+  document.documentElement.dataset.theme = t;
+  localStorage.setItem('r2sub-theme', t);
+  themeIcon();
+}
+function themeIcon(){
+  const dark = document.documentElement.dataset.theme === 'dark';
+  $('theme-icon').innerHTML = dark
+    ? '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M6.3 17.7l-1.4 1.4M19.1 4.9l-1.4 1.4"/>'
+    : '<path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/>';
+}
+
+/* ═══ INIT ═══ */
+document.documentElement.dataset.theme = localStorage.getItem('r2sub-theme') || 'light';
+themeIcon();
+LS_KEYS.forEach(k => { const v = localStorage.getItem('r2sub-'+k); if(v !== null) $(k).value = v; });
+document.addEventListener('keydown', e => { if(e.key === 'Enter' && e.target.id !== 'est-nova') calc(); });
+renderHist();
+calc();
+</script>
+</body>
+</html>

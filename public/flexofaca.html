@@ -1,0 +1,1936 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="R2 Hub">
+<meta name="theme-color" content="#FFE815">
+<title>R2 Hub — Calculadoras</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:opsz,wght,SOFT@9..144,100..900,0..100&display=swap" rel="stylesheet">
+<style>
+/* ── THEME TOKENS ── */
+:root {
+  --bg:#F1F1F1; --card:#fff; --muted:#F1F1F1; --muted-fg:#8A8A8A;
+  --fg:#252425; --border:#E0E0E0; --border2:#C8C8C8;
+  --yellow:#FFE815; --yellow-d:#D4C000;
+  --success-bg:#d4edda; --success-fg:#155724;
+  --warning-bg:#fff0e0; --warning-fg:#884400;
+  --danger-bg:#fde8e8; --danger-fg:#c0392b;
+  --info-bg:#cfe2ff; --info-fg:#084298;
+  --sh:0 1px 0 rgba(0,0,0,.04),0 16px 32px -24px rgba(0,0,0,.22);
+  --sh-pill:0 1px 4px rgba(0,0,0,.09);
+  --font-sans:'Inter',system-ui,sans-serif;
+  --font-display:'Fraunces',Georgia,serif;
+}
+[data-theme="dark"] {
+  --bg:#18181B; --card:#242428; --muted:#2A2A2E; --muted-fg:#6A6A7A;
+  --fg:#F0F0F2; --border:#35353D; --border2:#4A4A55;
+  --success-bg:#0d2b18; --success-fg:#4ade80;
+  --warning-bg:#2b1d08; --warning-fg:#fb923c;
+  --danger-bg:#2b0f0f; --danger-fg:#f87171;
+  --info-bg:#0d1b2b; --info-fg:#60a5fa;
+  --sh:0 1px 0 rgba(0,0,0,.2),0 16px 32px -24px rgba(0,0,0,.5);
+  --sh-pill:0 1px 4px rgba(0,0,0,.3);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:14px}
+body{font-family:var(--font-sans);background:var(--bg);color:var(--fg);-webkit-font-smoothing:antialiased;min-height:100vh;transition:background .2s,color .2s}
+.fd{font-family:var(--font-display);font-variation-settings:"SOFT" 100}
+
+/* ── TOPBAR ── */
+.topbar{max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;padding:18px 18px 0;gap:12px}
+.brand{display:flex;align-items:center;gap:12px}
+.brand-text .eyebrow{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted-fg)}
+.brand-text h1{font-family:var(--font-display);font-variation-settings:"SOFT" 100;font-size:20px;font-weight:800;letter-spacing:-.4px;line-height:1.15}
+.topbar-right{display:flex;align-items:center;gap:8px}
+.pill-tag{display:inline-flex;align-items:center;gap:6px;background:var(--card);border-radius:20px;padding:6px 12px;font-size:11px;font-weight:700;color:var(--muted-fg);box-shadow:var(--sh-pill);white-space:nowrap}
+.pill-tag .dot{width:7px;height:7px;border-radius:50%;background:var(--yellow)}
+.icon-btn{background:var(--card);border:1.5px solid var(--border);border-radius:10px;padding:6px 10px;cursor:pointer;font-size:15px;line-height:1;color:var(--fg);display:flex;align-items:center;gap:6px;font-family:var(--font-sans);font-size:11px;font-weight:700;box-shadow:var(--sh-pill);transition:all .15s}
+.icon-btn:hover{border-color:var(--border2)}
+.icon-btn svg{width:15px;height:15px;flex-shrink:0}
+
+/* ── TABS ── */
+.tabs-row{max-width:1100px;margin:0 auto;padding:12px 18px 0;display:flex;gap:2px;border-bottom:1px solid var(--border);margin-top:4px}
+.tab-btn{padding:8px 14px;font-size:12.5px;font-weight:700;background:none;border:none;cursor:pointer;border-bottom:2.5px solid transparent;color:var(--muted-fg);transition:all .15s;font-family:var(--font-sans);margin-bottom:-1px}
+.tab-btn.active{color:var(--fg);border-bottom-color:var(--fg)}
+.tab-btn:hover:not(.active){color:var(--fg)}
+
+/* ── LAYOUT ── */
+.app{max-width:1100px;margin:0 auto;padding:16px 18px 64px;display:grid;grid-template-columns:296px 1fr;gap:18px;align-items:start}
+.app.full{grid-template-columns:1fr}
+@media(max-width:820px){.app{grid-template-columns:1fr}}
+
+/* ── CARD ── */
+.card{background:var(--card);border-radius:20px;box-shadow:var(--sh);transition:background .2s}
+.cp{padding:18px}
+
+/* ── SIDEBAR ── */
+.sidebar{display:flex;flex-direction:column;gap:14px;position:sticky;top:16px}
+.sec-title{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--muted-fg);margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.sec-title svg{width:13px;height:13px;opacity:.5}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.field{display:flex;flex-direction:column;gap:5px;margin-bottom:10px}
+.field:last-child{margin-bottom:0}
+label{font-size:10.5px;font-weight:700;color:var(--muted-fg);letter-spacing:.02em}
+input[type=number],select{background:var(--muted);border:1.5px solid var(--border);border-radius:12px;color:var(--fg);font-family:var(--font-sans);font-size:14px;font-weight:600;padding:9px 11px;width:100%;outline:none;-moz-appearance:textfield;transition:border-color .15s,background .15s}
+input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none}
+input[type=number]:focus,select:focus{border-color:var(--fg);background:var(--card)}
+select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23999'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:28px;cursor:pointer}
+.field-note{font-size:10.5px;color:var(--muted-fg);margin-top:1px;opacity:.7}
+.div{height:1px;background:var(--border);margin:14px 0}
+.fixed-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+/* ── TOGGLE SWITCH ── */
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:9px 11px;background:var(--muted);border:1.5px solid var(--border);border-radius:12px;cursor:pointer;user-select:none;gap:10px}
+.toggle-row:hover{border-color:var(--border2)}
+.toggle-label{font-size:12px;font-weight:700;color:var(--fg)}
+.toggle-sub{font-size:10px;color:var(--muted-fg);margin-top:1px}
+.toggle-sw{width:36px;height:20px;background:var(--border2);border-radius:10px;position:relative;flex-shrink:0;transition:background .15s}
+.toggle-sw::after{content:'';position:absolute;width:14px;height:14px;background:#fff;border-radius:50%;top:3px;left:3px;transition:transform .15s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.toggle-sw.on{background:var(--fg)}
+.toggle-sw.on::after{transform:translateX(16px)}
+
+/* ── BTNS ── */
+.btn{width:100%;border:none;border-radius:14px;font-family:var(--font-sans);font-weight:700;font-size:13.5px;padding:12px 16px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:transform .08s,box-shadow .15s}
+.btn-primary{background:var(--fg);color:var(--yellow);box-shadow:var(--sh-pill)}
+.btn-primary:hover{box-shadow:0 4px 14px rgba(0,0,0,.25)}
+.btn-primary:active{transform:scale(.98)}
+.btn-secondary{background:var(--muted);color:var(--fg);border:1.5px solid var(--border)}
+.btn-secondary:hover{border-color:var(--border2)}
+.btn-secondary:active{transform:scale(.98)}
+.btn-hint{text-align:center;font-size:10.5px;color:var(--muted-fg);margin-top:2px;opacity:.6}
+
+/* ── MAIN ── */
+.main{display:flex;flex-direction:column;gap:16px}
+
+/* ── INTRO ── */
+.intro{display:flex;align-items:flex-start;gap:18px}
+.intro-glyph{font-family:var(--font-display);font-size:42px;font-weight:700;color:var(--yellow);flex-shrink:0;line-height:1}
+.intro h2{font-family:var(--font-display);font-size:18px;font-weight:700;letter-spacing:-.2px;margin-bottom:8px}
+.intro p{font-size:13px;color:var(--muted-fg);line-height:1.65}
+.intro p b{color:var(--fg)}
+.prod-line{margin-top:12px;font-size:11.5px;color:var(--muted-fg);line-height:1.8;background:var(--muted);border-radius:12px;padding:10px 12px}
+.prod-line b{color:var(--fg);display:block;margin-bottom:4px;font-size:10px;text-transform:uppercase;letter-spacing:.06em}
+
+/* ── STATS ── */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media(max-width:880px){.stats{grid-template-columns:repeat(2,1fr)}}
+.stat{background:var(--card);border-radius:18px;padding:14px 16px;box-shadow:var(--sh);animation:fu .25s ease both}
+.stat:nth-child(2){animation-delay:.04s}.stat:nth-child(3){animation-delay:.08s}.stat:nth-child(4){animation-delay:.12s}
+@keyframes fu{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.stat-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted-fg);margin-bottom:6px}
+.stat-val{font-family:var(--font-display);font-size:26px;font-weight:700;color:var(--fg);line-height:1}
+.stat-sub{font-size:10.5px;color:var(--muted-fg);margin-top:5px;opacity:.7}
+
+/* ── FORMULA ── */
+.formula{background:var(--card);border-radius:16px;padding:11px 16px;font-size:12px;color:var(--muted-fg);display:flex;align-items:center;gap:6px;flex-wrap:wrap;box-shadow:var(--sh)}
+.formula .hl{color:var(--fg);font-weight:700}
+.formula code{background:var(--muted);border-radius:6px;padding:1px 7px;font-size:11px;color:var(--fg)}
+
+/* ── ALERT ── */
+.alert{border-radius:16px;padding:13px 16px;font-size:13px;line-height:1.6;display:flex;gap:10px;align-items:flex-start;animation:fu .2s ease}
+.alert svg{width:16px;height:16px;flex-shrink:0;margin-top:1px}
+.alert-warn{background:var(--warning-bg);color:var(--warning-fg)}
+.alert-info{background:var(--info-bg);color:var(--info-fg)}
+.alert strong{font-weight:800}
+
+/* ── TABLE ── */
+.tbl-card{background:var(--card);border-radius:20px;box-shadow:var(--sh);overflow:hidden;animation:fu .25s ease}
+.tbl-bar{padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;border-bottom:1px solid var(--border)}
+.tbl-title{font-family:var(--font-display);font-size:15px;font-weight:700;display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.cnt{font-size:10.5px;font-weight:700;background:var(--muted);color:var(--muted-fg);border-radius:20px;padding:3px 10px}
+.cnt-prod{font-size:10.5px;font-weight:700;background:#FFFAD1;color:#7A6E00;border:1px solid #F3E27A;border-radius:20px;padding:3px 10px}
+[data-theme="dark"] .cnt-prod{background:#2b2500;color:#fde047;border-color:#713f12}
+.legend{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.leg{font-size:10.5px;color:var(--muted-fg);display:flex;align-items:center;gap:5px}
+.ld{width:9px;height:9px;border-radius:3px;display:inline-block}
+.exp-btn{font-size:11px;font-weight:700;color:var(--muted-fg);background:var(--muted);border:1.5px solid var(--border);border-radius:10px;padding:6px 12px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:5px}
+.exp-btn:hover{color:var(--fg);border-color:var(--border2)}
+.tbl-scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead th{padding:10px 14px;text-align:right;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--muted-fg);background:var(--muted);white-space:nowrap;cursor:pointer;user-select:none;transition:color .15s}
+thead th:hover{color:var(--fg)}
+thead th.sorted{color:var(--fg)}
+thead th:first-child{text-align:left;padding-left:18px}
+tbody tr{border-bottom:1px solid var(--border);transition:background .1s}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:var(--muted)}
+tbody tr.prod-row{background:#FFFCDE;border-left:3px solid var(--yellow)}
+tbody tr.prod-row:hover{background:#FFF8C0}
+tbody tr.prod-row td:first-child{padding-left:15px}
+[data-theme="dark"] tbody tr.prod-row{background:#1e1a00;border-left-color:var(--yellow)}
+[data-theme="dark"] tbody tr.prod-row:hover{background:#2a2500}
+td{padding:10px 14px;text-align:right;color:var(--fg);font-weight:500;white-space:nowrap}
+td:first-child{text-align:left;padding-left:18px;font-weight:700}
+.tbl-foot{border-top:1px solid var(--border);padding:10px 18px;font-size:10.5px;color:var(--muted-fg);display:flex;gap:18px;flex-wrap:wrap;opacity:.7}
+.tbl-foot b{color:var(--muted-fg);opacity:1}
+
+/* ── CHIPS ── */
+.rc{display:inline-flex;align-items:center;justify-content:center;padding:3px 11px;border-radius:20px;font-size:11.5px;font-weight:800}
+.r1{background:#d4edda;color:#155724}.r2{background:#cfe2ff;color:#084298}
+.r3{background:#e8d5f5;color:#5a1a8a}.r4{background:#fff0e0;color:#884400}
+.r5{background:#fde8e8;color:#c0392b}.rn{background:var(--muted);color:var(--muted-fg)}
+[data-theme="dark"] .r1{background:#0d2b18;color:#4ade80}[data-theme="dark"] .r2{background:#0d1b2b;color:#60a5fa}
+[data-theme="dark"] .r3{background:#1e0d2b;color:#c084fc}[data-theme="dark"] .r4{background:#2b1d08;color:#fb923c}
+[data-theme="dark"] .r5{background:#2b0f0f;color:#f87171}
+.ec{display:inline-block;padding:3px 11px;border-radius:20px;font-size:12.5px;font-weight:800}
+.ec-ok{background:#d4edda;color:#155724}
+.ec-low{background:#fde8e8;color:#c0392b}
+.ec-hi{background:#fff0e0;color:#884400}
+[data-theme="dark"] .ec-ok{background:#0d2b18;color:#4ade80}
+[data-theme="dark"] .ec-low{background:#2b0f0f;color:#f87171}
+[data-theme="dark"] .ec-hi{background:#2b1d08;color:#fb923c}
+.pb{display:inline-block;font-size:10px;font-weight:800;background:var(--yellow);color:#252425;padding:2px 8px;border-radius:8px;margin-left:6px;vertical-align:middle;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+th .arr{display:inline-block;margin-left:3px;opacity:.3;font-style:normal;font-size:9px}
+th.sorted .arr{opacity:1;color:var(--fg)}
+
+/* ── COMPARE ── */
+.cmp-inputs-wrap{margin-bottom:18px}
+.cmp-inputs{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-bottom:12px}
+.cmp-slot{background:var(--card);border-radius:18px;padding:16px;box-shadow:var(--sh);display:flex;flex-direction:column;gap:10px;position:relative;animation:fu .2s ease}
+.cmp-slot-hdr{display:flex;align-items:center;gap:8px}
+.cmp-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.cmp-slot-lbl{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted-fg);flex:1}
+.cmp-slot-rm{background:none;border:none;cursor:pointer;color:var(--border2);font-size:16px;line-height:1;padding:0;display:flex;align-items:center;transition:color .15s}
+.cmp-slot-rm:hover{color:#E55}
+.cmp-slot input{background:var(--muted);border:1.5px solid var(--border);border-radius:12px;color:var(--fg);font-family:var(--font-sans);font-size:22px;font-weight:800;padding:10px 14px;width:100%;outline:none;-moz-appearance:textfield;transition:border-color .15s;text-align:center}
+.cmp-slot input::-webkit-inner-spin-button,.cmp-slot input::-webkit-outer-spin-button{-webkit-appearance:none}
+.cmp-slot input:focus{border-color:var(--fg);background:var(--card)}
+.cmp-slot-note{font-size:10.5px;color:var(--muted-fg);text-align:center;opacity:.7}
+.btn-add-faca{display:inline-flex;align-items:center;gap:8px;background:var(--card);border:1.5px dashed var(--border);border-radius:14px;padding:10px 18px;font-family:var(--font-sans);font-size:12.5px;font-weight:700;color:var(--muted-fg);cursor:pointer;transition:all .15s;box-shadow:var(--sh)}
+.btn-add-faca:hover{border-color:var(--border2);color:var(--fg)}
+.cmp-grid-wrap{background:var(--card);border-radius:20px;box-shadow:var(--sh);overflow:hidden;animation:fu .25s ease}
+.cmp-hdr{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.cmp-hdr-title{font-family:var(--font-display);font-size:15px;font-weight:700;display:flex;align-items:center;gap:10px}
+.cmp-legend{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.cmp-leg{font-size:10.5px;color:var(--muted-fg);display:flex;align-items:center;gap:5px}
+.cmp-scroll{overflow-x:auto}
+.cmp-table{width:100%;border-collapse:collapse;font-size:12.5px}
+.cmp-table thead th{padding:10px 12px;text-align:center;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted-fg);background:var(--muted);white-space:nowrap;border-right:1px solid var(--border)}
+.cmp-table thead th:first-child{text-align:left;padding-left:16px;border-right:2px solid var(--border);min-width:110px}
+.cmp-table thead th.x-hdr{border-bottom:2px solid}
+.cmp-table tbody tr{border-bottom:1px solid var(--border);transition:background .08s}
+.cmp-table tbody tr:last-child{border-bottom:none}
+.cmp-table tbody tr:hover{background:var(--muted)}
+.cmp-table tbody tr.prod{background:#FFFCDE;border-left:3px solid var(--yellow)}
+.cmp-table tbody tr.prod:hover{background:#FFF8C0}
+.cmp-table tbody tr.prod td:first-child{padding-left:13px}
+.cmp-table tbody tr.multi{background:var(--success-bg)}
+.cmp-table tbody tr.prod.multi{background:#FFFCDE;border-left:3px solid var(--yellow)}
+[data-theme="dark"] .cmp-table tbody tr.prod{background:#1e1a00}
+[data-theme="dark"] .cmp-table tbody tr.prod:hover{background:#2a2500}
+.cmp-table td{padding:9px 12px;text-align:center;vertical-align:middle;border-right:1px solid var(--border);color:var(--fg)}
+.cmp-table td:first-child{text-align:left;padding-left:16px;font-weight:700;border-right:2px solid var(--border)}
+.cmp-cell-ok{display:inline-flex;flex-direction:column;align-items:center;gap:2px;min-width:60px}
+.cmp-esp{font-size:12px;font-weight:800;padding:3px 10px;border-radius:20px;background:#d4edda;color:#155724;display:block}
+[data-theme="dark"] .cmp-esp{background:#0d2b18;color:#4ade80}
+.cmp-rep{font-size:10px;color:var(--muted-fg);font-weight:600}
+.cmp-cell-no{color:var(--border2);font-size:18px;line-height:1}
+.cmp-badge-multi{display:inline-block;font-size:9px;font-weight:800;background:#d4edda;color:#155724;padding:1px 6px;border-radius:6px;margin-left:5px;vertical-align:middle;text-transform:uppercase;letter-spacing:.4px}
+[data-theme="dark"] .cmp-badge-multi{background:#0d2b18;color:#4ade80}
+.cmp-badge-prod{display:inline-block;font-size:10px;font-weight:800;background:var(--yellow);color:#252425;padding:2px 8px;border-radius:8px;margin-left:5px;vertical-align:middle;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.cmp-summ{padding:14px 18px;border-top:1px solid var(--border);display:flex;gap:24px;flex-wrap:wrap}
+.cmp-summ-item{font-size:11px;color:var(--muted-fg);display:flex;align-items:center;gap:6px}
+.cmp-summ-item b{color:var(--fg)}
+.cmp-empty{padding:3rem 2rem;text-align:center;color:var(--muted-fg);font-size:13px}
+
+/* ── BY-DIAMETER ── */
+.dia-info-bar{background:var(--card);border-radius:16px;box-shadow:var(--sh);padding:14px 18px;display:flex;align-items:center;gap:24px;flex-wrap:wrap}
+.dia-info-item{display:flex;flex-direction:column;gap:2px}
+.dia-info-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted-fg)}
+.dia-info-val{font-family:var(--font-display);font-size:20px;font-weight:700;color:var(--fg);line-height:1}
+.dia-info-sub{font-size:10.5px;color:var(--muted-fg);margin-top:2px;opacity:.7}
+.dia-info-divider{width:1px;height:36px;background:var(--border);flex-shrink:0}
+.prod-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:4px}
+.prod-chip{background:var(--muted);border:1.5px solid var(--border);border-radius:10px;font-size:12px;font-weight:700;color:var(--fg);padding:5px 10px;cursor:pointer;transition:all .12s;font-family:var(--font-sans)}
+.prod-chip:hover{background:var(--yellow);border-color:var(--yellow);color:#252425}
+.prod-chip.active{background:var(--yellow);border-color:var(--yellow);color:#252425;box-shadow:0 1px 6px rgba(0,0,0,.15)}
+.by-dia-tbl{background:var(--card);border-radius:20px;box-shadow:var(--sh);overflow:hidden;animation:fu .25s ease}
+.by-dia-tbl table{width:100%;border-collapse:collapse;font-size:13px}
+.by-dia-tbl thead th{padding:10px 16px;text-align:right;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted-fg);background:var(--muted);white-space:nowrap}
+.by-dia-tbl thead th:first-child{text-align:left;padding-left:18px}
+.by-dia-tbl tbody tr{border-bottom:1px solid var(--border);transition:background .1s}
+.by-dia-tbl tbody tr:last-child{border-bottom:none}
+.by-dia-tbl tbody tr:hover{background:var(--muted)}
+.by-dia-tbl td{padding:11px 16px;text-align:right;color:var(--fg);font-weight:500;white-space:nowrap;vertical-align:middle}
+.by-dia-tbl td:first-child{text-align:left;padding-left:18px}
+.rep-big{font-family:var(--font-display);font-size:22px;font-weight:700;color:var(--fg)}
+.range-bar-wrap{display:flex;align-items:center;gap:8px;justify-content:flex-end}
+.range-bar{height:6px;border-radius:3px;background:var(--yellow);min-width:4px;max-width:120px}
+.range-tag{display:inline-flex;align-items:center;gap:4px;background:var(--muted);border-radius:8px;padding:2px 8px;font-size:11px;font-weight:700;color:var(--muted-fg)}
+.x-range-pill{display:inline-flex;align-items:center;gap:6px;background:#d4edda;border-radius:20px;padding:4px 12px;font-size:12.5px;font-weight:800;color:#155724}
+[data-theme="dark"] .x-range-pill{background:#0d2b18;color:#4ade80}
+.x-range-sep{color:#78C89A;font-weight:400}
+.x-ideal-pill{display:inline-flex;align-items:center;background:var(--fg);border-radius:20px;padding:4px 12px;font-size:12.5px;font-weight:800;color:var(--yellow)}
+.by-dia-foot{border-top:1px solid var(--border);padding:10px 18px;font-size:10.5px;color:var(--muted-fg);display:flex;gap:18px;flex-wrap:wrap;opacity:.7}
+.by-dia-foot b{color:var(--muted-fg);opacity:1}
+
+/* ── VERIFICADOR ── */
+.verif-result{border-radius:14px;padding:12px 16px;font-size:13px;line-height:1.6;animation:fu .2s ease;margin-top:10px;border:1.5px solid}
+.verif-ok{background:#d4edda;color:#155724;border-color:#aad4bb}
+.verif-out{background:var(--warning-bg);color:var(--warning-fg);border-color:#f5c18a}
+.verif-err{background:var(--danger-bg);color:var(--danger-fg);border-color:#f5a4a4}
+[data-theme="dark"] .verif-ok{background:#0d2b18;color:#4ade80;border-color:#166534}
+[data-theme="dark"] .verif-out{background:#2b1d08;color:#fb923c;border-color:#92400e}
+[data-theme="dark"] .verif-err{background:#2b0f0f;color:#f87171;border-color:#991b1b}
+
+/* ── CLICHÊ TAB ── */
+.cliche-layout{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media(max-width:700px){.cliche-layout{grid-template-columns:1fr}}
+.plate-toggle{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:4px}
+.plate-opt{padding:10px;border-radius:12px;border:1.5px solid var(--border);background:var(--muted);cursor:pointer;text-align:center;font-weight:700;font-size:13px;color:var(--muted-fg);transition:all .15s}
+.plate-opt.active{background:var(--fg);color:var(--yellow);border-color:var(--fg)}
+.plate-opt:hover:not(.active){border-color:var(--border2);color:var(--fg)}
+.tape-presets{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:4px}
+.tape-opt{padding:5px 10px;border-radius:8px;border:1.5px solid var(--border);background:var(--muted);cursor:pointer;font-weight:700;font-size:12px;color:var(--muted-fg);transition:all .15s}
+.tape-opt.active{background:var(--fg);color:var(--yellow);border-color:var(--fg)}
+.tape-opt:hover:not(.active){border-color:var(--border2);color:var(--fg)}
+.result-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.res-card{background:var(--muted);border-radius:14px;padding:14px 16px}
+.res-card.accent{background:var(--fg);color:var(--yellow)}
+.res-card.accent .res-lbl{color:var(--yellow);opacity:.7}
+.res-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted-fg);margin-bottom:6px}
+.res-val{font-family:var(--font-display);font-size:24px;font-weight:700;line-height:1}
+.res-sub{font-size:10.5px;color:var(--muted-fg);margin-top:4px;opacity:.7}
+.res-card.accent .res-sub{color:var(--yellow);opacity:.6}
+.distortion-bar{margin-top:16px;background:var(--muted);border-radius:12px;padding:14px 16px}
+.dist-bar-track{height:10px;background:var(--border);border-radius:5px;overflow:hidden;margin:8px 0}
+.dist-bar-fill{height:100%;border-radius:5px;background:var(--yellow);transition:width .4s ease}
+.art-correction{background:var(--muted);border-radius:14px;padding:14px 16px;margin-top:10px}
+.art-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.art-in{flex:1;min-width:120px}
+.art-arrow{color:var(--yellow);font-size:20px;font-weight:800;flex-shrink:0}
+.art-out{flex:1;min-width:120px;background:var(--card);border-radius:12px;padding:10px 14px;text-align:right}
+.art-out-val{font-family:var(--font-display);font-size:20px;font-weight:700;color:var(--fg)}
+.art-out-sub{font-size:10px;color:var(--muted-fg);margin-top:2px}
+
+/* ── PRICE CHIP ── */
+.price-chip{display:inline-flex;align-items:center;background:#d4edda;color:#155724;border-radius:8px;padding:1px 7px;font-size:10px;font-weight:800;margin-left:5px;vertical-align:middle;font-family:var(--font-sans);letter-spacing:-.2px}
+[data-theme="dark"] .price-chip{background:#0d2b18;color:#4ade80}
+
+/* ── CALC 2-COLUNAS (resultado sem scroll) ──
+   Usa container query: reage à largura do próprio bloco (robusto dentro do iframe). */
+#view-cliche,#view-valor,#view-bobina{container-type:inline-size}
+@container (min-width:720px){
+  .calc-2col{
+    max-width:1000px!important;
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;
+    gap:20px!important;
+    align-items:stretch!important;      /* colunas com a MESMA altura — sem espaço vazio embaixo */
+  }
+  .calc-2col>*{margin-top:0!important;margin-bottom:0!important}
+  .calc-2col>.calc-full{grid-column:1/-1}
+  /* o card de resultado preenche a coluna de forma UNIFORME: as seções do meio
+     (entre o topo amarelo e o rodapé da fórmula) crescem igualmente e centralizam
+     o conteúdo — divisórias de altura cheia, sem vão solto no fundo */
+  .calc-2col .res-col{display:flex;flex-direction:column}
+  .calc-2col .res-col>*:not(:first-child):not(:last-child){flex:1 1 0}
+  .calc-2col .res-col>*:not(:first-child):not(:last-child)>*{display:flex;flex-direction:column;justify-content:center}
+}
+
+/* ── SEM SCROLL HORIZONTAL (tabelas contidas, página nunca rola de lado) ── */
+html,body{max-width:100%;overflow-x:hidden}
+.app>*{min-width:0}                 /* evita que a tabela "estoure" a coluna do grid */
+.tbl-card,.by-dia-tbl,.cmp-grid-wrap,.tbl-scroll,.cmp-scroll{max-width:100%}
+.by-dia-tbl td,.by-dia-tbl th{padding-left:10px;padding-right:10px}
+.by-dia-tbl td:last-child,.by-dia-tbl th:last-child{white-space:normal}  /* coluna "Sugestões" quebra linha em vez de esticar */
+.by-dia-tbl .range-tag{margin-bottom:3px}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:var(--muted-fg)}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <div class="brand-text">
+      <div class="eyebrow">R2 Hub</div>
+      <h1>Ferramentas</h1>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <div class="pill-tag"><span class="dot"></span> Desenvolvimento de Cilindros</div>
+    <button class="icon-btn" onclick="toggleTheme()" id="theme-btn" title="Alternar tema">
+      <svg id="theme-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+    </button>
+    <button class="icon-btn" onclick="installApp()" id="install-btn" style="display:none">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+      Instalar
+    </button>
+  </div>
+</div>
+
+<div class="tabs-row">
+  <button class="tab-btn active" onclick="switchTab('calc')" id="tab-calc">Calculadora de Facas</button>
+  <button class="tab-btn" onclick="switchTab('compare')" id="tab-compare">Comparativo de Facas</button>
+  <button class="tab-btn" onclick="switchTab('bydia')" id="tab-bydia">Facas por Diâmetro</button>
+  <button class="tab-btn" onclick="switchTab('cliche')" id="tab-cliche">Distorção do Clichê</button>
+  <button class="tab-btn" onclick="switchTab('valor')" id="tab-valor">Valor Clichê</button>
+  <button class="tab-btn" onclick="switchTab('bobina')" id="tab-bobina">Bobinas</button>
+  <button class="tab-btn" onclick="switchTab('substrato')" id="tab-substrato">Largura do Substrato</button>
+  <button class="tab-btn" onclick="switchTab('caixa')" id="tab-caixa">Etiquetas por Caixa</button>
+</div>
+
+<!-- ══ ABA: CALCULADORA ══ -->
+<div id="view-calc">
+<div class="app">
+  <aside class="sidebar">
+    <div class="card cp">
+      <div class="sec-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>Etiqueta</div>
+      <div class="frow">
+        <div class="field"><label>Largura (mm)</label><input type="number" id="y-val" value="50" min="0.1" step="0.01"><span class="field-note">medida Y — carreira</span></div>
+        <div class="field"><label>Altura (mm)</label><input type="number" id="x-val" value="50" min="0.1" step="0.01"><span class="field-note">medida X — desenvolvimento</span></div>
+      </div>
+      <div class="field" style="margin-top:10px"><label>Máquina</label>
+        <select id="maquina" onchange="onMaqChange()">
+          <option value="force">Force — 250 mm</option>
+          <option value="classic" selected>Classic — 140 mm</option>
+          <option value="custom">Personalizada…</option>
+        </select>
+        <span class="field-note">largura útil da faca</span>
+      </div>
+      <div class="field" id="maq-custom-field" style="display:none"><label>Largura útil (mm)</label><input type="number" id="maq-custom" value="140" min="1" step="0.01"></div>
+      <div class="div"></div>
+      <div class="sec-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>Engrenagem</div>
+      <div class="field"><label>Passo</label>
+        <select id="passo">
+          <option value="3.175">1/8" — 3,17500 mm</option>
+          <option value="6.35">1/4" — 6,35000 mm</option>
+          <option value="9.525">3/8" — 9,52500 mm</option>
+          <option value="12.7">1/2" — 12,70000 mm</option>
+          <option value="pi" selected>M1 — π ≈ 3,14159 mm</option>
+          <option value="custom">Personalizado…</option>
+        </select>
+      </div>
+      <div class="field" id="custom-field" style="display:none"><label>Passo personalizado (mm)</label><input type="number" id="custom-passo" value="3.175" min="0.001" step="0.001"></div>
+      <div class="frow">
+        <div class="field"><label>Dentes mín.</label><input type="number" id="n-min" value="40" min="1" step="1"></div>
+        <div class="field"><label>Dentes máx.</label><input type="number" id="n-max" value="400" min="1" step="1"></div>
+      </div>
+      <div class="field" style="margin-top:10px"><label>Repetições máx.</label><input type="number" id="rep-max" value="8" min="1" max="20" step="1"></div>
+      <div class="div"></div>
+      <div class="sec-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>Espaçamento (perda)</div>
+      <div class="fixed-row">
+        <div class="field"><label>Perda mín. (mm)</label><input type="number" id="esp-min" value="2.41" min="0" step="0.01" placeholder="0 = sem perda"></div>
+        <div class="field"><label>Perda máx. (mm)</label><input type="number" id="esp-max" value="4.00" min="0" step="0.01"></div>
+      </div>
+      <span class="field-note" style="margin-top:8px;display:block">Perda = (Dev − Rep × X) ÷ Rep · use 0 para facas sem perda (ex.: serrilha)</span>
+      <span class="field-note" style="margin-top:4px;display:block">Também usada no cálculo de carreiras: Carreiras × (Y + Perda) ≤ largura da máquina</span>
+      <div class="div"></div>
+      <div class="sec-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>Filtros</div>
+      <div class="toggle-row" onclick="toggleSoProd()" id="so-prod-row">
+        <div>
+          <div class="toggle-label">Só cilindros em produção</div>
+          <div class="toggle-sub" id="so-prod-sub">Exibir apenas os diâmetros do parque</div>
+        </div>
+        <div class="toggle-sw" id="so-prod-sw"></div>
+      </div>
+    </div>
+    <div class="card cp" style="display:flex;flex-direction:column;gap:9px">
+      <button class="btn btn-primary" onclick="calcular(false)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 8h8M8 13h8M8 18h4"/></svg>Calcular</button>
+      <button class="btn btn-secondary" onclick="calcular(true)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 6h18M7 12h10M11 18h2"/></svg>Mostrar os mais próximos</button>
+      <div class="btn-hint">Enter para calcular</div>
+    </div>
+  </aside>
+  <main class="main" id="main-panel">
+    <div class="card cp intro">
+      <div class="intro-glyph">⌀</div>
+      <div>
+        <h2 class="fd">Calculadora de Desenvolvimento de Facas</h2>
+        <p>Informe a altura X — a calculadora encontra todos os cilindros cujo desenvolvimento é múltiplo de X, com perda entre <b>2,41</b> e <b>4,00 mm</b>. Use o toggle para exibir só os cilindros que você tem.</p>
+        <div class="prod-line"><b>★ Diâmetros em produção</b><span id="prod-line-dias"></span></div>
+      </div>
+    </div>
+  </main>
+</div>
+</div>
+
+<!-- ══ ABA: COMPARATIVO ══ -->
+<div id="view-compare" style="display:none">
+<div class="app full">
+  <div class="cmp-inputs-wrap">
+    <div class="cmp-inputs" id="cmp-slots"></div>
+    <button class="btn-add-faca" onclick="addSlot()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Adicionar faca</button>
+  </div>
+  <div class="card cp" style="margin-bottom:18px">
+    <div style="display:flex;align-items:center;gap:24px;flex-wrap:wrap">
+      <div class="sec-title" style="margin:0;white-space:nowrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px;opacity:.5"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>Parâmetros compartilhados</div>
+      <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;flex:1">
+        <div class="field" style="margin:0;min-width:170px"><label>Passo da engrenagem</label>
+          <select id="cpasso" style="padding:7px 28px 7px 10px;font-size:13px">
+            <option value="3.175">1/8" — 3,175 mm</option><option value="6.35">1/4" — 6,350 mm</option>
+            <option value="9.525">3/8" — 9,525 mm</option><option value="12.7">1/2" — 12,700 mm</option>
+            <option value="pi" selected>M1 — π mm</option>
+          </select>
+        </div>
+        <div class="field" style="margin:0;min-width:80px"><label>Dentes mín.</label><input type="number" id="cn-min" value="40" min="1" step="1" style="padding:7px 10px;font-size:13px"></div>
+        <div class="field" style="margin:0;min-width:80px"><label>Dentes máx.</label><input type="number" id="cn-max" value="400" min="1" step="1" style="padding:7px 10px;font-size:13px"></div>
+        <div class="field" style="margin:0;min-width:80px"><label>Reps. máx.</label><input type="number" id="crep-max" value="8" min="1" max="20" step="1" style="padding:7px 10px;font-size:13px"></div>
+        <div style="width:1px;height:32px;background:var(--border);flex-shrink:0;align-self:flex-end;margin-bottom:2px"></div>
+        <div class="field" style="margin:0;min-width:80px"><label>Perda mín. (mm)</label><input type="number" id="c-esp-min" value="2.41" min="0" step="0.01" placeholder="0=sem" style="padding:7px 10px;font-size:13px"></div>
+        <div class="field" style="margin:0;min-width:80px"><label>Perda máx. (mm)</label><input type="number" id="c-esp-max" value="4.00" min="0" step="0.01" style="padding:7px 10px;font-size:13px"></div>
+        <div style="width:1px;height:32px;background:var(--border);flex-shrink:0;align-self:flex-end;margin-bottom:2px"></div>
+        <div style="display:flex;align-items:center;gap:8px;align-self:flex-end;margin-bottom:2px">
+          <div class="toggle-row" onclick="toggleCmpFilter()" id="cmp-filter-row" style="padding:7px 10px;gap:6px;border-radius:10px">
+            <div style="white-space:nowrap"><div class="toggle-label" style="font-size:11px">Só no filtro</div></div>
+            <div class="toggle-sw" id="cmp-filter-sw"></div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-left:auto">
+          <button class="btn btn-primary" style="width:auto;padding:9px 20px;font-size:13px" onclick="comparar()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 8h8M8 13h8M8 18h4"/></svg>Comparar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="cmp-panel"><div class="cmp-grid-wrap"><div class="cmp-empty">Configure as facas acima e clique em Comparar</div></div></div>
+</div>
+</div>
+
+<!-- ══ ABA: FACAS POR DIÂMETRO ══ -->
+<div id="view-bydia" style="display:none">
+<div class="app">
+  <aside class="sidebar">
+    <div class="card cp">
+      <div class="sec-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>Diâmetro do cilindro</div>
+      <div class="field"><label>Diâmetro (mm)</label><input type="number" id="bd-dia" value="54" min="1" step="0.01"><span class="field-note">ou clique num diâmetro abaixo</span></div>
+      <div class="field" style="margin-top:10px"><label>Máquina</label>
+        <select id="bd-maquina" onchange="setMaquina(this.value)">
+          <option value="force">Force — 250 mm</option>
+          <option value="classic" selected>Classic — 140 mm</option>
+          <option value="custom">Personalizada…</option>
+        </select>
+        <span class="field-note">cada máquina tem seu próprio parque de cilindros</span>
+      </div>
+      <div style="margin-top:10px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <label style="margin:0">Diâmetros em produção</label>
+            <button onclick="parqueReset()" title="Restaurar a lista padrão desta máquina"
+              style="background:none;border:none;color:var(--muted-fg);font-size:11px;font-weight:700;cursor:pointer;padding:2px 4px">restaurar</button>
+          </div>
+          <div class="prod-chips" id="bd-prod-chips"></div>
+          <div style="display:flex;gap:6px;margin-top:8px">
+            <input type="number" id="bd-new-dia" placeholder="Novo Ø mm" min="1" step="0.1" inputmode="decimal"
+              style="flex:1;background:var(--muted);border:1.5px solid var(--border);border-radius:10px;padding:6px 10px;font-size:13px;font-weight:600;color:var(--fg);outline:none;-moz-appearance:textfield"
+              onkeydown="if(event.key==='Enter')bdAddDia()">
+            <button onclick="bdAddDia()" style="background:var(--fg);color:var(--yellow);border:none;border-radius:10px;padding:6px 12px;font-size:13px;font-weight:800;cursor:pointer">+</button>
+          </div>
+          <span class="field-note" style="margin-top:6px;display:block">Duplo clique num chip para remover · tracejado = adicionado manualmente</span>
+        </div>
+      <div class="div"></div>
+      <div class="sec-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>Engrenagem</div>
+      <div class="field"><label>Passo</label>
+        <select id="bd-passo">
+          <option value="3.175">1/8" — 3,17500 mm</option><option value="6.35">1/4" — 6,35000 mm</option>
+          <option value="9.525">3/8" — 9,52500 mm</option><option value="12.7">1/2" — 12,70000 mm</option>
+          <option value="pi" selected>M1 — π ≈ 3,14159 mm</option>
+        </select>
+      </div>
+      <div class="field"><label>Repetições máx.</label><input type="number" id="bd-rep-max" value="8" min="1" max="20" step="1"></div>
+      <div class="div"></div>
+      <div class="sec-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>Espaçamento (perda)</div>
+      <div class="frow">
+        <div class="field"><label>Perda mín. (mm)</label><input type="number" id="bd-esp-min" value="2.41" min="0" step="0.01" placeholder="0 = sem perda"></div>
+        <div class="field"><label>Perda máx. (mm)</label><input type="number" id="bd-esp-max" value="4.00" min="0" step="0.01"></div>
+      </div>
+      <span class="field-note" style="margin-top:8px;display:block">Altura = Dev ÷ Rep − Perda · use 0 para facas sem perda (ex.: serrilha)</span>
+      <div class="div"></div>
+      <div class="sec-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>Verificar faca existente</div>
+      <div class="field"><label>Altura da faca (mm)</label><input type="number" id="bd-verif" value="" min="0.1" step="0.01" placeholder="ex: 50,00"><span class="field-note">confere se a altura cabe neste diâmetro</span></div>
+    </div>
+    <div class="card cp" style="display:flex;flex-direction:column;gap:9px">
+      <button class="btn btn-primary" onclick="calcByDia()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>Calcular alturas</button>
+      <div class="btn-hint">Enter para calcular</div>
+    </div>
+  </aside>
+  <main class="main">
+    <div class="card cp intro">
+      <div class="intro-glyph">⌀</div>
+      <div>
+        <h2 class="fd">Facas por Diâmetro</h2>
+        <p>Selecione um diâmetro — a calculadora mostra todas as alturas de faca possíveis para cada repetição, com perda dentro do range definido. A <b>altura ideal</b> usa sempre o mínimo de perda.</p>
+        <div class="prod-line"><b>Verificador</b>Informe uma altura de faca existente para checar se ela é compatível com o diâmetro e quantas repetições e espaçamento ela gera.</div>
+      </div>
+    </div>
+    <div id="bd-panel"></div>
+  </main>
+</div>
+</div>
+
+<!-- ══ ABA: DISTORÇÃO DO CLICHÊ ══ -->
+<div id="view-cliche" style="display:none">
+<div class="app full calc-2col" style="max-width:520px;padding-bottom:80px">
+
+  <!-- Header da aba -->
+  <div class="calc-full" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:28px">
+    <div>
+      <h1 class="fd" style="font-size:38px;font-weight:900;line-height:.95;letter-spacing:-1.5px">
+        Calcular<br>distorção.
+      </h1>
+      <p style="margin-top:8px;font-size:13px;color:var(--muted-fg)">
+        Informe os dentes, o módulo e o tipo de clichê.
+      </p>
+    </div>
+    <button onclick="clOpenSettings()" aria-label="Configurações"
+      style="width:40px;height:40px;border-radius:50%;border:1.5px solid var(--border);background:var(--card);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;box-shadow:var(--sh-pill)">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- Card de inputs -->
+  <div class="card" style="padding:20px;margin-bottom:18px">
+    <label style="display:block">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--muted-fg);margin-bottom:8px">Nº de dentes da engrenagem</div>
+      <div style="background:var(--muted);border-radius:14px;padding:12px 16px;border:1.5px solid transparent;transition:border-color .15s" id="cl-teeth-wrap" onclick="document.getElementById('cl-teeth').focus()">
+        <input id="cl-teeth" type="number" inputmode="decimal" placeholder="ex.: 96"
+          style="width:100%;background:transparent;border:none;outline:none;font-family:var(--font-display);font-size:32px;font-weight:900;color:var(--fg);letter-spacing:-1px"
+          oninput="clCalc()" onfocus="document.getElementById('cl-teeth-wrap').style.borderColor='var(--fg)'" onblur="document.getElementById('cl-teeth-wrap').style.borderColor='transparent'">
+      </div>
+    </label>
+
+    <div style="margin-top:18px">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--muted-fg);margin-bottom:8px">Módulo da máquina</div>
+      <div id="cl-module-chips" style="display:flex;flex-wrap:wrap;gap:7px"></div>
+    </div>
+
+    <div style="margin-top:18px">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--muted-fg);margin-bottom:8px">Tipo de clichê</div>
+      <div id="cl-plate-chips" style="display:flex;flex-wrap:wrap;gap:7px"></div>
+    </div>
+  </div>
+
+  <!-- Resultado -->
+  <div class="res-col" style="border-radius:24px;overflow:hidden;background:var(--fg);box-shadow:var(--sh)">
+    <!-- Destaque amarelo -->
+    <div style="background:var(--yellow);padding:18px 22px 14px">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#252425;opacity:.6;margin-bottom:4px">Resultado</div>
+      <div style="display:flex;align-items:baseline;gap:6px">
+        <span id="cl-r-pct" class="fd" style="font-size:48px;font-weight:900;letter-spacing:-2px;line-height:1;color:#252425">—</span>
+        <span style="font-size:16px;font-weight:700;color:#252425">% distorção</span>
+      </div>
+    </div>
+    <!-- Duas colunas -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;border-top:1px solid rgba(255,255,255,.08)">
+      <div style="padding:16px 22px;border-right:1px solid rgba(255,255,255,.08)">
+        <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:rgba(255,255,255,.4);margin-bottom:6px">Repetição (R)</div>
+        <div id="cl-r-repeat" class="fd" style="font-size:24px;font-weight:700;color:#fff;letter-spacing:-.5px">—</div>
+      </div>
+      <div style="padding:16px 22px">
+        <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:rgba(255,255,255,.4);margin-bottom:6px">Tamanho Impresso</div>
+        <div id="cl-r-print" class="fd" style="font-size:24px;font-weight:700;color:var(--yellow);letter-spacing:-.5px">—</div>
+      </div>
+    </div>
+    <!-- Fórmula -->
+    <div id="cl-r-formula" style="padding:10px 22px;border-top:1px solid rgba(255,255,255,.07);font-size:10px;font-family:'JetBrains Mono',monospace;color:rgba(255,255,255,.3)">
+      Informe os dados acima
+    </div>
+  </div>
+
+  <!-- Arte opcional -->
+  <div class="card" style="padding:18px;margin-top:14px">
+    <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--muted-fg);margin-bottom:8px">Correção de arte (opcional)</div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <input id="cl-art" type="number" inputmode="decimal" placeholder="Tamanho no print (mm)"
+        style="flex:1;background:var(--muted);border:1.5px solid var(--border);border-radius:12px;padding:9px 12px;font-size:14px;font-weight:600;color:var(--fg);outline:none"
+        oninput="clCalc()" onfocus="this.style.borderColor='var(--fg)'" onblur="this.style.borderColor='var(--border)'">
+      <svg width="18" height="18" style="color:var(--yellow);flex-shrink:0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      <div id="cl-art-out" style="flex:1;background:var(--muted);border-radius:12px;padding:9px 12px;font-size:14px;font-weight:600;color:var(--muted-fg);min-height:40px;display:flex;align-items:center">—</div>
+    </div>
+    <div style="font-size:10px;color:var(--muted-fg);margin-top:6px;opacity:.6">Arte flat = Tamanho print × (Tamanho impresso ÷ R)</div>
+  </div>
+
+  <div class="calc-full" style="margin-top:28px;text-align:center;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted-fg);opacity:.5">R2 Hub · Distorção</div>
+</div>
+</div>
+
+<!-- Settings Sheet Clichê -->
+<div id="cl-settings-overlay" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.4);backdrop-filter:blur(4px)" onclick="if(event.target===this)clCloseSettings()">
+  <div style="position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:520px;max-height:90vh;overflow-y:auto;background:var(--bg);border-radius:24px 24px 0 0;padding:20px 20px 40px;box-shadow:0 -4px 40px rgba(0,0,0,.25)">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+      <h2 class="fd" style="font-size:22px;font-weight:900">Configurações</h2>
+      <button onclick="clCloseSettings()" style="width:36px;height:36px;border-radius:50%;border:none;background:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <!-- Módulos -->
+    <h3 style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;margin-bottom:10px">Módulos da máquina</h3>
+    <div id="cl-settings-modules"></div>
+    <div style="display:grid;grid-template-columns:1fr 110px 36px;gap:8px;margin-top:10px">
+      <input id="cls-mod-name" placeholder="Nome (ex.: CP 5/16)" style="border-radius:12px;border:1.5px solid var(--border);background:var(--muted);padding:8px 12px;font-size:13px;outline:none;color:var(--fg)">
+      <input id="cls-mod-pitch" placeholder="passo mm" inputmode="decimal" style="border-radius:12px;border:1.5px solid var(--border);background:var(--muted);padding:8px 12px;font-size:13px;outline:none;color:var(--fg)">
+      <button onclick="clAddModule()" style="border-radius:12px;border:none;background:var(--fg);color:var(--yellow);cursor:pointer;font-size:18px;font-weight:700;display:flex;align-items:center;justify-content:center">+</button>
+    </div>
+
+    <!-- Clichês -->
+    <h3 style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;margin-top:22px;margin-bottom:10px">Tipos de clichê</h3>
+    <div id="cl-settings-plates"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
+      <input id="cls-pl-name" placeholder="Nome (ex.: 2.84 mm)" style="grid-column:1/-1;border-radius:12px;border:1.5px solid var(--border);background:var(--muted);padding:8px 12px;font-size:13px;outline:none;color:var(--fg)">
+      <input id="cls-pl-thick" placeholder="espessura mm" inputmode="decimal" style="border-radius:12px;border:1.5px solid var(--border);background:var(--muted);padding:8px 12px;font-size:13px;outline:none;color:var(--fg)">
+      <input id="cls-pl-poly" placeholder="poliéster mm" value="0.127" title="Poliéster de base — padrão 0,127 mm nos fotopolímeros" inputmode="decimal" style="border-radius:12px;border:1.5px solid var(--border);background:var(--muted);padding:8px 12px;font-size:13px;outline:none;color:var(--fg)">
+      <button onclick="clAddPlate()" style="grid-column:1/-1;border-radius:12px;border:none;background:var(--fg);color:var(--yellow);cursor:pointer;font-size:13px;font-weight:700;padding:10px">+ Adicionar clichê</button>
+    </div>
+
+    <div style="margin-top:20px;background:var(--muted);border-radius:14px;padding:14px 16px;font-size:11.5px;color:var(--muted-fg);line-height:1.6">
+      <b style="color:var(--fg)">Fórmulas:</b> R = dentes × passo do módulo &nbsp;·&nbsp;
+      K = 2π × (espessura − poliéster) &nbsp;·&nbsp;
+      Distorção % = K ÷ R × 100 &nbsp;·&nbsp;
+      Tamanho impresso = R − K
+    </div>
+  </div>
+</div>
+
+<!-- ══ ABA: VALOR CLICHÊ ══ -->
+<div id="view-valor" style="display:none">
+<div class="app full calc-2col" style="max-width:520px;padding-bottom:80px">
+
+  <!-- Header da aba -->
+  <div class="calc-full" style="margin-bottom:28px">
+    <h1 class="fd" style="font-size:38px;font-weight:900;line-height:.95;letter-spacing:-1.5px">
+      Valor do<br>clichê.
+    </h1>
+    <p style="margin-top:8px;font-size:13px;color:var(--muted-fg)">
+      Informe o diâmetro, a chapa e os dados da etiqueta.
+    </p>
+  </div>
+
+  <!-- Card de inputs -->
+  <div class="card" style="padding:20px;margin-bottom:18px">
+    <label style="display:block">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--muted-fg);margin-bottom:8px">Diâmetro do cilindro (mm)</div>
+      <div style="background:var(--muted);border-radius:14px;padding:12px 16px;border:1.5px solid transparent;transition:border-color .15s" id="vc-diametro-wrap" onclick="document.getElementById('vc-diametro').focus()">
+        <input id="vc-diametro" type="number" inputmode="decimal" value="96" placeholder="ex.: 96"
+          style="width:100%;background:transparent;border:none;outline:none;font-family:var(--font-display);font-size:32px;font-weight:900;color:var(--fg);letter-spacing:-1px"
+          oninput="vcCalc()" onfocus="document.getElementById('vc-diametro-wrap').style.borderColor='var(--fg)'" onblur="document.getElementById('vc-diametro-wrap').style.borderColor='transparent'">
+      </div>
+    </label>
+
+    <div style="margin-top:18px">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--muted-fg);margin-bottom:8px">Chapa</div>
+      <div id="vc-chapa-chips" style="display:flex;flex-wrap:wrap;gap:7px"></div>
+    </div>
+
+    <div class="div"></div>
+
+    <div class="frow">
+      <div class="field"><label>Largura da etiqueta (mm)</label><input type="number" id="vc-largura-etq" value="50" min="0.01" step="0.01" oninput="vcCalc()"></div>
+      <div class="field"><label>Carreiras</label><input type="number" id="vc-carreiras" value="1" min="1" step="1" oninput="vcCalc()"></div>
+    </div>
+    <div class="frow">
+      <div class="field"><label>Jogos</label><input type="number" id="vc-jogos" value="1" min="1" step="1" oninput="vcCalc()"><span class="field-note">Área só é calculada se Jogos = 1</span></div>
+      <div class="field"><label>Nº de cores</label><input type="number" id="vc-cores" value="1" min="1" step="1" oninput="vcCalc()"></div>
+    </div>
+    <div class="field"><label>Prova (R$)</label><input type="number" id="vc-prova" value="0" min="0" step="0.01" oninput="vcCalc()"></div>
+  </div>
+
+  <!-- Resultado -->
+  <div class="res-col" style="border-radius:24px;overflow:hidden;background:var(--fg);box-shadow:var(--sh)">
+    <!-- Destaque amarelo -->
+    <div style="background:var(--yellow);padding:18px 22px 14px">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#252425;opacity:.6;margin-bottom:4px">Total</div>
+      <div style="display:flex;align-items:baseline;gap:6px">
+        <span id="vc-r-total" class="fd" style="font-size:44px;font-weight:900;letter-spacing:-2px;line-height:1;color:#252425">—</span>
+      </div>
+    </div>
+    <!-- Altura / Largura -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;border-top:1px solid rgba(255,255,255,.08)">
+      <div style="padding:16px 22px;border-right:1px solid rgba(255,255,255,.08)">
+        <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:rgba(255,255,255,.4);margin-bottom:6px">Altura</div>
+        <div id="vc-r-altura" class="fd" style="font-size:22px;font-weight:700;color:#fff;letter-spacing:-.5px">—</div>
+      </div>
+      <div style="padding:16px 22px">
+        <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:rgba(255,255,255,.4);margin-bottom:6px">Largura</div>
+        <div id="vc-r-largura" class="fd" style="font-size:22px;font-weight:700;color:var(--yellow);letter-spacing:-.5px">—</div>
+      </div>
+    </div>
+    <!-- Área / Valor por cor -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;border-top:1px solid rgba(255,255,255,.08)">
+      <div style="padding:16px 22px;border-right:1px solid rgba(255,255,255,.08)">
+        <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:rgba(255,255,255,.4);margin-bottom:6px">Área</div>
+        <div id="vc-r-area" class="fd" style="font-size:22px;font-weight:700;color:#fff;letter-spacing:-.5px">—</div>
+        <div id="vc-r-area-note" style="display:none;font-size:9.5px;color:rgba(255,255,255,.4);margin-top:4px">Só calculada com Jogos = 1</div>
+      </div>
+      <div style="padding:16px 22px">
+        <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:rgba(255,255,255,.4);margin-bottom:6px">Valor por cor</div>
+        <div id="vc-r-cor" class="fd" style="font-size:22px;font-weight:700;color:var(--yellow);letter-spacing:-.5px">—</div>
+      </div>
+    </div>
+    <!-- Fórmula -->
+    <div id="vc-r-formula" style="padding:10px 22px;border-top:1px solid rgba(255,255,255,.07);font-size:10px;font-family:'JetBrains Mono',monospace;color:rgba(255,255,255,.3)">
+      Informe os dados acima
+    </div>
+  </div>
+
+  <div class="calc-full" style="margin-top:28px;text-align:center;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted-fg);opacity:.5">R2 Hub · Valor</div>
+</div>
+</div>
+
+<!-- ══ ABA: BOBINAS ══ -->
+<div id="view-bobina" style="display:none">
+<div class="app full calc-2col" style="max-width:520px;padding-bottom:80px">
+
+  <div class="calc-full" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:28px">
+    <div>
+      <h1 class="fd" style="font-size:38px;font-weight:900;line-height:.95;letter-spacing:-1.5px">
+        Metragem<br>da bobina.
+      </h1>
+      <p style="margin-top:8px;font-size:13px;color:var(--muted-fg)">
+        Informe os diâmetros e a espessura do material.
+      </p>
+    </div>
+  </div>
+
+  <!-- Inputs -->
+  <div class="card" style="padding:20px;margin-bottom:18px">
+    <label style="display:block">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--muted-fg);margin-bottom:8px">Ø Externo (mm)</div>
+      <div style="background:var(--muted);border-radius:14px;padding:12px 16px;border:1.5px solid transparent;transition:border-color .15s" id="bb-ext-wrap" onclick="document.getElementById('bb-ext').focus()">
+        <input id="bb-ext" type="number" inputmode="decimal" placeholder="ex.: 500"
+          style="width:100%;background:transparent;border:none;outline:none;font-family:var(--font-display);font-size:32px;font-weight:900;color:var(--fg);letter-spacing:-1px"
+          oninput="bbCalc()" onfocus="document.getElementById('bb-ext-wrap').style.borderColor='var(--fg)'" onblur="document.getElementById('bb-ext-wrap').style.borderColor='transparent'">
+      </div>
+    </label>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:18px">
+      <label style="display:block">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--muted-fg);margin-bottom:8px">Ø Interno (mm)</div>
+        <div style="background:var(--muted);border-radius:14px;padding:10px 14px;border:1.5px solid transparent">
+          <input id="bb-int" type="number" inputmode="decimal" placeholder="76"
+            style="width:100%;background:transparent;border:none;outline:none;font-family:var(--font-display);font-size:22px;font-weight:800;color:var(--fg);letter-spacing:-.5px"
+            oninput="bbCalc()">
+        </div>
+      </label>
+      <label style="display:block">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--muted-fg);margin-bottom:8px">Espessura (mm)</div>
+        <div style="background:var(--muted);border-radius:14px;padding:10px 14px;border:1.5px solid transparent">
+          <input id="bb-esp" type="number" inputmode="decimal" step="0.001" placeholder="0,080"
+            style="width:100%;background:transparent;border:none;outline:none;font-family:var(--font-display);font-size:22px;font-weight:800;color:var(--fg);letter-spacing:-.5px"
+            oninput="bbCalc()">
+        </div>
+      </label>
+    </div>
+
+    <div style="margin-top:14px">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--muted-fg);margin-bottom:8px">Largura da bobina (mm) <span style="text-transform:none;letter-spacing:0;font-weight:600;opacity:.7">— opcional, só para a área</span></div>
+      <div style="background:var(--muted);border-radius:14px;padding:10px 14px;border:1.5px solid transparent">
+        <input id="bb-larg" type="number" inputmode="decimal" placeholder="ex.: 250"
+          style="width:100%;background:transparent;border:none;outline:none;font-family:var(--font-display);font-size:22px;font-weight:800;color:var(--fg);letter-spacing:-.5px"
+          oninput="bbCalc()">
+      </div>
+    </div>
+
+    <button onclick="bbSalvar()" class="btn btn-primary" style="width:100%;margin-top:16px">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>Salvar no histórico
+    </button>
+  </div>
+
+  <!-- Resultado -->
+  <div class="res-col" style="border-radius:24px;overflow:hidden;background:var(--fg);box-shadow:var(--sh)">
+    <div style="background:var(--yellow);padding:18px 22px 14px">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#252425;opacity:.6;margin-bottom:4px">Comprimento estimado</div>
+      <div style="display:flex;align-items:baseline;gap:6px">
+        <span id="bb-r-m" class="fd" style="font-size:48px;font-weight:900;letter-spacing:-2px;line-height:1;color:#252425">—</span>
+        <span style="font-size:16px;font-weight:700;color:#252425">m</span>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;border-top:1px solid rgba(255,255,255,.08)">
+      <div style="padding:16px 22px;border-right:1px solid rgba(255,255,255,.08)">
+        <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:rgba(255,255,255,.4);margin-bottom:6px">Milímetros</div>
+        <div id="bb-r-mm" class="fd" style="font-size:24px;font-weight:700;color:#fff;letter-spacing:-.5px">—</div>
+      </div>
+      <div style="padding:16px 22px">
+        <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:rgba(255,255,255,.4);margin-bottom:6px">Área total</div>
+        <div id="bb-r-area" class="fd" style="font-size:24px;font-weight:700;color:var(--yellow);letter-spacing:-.5px">—</div>
+        <div id="bb-r-area-note" style="display:none;font-size:9.5px;color:rgba(255,255,255,.4);margin-top:4px">Informe a largura</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;border-top:1px solid rgba(255,255,255,.08)">
+      <div style="padding:14px 22px;border-right:1px solid rgba(255,255,255,.08)">
+        <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:rgba(255,255,255,.4);margin-bottom:6px">Voltas</div>
+        <div id="bb-r-voltas" class="fd" style="font-size:18px;font-weight:700;color:#fff;letter-spacing:-.5px">—</div>
+      </div>
+      <div style="padding:14px 22px">
+        <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:rgba(255,255,255,.4);margin-bottom:6px">Espessura do rolo</div>
+        <div id="bb-r-parede" class="fd" style="font-size:18px;font-weight:700;color:#fff;letter-spacing:-.5px">—</div>
+      </div>
+    </div>
+    <div id="bb-r-formula" style="padding:10px 22px;border-top:1px solid rgba(255,255,255,.07);font-size:10px;font-family:'JetBrains Mono',monospace;color:rgba(255,255,255,.3)">
+      Informe os dados acima
+    </div>
+  </div>
+
+  <!-- Histórico -->
+  <div class="calc-full" style="margin-top:22px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--muted-fg)">Histórico</div>
+      <button onclick="bbLimpar()" style="background:none;border:none;color:var(--muted-fg);font-size:11px;font-weight:700;cursor:pointer;padding:2px 4px">limpar</button>
+    </div>
+    <div id="bb-hist"></div>
+  </div>
+
+</div>
+</div>
+
+<!-- ══ ABA: LARGURA DO SUBSTRATO (app isolado por iframe) ══ -->
+<div id="view-substrato" style="display:none">
+  <iframe id="if-substrato" data-src="/calc-substrato.html" title="Largura do Substrato"
+    style="width:100%;height:calc(100vh - 120px);min-height:520px;border:0;display:block;background:var(--bg)"></iframe>
+</div>
+
+<!-- ══ ABA: ETIQUETAS POR CAIXA (app isolado por iframe) ══ -->
+<div id="view-caixa" style="display:none">
+  <iframe id="if-caixa" data-src="/calc-caixa.html" title="Etiquetas por Caixa"
+    style="width:100%;height:calc(100vh - 120px);min-height:520px;border:0;display:block;background:var(--bg)"></iframe>
+</div>
+
+<script>
+/* ═══ CONSTANTS ═══ */
+const ESP_MIN_DEFAULT = 2.41, ESP_MAX_DEFAULT = 4.00;
+const ESP_EPS = 1e-9; // tolerância para ruído de ponto flutuante perto de 0 (facas sem perda, ex.: serrilha)
+const PARQUE_KEY = 'r2flexo:parque';
+// Parque de cilindros POR MÁQUINA (diâmetros em mm). A lista original de 22
+// diâmetros é da Classic; a Force começa vazia para ser preenchida manualmente.
+const PARQUE_DEFAULT = {
+  classic: [50,51,52,53,54,55,59,60,63,65,70,72,74,77,78,79,81,84,86,91,96,102],
+  force:   [],
+  custom:  []
+};
+let parque = (()=>{
+  try{ const p=JSON.parse(localStorage.getItem(PARQUE_KEY)); return (p&&typeof p==='object') ? {...PARQUE_DEFAULT, ...p} : {...PARQUE_DEFAULT}; }
+  catch(e){ return {...PARQUE_DEFAULT}; }
+})();
+function maqId(){ return document.getElementById('maquina')?.value || 'classic'; }
+function getProdDias(){ return parque[maqId()] || []; }
+function parqueSave(){ localStorage.setItem(PARQUE_KEY, JSON.stringify(parque)); }
+function parqueAdd(d){
+  const id=maqId(); if(!parque[id]) parque[id]=[];
+  if(!(d>0) || parque[id].includes(d)) return false;
+  parque[id].push(d); parque[id].sort((a,b)=>a-b); parqueSave(); return true;
+}
+function parqueRemove(d){
+  const id=maqId(); parque[id]=(parque[id]||[]).filter(x=>x!==d); parqueSave();
+}
+function parqueReset(){
+  const id=maqId(); parque[id]=[...(PARQUE_DEFAULT[id]||[])]; parqueSave();
+  bdRenderChips(); refreshParqueUI();
+}
+const SLOT_COLORS=['#155724','#084298','#5a1a8a','#884400','#7B241C','#117A65','#1A5276','#6E2FBF','#B7770D','#1E8449','#21618C','#7D6608'];
+const SLOT_NAMES='ABCDEFGHIJKL'.split('');
+const SLOT_BG=['#d4edda','#cfe2ff','#e8d5f5','#fff0e0','#fde8e8','#d1f2eb','#d6eaf8','#ead6f5','#fef9e7','#d5f5e3','#d6eaf8','#fdf2d0'];
+
+/* ═══ THEME ═══ */
+function toggleTheme(){
+  const isDark = document.documentElement.dataset.theme==='dark';
+  const next = isDark?'light':'dark';
+  document.documentElement.dataset.theme = next;
+  localStorage.setItem('r2-theme', next);
+  updateThemeIcon();
+}
+function updateThemeIcon(){
+  const isDark = document.documentElement.dataset.theme==='dark';
+  document.getElementById('theme-icon').innerHTML = isDark
+    ? '<path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" fill="none" stroke="currentColor" stroke-width="2"/>'
+    : '<circle cx="12" cy="12" r="5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke="currentColor" stroke-width="2"/>';
+}
+
+/* ═══ PWA INSTALL ═══ */
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault(); deferredPrompt = e;
+  document.getElementById('install-btn').style.display = 'flex';
+});
+function installApp(){
+  if(deferredPrompt){ deferredPrompt.prompt(); deferredPrompt.userChoice.then(()=>{ deferredPrompt=null; document.getElementById('install-btn').style.display='none'; }); }
+}
+window.addEventListener('appinstalled', () => { document.getElementById('install-btn').style.display='none'; });
+
+/* ═══ LOCALSTORAGE ═══ */
+const LS_KEYS = ['x-val','y-val','maquina','maq-custom','passo','n-min','n-max','rep-max','esp-min','esp-max','cpasso','cn-min','cn-max','crep-max','c-esp-min','c-esp-max','bd-passo','bd-rep-max','bd-esp-min','bd-esp-max','vc-diametro','vc-largura-etq','vc-carreiras','vc-jogos','vc-cores','vc-prova'];
+function saveState(){
+  LS_KEYS.forEach(k=>{ const el=document.getElementById(k); if(el) localStorage.setItem('r2-'+k, el.value); });
+  localStorage.setItem('r2-so-prod', soProdActive?'1':'0');
+}
+function loadState(){
+  LS_KEYS.forEach(k=>{ const el=document.getElementById(k); if(el){ const v=localStorage.getItem('r2-'+k); if(v!==null) el.value=v; }});
+  if(localStorage.getItem('r2-so-prod')==='1'){ soProdActive=true; document.getElementById('so-prod-sw').classList.add('on'); }
+  const theme = localStorage.getItem('r2-theme')||'light';
+  document.documentElement.dataset.theme = theme;
+  updateThemeIcon();
+  const mq=document.getElementById('maquina');
+  if(mq) document.getElementById('maq-custom-field').style.display = mq.value==='custom'?'block':'none';
+  const pa=document.getElementById('passo');
+  if(pa) document.getElementById('custom-field').style.display = pa.value==='custom'?'block':'none';
+}
+LS_KEYS.forEach(k=>{ document.getElementById(k)?.addEventListener('change', saveState); });
+
+/* ═══ SÓ PRODUÇÃO TOGGLE ═══ */
+let soProdActive = false;
+let cmpFilterActive = false;
+
+function toggleSoProd(){
+  soProdActive = !soProdActive;
+  document.getElementById('so-prod-sw').classList.toggle('on', soProdActive);
+  saveState();
+  if(document.querySelector('#main-panel .tbl-card')) calcular(false);
+}
+function toggleCmpFilter(){
+  cmpFilterActive = !cmpFilterActive;
+  document.getElementById('cmp-filter-sw').classList.toggle('on', cmpFilterActive);
+  if(document.querySelector('#cmp-panel table')) comparar();
+}
+
+/* ═══ UTILS ═══ */
+document.getElementById('passo').addEventListener('change',function(){ document.getElementById('custom-field').style.display=this.value==='custom'?'block':'none'; });
+document.addEventListener('keydown',e=>{ if(e.key!=='Enter') return; const t=document.activeElement?.closest('[id^="view-"]')?.id; if(t==='view-calc'||!t) calcular(false); else if(t==='view-bydia') calcByDia(); else if(t==='view-cliche') clCalc(); else if(t==='view-valor') vcCalc(); else if(t==='view-bobina') bbCalc(); });
+
+function getPasso(){ const v=document.getElementById('passo').value; if(v==='pi') return Math.PI; if(v==='custom') return parseFloat(document.getElementById('custom-passo').value)||3.175; return parseFloat(v); }
+function getCPasso(){ const v=document.getElementById('cpasso').value; if(v==='pi') return Math.PI; return parseFloat(v); }
+function getEspMin(){ const v=parseFloat(document.getElementById('esp-min').value); return isNaN(v)?ESP_MIN_DEFAULT:v; }
+function getEspMax(){ const v=parseFloat(document.getElementById('esp-max').value); return isNaN(v)?ESP_MAX_DEFAULT:v; }
+function fmt(n,d=3){ return n.toFixed(d).replace('.',','); }
+function repCls(r){ return ['r1','r2','r3','r4','r5'][r-1]||'rn'; }
+function nearProd(dia){ const rd=Math.round(dia*10)/10; return getProdDias().find(d=>Math.abs(rd-d)<0.5); }
+const ENGR_POR_DENTE = 1.76;   // R$ por dente (Z) da engrenagem
+function valorFaca(n, largura){ return 17.61 * n - 2.98 * (largura||0) - 29.32; }
+function valorEngr(n){ return n * ENGR_POR_DENTE; }
+function brl(v){ return 'R$ ' + v.toFixed(2).replace('.',','); }
+
+function priceChip(n, largura){
+  // Faca SAE 4140 = 17,61×Z − 2,98×Largura − 29,32  [±5-17%, Z=50–102]
+  // Engrenagem    = Z × 1,76
+  const faca = valorFaca(n, largura);
+  const engr = valorEngr(n);
+  if(faca <= 0){
+    return `<span class="price-chip" style="background:var(--muted);color:var(--muted-fg)" title="Fórmula da faca resulta ≤ 0 (fora da faixa Z=50–102) — só engrenagem">${brl(engr)}</span>`
+         + `<div style="font-size:9.5px;color:var(--muted-fg);margin-top:2px">só engrenagem</div>`;
+  }
+  const total = faca + engr;
+  return `<span class="price-chip" title="Faca SAE 4140: 17,61×${n} − 2,98×${(largura||0).toFixed(1)} − 29,32 = ${brl(faca)} · Engrenagem: ${n} × 1,76 = ${brl(engr)}">${brl(total)}</span>`
+       + `<div style="font-size:9.5px;color:var(--muted-fg);margin-top:2px;white-space:nowrap">faca ${faca.toFixed(2).replace('.',',')} · engr ${engr.toFixed(2).replace('.',',')}</div>`;
+}
+function espChip(e,mn,mx){ if(e<mn-ESP_EPS) return `<span class="ec ec-low">${fmt(e,3)}</span>`; if(e>mx+ESP_EPS) return `<span class="ec ec-hi">${fmt(e,3)}</span>`; return `<span class="ec ec-ok">${fmt(e,3)}</span>`; }
+function renderAlert(msg,type='warn'){
+  const icon=type==='warn'?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
+  return `<div class="alert alert-${type}">${icon}<div>${msg}</div></div>`;
+}
+
+/* ═══ BUILD ROWS ═══ */
+function buildRows(X,passo,nMin,nMax,repMax){
+  const seen=new Set(),rows=[];
+  for(let n=nMin;n<=nMax;n++){
+    const dev=n*passo,dia=dev/Math.PI;
+    for(let rep=1;rep<=repMax;rep++){
+      if(dev<rep*X) continue;
+      let esp=(dev-rep*X)/rep;
+      if(esp<-ESP_EPS) continue;
+      if(esp<0) esp=0; // ruído de ponto flutuante perto de 0 → perda exata (facas sem perda, ex. serrilha)
+      const k=`${n}-${rep}`;
+      if(seen.has(k)) continue;
+      seen.add(k);
+      rows.push({n,dev,dia,repInt:rep,esp});
+    }
+  }
+  return rows;
+}
+
+// Modo "perda zero": em vez de fixar a altura X e filtrar pela perda, a altura é
+// recalculada (ajustada) para o valor exato que zera a perda em cada cilindro/repetição.
+// Usado para facas sem perda (ex.: serrilha), onde a perda 0 nunca bate exatamente
+// com uma altura fixa por causa de arredondamento — então ajustamos a altura em vez da perda.
+function isZeroMode(espMin,espMax){ return Math.abs(espMin)<=ESP_EPS && Math.abs(espMax)<=ESP_EPS; }
+function buildRowsZero(passo,nMin,nMax,repMax){
+  const rows=[];
+  for(let n=nMin;n<=nMax;n++){
+    const dev=n*passo,dia=dev/Math.PI;
+    for(let rep=1;rep<=repMax;rep++){
+      rows.push({n,dev,dia,repInt:rep,esp:0,xAdj:dev/rep});
+    }
+  }
+  return rows;
+}
+
+// Carreiras da faca conforme a largura da etiqueta (Y), mesmos parâmetros de perda
+// da altura, respeitando o limite de largura útil da faca (144 mm).
+// Perda = (LarguraMax − Carreiras × Y) ÷ (Carreiras − 1)
+const MAQUINAS = { force:{nome:'Force', maxW:250}, classic:{nome:'Classic', maxW:140} };
+function getMaquina(){
+  const v = document.getElementById('maquina')?.value || 'classic';
+  if(v==='custom'){
+    const w = parseFloat(document.getElementById('maq-custom')?.value);
+    return { nome:'Personalizada', maxW: (Number.isFinite(w)&&w>0) ? w : 140 };
+  }
+  return MAQUINAS[v] || MAQUINAS.classic;
+}
+function onMaqChange(){ setMaquina(document.getElementById('maquina').value); }
+
+// Carreiras: a perda é FIXA (dentro da faixa min–max) e o conjunto tem que CABER
+// na largura útil da máquina. Há uma perda depois de cada carreira (n perdas, não n−1):
+//     Total = Carreiras × (Y + Perda) ≤ LarguraMax
+// Ex.: Y=38,66 · perda 3,00 · Force 250 → 6 × 41,66 = 249,96 ≤ 250 → 6 carreiras.
+// Para cada n a perda utilizável é (LarguraMax ÷ n) − Y, limitada ao teto espMax.
+function calcCarreiras(Y,espMin,espMax,maxW){
+  const opts=[];
+  if(!(Y>0) || !(maxW>0)) return {opts,best:null,maxW};
+  const nTeto = Math.floor(maxW / (Y + espMin));
+  for(let n=1;n<=nTeto;n++){
+    const folga = maxW/n - Y;              // perda máxima possível com n carreiras
+    if(folga < espMin-ESP_EPS) continue;
+    const esp = Math.min(folga, espMax);   // usa o teto da faixa se sobrar espaço
+    opts.push({ n, esp, total:n*(Y+esp), sobra:maxW-n*(Y+esp) });
+  }
+  const best=opts.length?opts[opts.length-1]:null;   // maior nº de carreiras
+  return {opts,best,maxW};
+}
+
+/* ═══ TAB: CALCULADORA ═══ */
+let sortCol='esp',sortAsc=true,lastRows=[],lastZeroMode=false;
+function setSort(col){ sortCol===col?sortAsc=!sortAsc:(sortCol=col,sortAsc=true); redrawTable(); }
+function applySort(rows){ return [...rows].sort((a,b)=>{ const va=a[sortCol],vb=b[sortCol]; return sortAsc?va-vb:vb-va; }); }
+
+function buildTbody(sorted,espMin,espMax,zeroMode,X){
+  const _largura=parseFloat(document.getElementById('y-val')?.value)||0;
+  return sorted.map(r=>{
+    const pd=nearProd(r.dia);
+    const diaCell=`<span style="font-weight:700">${fmt(r.dia,4)}</span>${pd!=null?`<span class="pb">Ø${pd}</span>`:''}`;
+    const priceCell=priceChip(r.n,_largura)||`<span style="color:var(--muted-fg);font-size:11px">—</span>`;
+    const xAdjCell = zeroMode ? `<td><span style="font-weight:700">${fmt(r.xAdj,3)}</span><br><span style="font-size:10px;color:var(--muted-fg)">Δ ${r.xAdj-X>=0?'+':''}${fmt(r.xAdj-X,3)} mm</span></td>` : '';
+    return `<tr${pd!=null?' class="prod-row"':''}><td>${r.n}</td><td>${fmt(r.dev,4)}</td><td>${diaCell}</td><td><span class="rc ${repCls(r.repInt)}">${r.repInt}×</span></td>${xAdjCell}<td>${espChip(r.esp,espMin,espMax)}</td><td>${priceCell}</td></tr>`;
+  }).join('');
+}
+function redrawTable(){
+  const w=document.querySelector('.tbl-card'); if(!w) return;
+  const espMin=getEspMin(),espMax=getEspMax();
+  const X=parseFloat(document.getElementById('x-val')?.value)||0;
+  w.querySelector('tbody').innerHTML=buildTbody(applySort(lastRows),espMin,espMax,lastZeroMode,X);
+  w.querySelectorAll('thead th').forEach(th=>{ const c=th.dataset.col; th.classList.toggle('sorted',c===sortCol); const a=th.querySelector('.arr'); if(a) a.textContent=c===sortCol?(sortAsc?'↑':'↓'):'↕'; });
+}
+function renderTable(rows,closestMode,espMin,espMax,zeroMode,X){
+  lastRows=rows; lastZeroMode=zeroMode;
+  const prodCount=rows.filter(r=>nearProd(r.dia)!=null).length;
+  const cols=[{k:'n',lb:'Dentes'},{k:'dev',lb:'Desenv. (mm)'},{k:'dia',lb:'Diâmetro (mm)'},{k:'repInt',lb:'Repetições'},...(zeroMode?[{k:'xAdj',lb:'Altura ajustada (mm)'}]:[]),{k:'esp',lb:'Perda (mm)'},{k:'price',lb:'Preço total (R$)',nosort:true}];
+  const thead=cols.map(c=>{ const s=sortCol===c.k; return c.nosort ? `<th>${c.lb}</th>` : `<th data-col="${c.k}" class="${s?'sorted':''}" onclick="setSort('${c.k}')">${c.lb} <i class="arr">${s?(sortAsc?'↑':'↓'):'↕'}</i></th>`; }).join('');
+  return `<div class="tbl-card">
+    <div class="tbl-bar">
+      <div class="tbl-title">Cilindros compatíveis <span class="cnt">${rows.length} resultado${rows.length!==1?'s':''}</span>${prodCount?`<span class="cnt-prod">★ ${prodCount} em produção</span>`:''}</div>
+      <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+        <div class="legend"><div class="leg"><span class="ld" style="background:#FFFCDE;border-left:3px solid #FFE815"></span>Produção</div><div class="leg"><span class="ld" style="background:#d4edda"></span>Perda ok</div><div class="leg"><span class="ld" style="background:#fde8e8"></span>Baixa</div><div class="leg"><span class="ld" style="background:#fff0e0"></span>Alta</div></div>
+        <button class="exp-btn" onclick="exportCSV()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>CSV</button>
+      </div>
+    </div>
+    <div class="tbl-scroll"><table><thead><tr>${thead}</tr></thead><tbody>${buildTbody(applySort(rows),espMin,espMax,zeroMode,X)}</tbody></table></div>
+    <div class="tbl-foot">${zeroMode?'<span><b>Altura ajustada</b> = Desenvolvimento ÷ Repetições — perda exata = 0</span>':'<span><b>Perda</b> = (Dev − Rep × X) ÷ Rep</span>'}<span><b>Diâmetro</b> = Desenvolvimento ÷ π</span><span><b>★</b> = Cilindro em produção</span><span><b>Preço</b> = Faca + Engrenagem (Z × 1,76)</span></div>
+  </div>`;
+}
+function renderStats(count,X,passo,espMed,reps,closestMode,carr,Y,zeroMode,deltaMed){
+  const carrHtml = (Y>0) ? (
+    carr && carr.best
+      ? `<div class="stat"><div class="stat-lbl">Carreiras (Largura)</div><div class="stat-val">${carr.best.n}×</div><div class="stat-sub">perda ${fmt(carr.best.esp,3)} mm · total ${fmt(carr.best.total,2)} de ${fmt(carr.maxW,0)} mm${carr.maq?` · ${carr.maq}`:''}</div></div>`
+      : `<div class="stat"><div class="stat-lbl">Carreiras (Largura)</div><div class="stat-val" style="color:#c0392b">—</div><div class="stat-sub">Y + perda mín. (${fmt(getEspMin(),2)}) não cabe em ${fmt(carr?.maxW||0,0)} mm</div></div>`
+  ) : '';
+  const perdaStat = zeroMode
+    ? `<div class="stat"><div class="stat-lbl">Perda</div><div class="stat-val">0,000</div><div class="stat-sub">exata — altura ajustada</div></div>`
+    : `<div class="stat"><div class="stat-lbl">Perda média</div><div class="stat-val">${fmt(espMed,3)}</div><div class="stat-sub">mm nos resultados</div></div>`;
+  const deltaStat = zeroMode
+    ? `<div class="stat"><div class="stat-lbl">Δ Altura média</div><div class="stat-val">${fmt(deltaMed,3)}</div><div class="stat-sub">mm de ajuste vs. ${fmt(X,2)} mm</div></div>`
+    : '';
+  return `<div class="stats"><div class="stat"><div class="stat-lbl">Resultados</div><div class="stat-val">${count}</div><div class="stat-sub">${zeroMode?'altura ajustada':(closestMode?'mais próximos':'dentro do filtro')}</div></div><div class="stat"><div class="stat-lbl">Altura X</div><div class="stat-val">${fmt(X,2)}</div><div class="stat-sub">mm — ${zeroMode?'desejada':'entrada'}</div></div>${perdaStat}${deltaStat}<div class="stat"><div class="stat-lbl">Repetições</div><div class="stat-val" style="font-size:${reps.length>4?'17':'24'}px;line-height:1.3">${reps.join(' · ')}</div><div class="stat-sub">encontradas</div></div>${carrHtml}</div>`;
+}
+function exportCSV(){
+  if(!lastRows.length) return;
+  const X=parseFloat(document.getElementById('x-val').value);
+  const hdr = lastZeroMode
+    ? 'Dentes;Desenvolvimento_mm;Diametro_mm;Repeticoes;Altura_ajustada_mm;Delta_mm;Perda_mm;Em_Producao;Valor_Faca;Valor_Engrenagem;Valor_Total'
+    : 'Dentes;Desenvolvimento_mm;Diametro_mm;Repeticoes;Perda_mm;Em_Producao;Valor_Faca;Valor_Engrenagem;Valor_Total';
+  const _lg=parseFloat(document.getElementById('y-val')?.value)||0;
+  const _pv=r=>{ const f=valorFaca(r.n,_lg), e=valorEngr(r.n), t=(f>0?f:0)+e;
+    return [f.toFixed(2).replace('.',','), e.toFixed(2).replace('.',','), t.toFixed(2).replace('.',',')]; };
+  const rows=applySort(lastRows).map(r=> lastZeroMode
+    ? [r.n,r.dev.toFixed(4),r.dia.toFixed(4),r.repInt,r.xAdj.toFixed(4),(r.xAdj-X).toFixed(4),r.esp.toFixed(4),nearProd(r.dia)!=null?'SIM':'NAO',..._pv(r)].join(';')
+    : [r.n,r.dev.toFixed(4),r.dia.toFixed(4),r.repInt,r.esp.toFixed(4),nearProd(r.dia)!=null?'SIM':'NAO',..._pv(r)].join(';')
+  );
+  const blob=new Blob(['\uFEFF'+[hdr,...rows].join('\n')],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`flexofaca_X${X.toFixed(1)}mm.csv`;a.click();URL.revokeObjectURL(url);
+}
+function calcular(closestMode){
+  const X=parseFloat(document.getElementById('x-val').value)||0;
+  const passo=getPasso();
+  const nMin=parseInt(document.getElementById('n-min').value);
+  const nMax=parseInt(document.getElementById('n-max').value);
+  const repMax=parseInt(document.getElementById('rep-max').value);
+  const espMin=getEspMin(),espMax=getEspMax();
+  const zeroMode=isZeroMode(espMin,espMax);
+  const panel=document.getElementById('main-panel');
+  if(!X||X<=0){panel.innerHTML=renderAlert('Informe uma Altura válida.');return;}
+  if(nMin>=nMax){panel.innerHTML=renderAlert('Dentes mín. deve ser menor que Dentes máx.');return;}
+  if(espMin>espMax){panel.innerHTML=renderAlert('Perda mín. não pode ser maior que máx.');return;}
+  let allRows = zeroMode ? buildRowsZero(passo,nMin,nMax,repMax) : buildRows(X,passo,nMin,nMax,repMax);
+  if(soProdActive) allRows=allRows.filter(r=>nearProd(r.dia)!=null);
+  if(!allRows.length){panel.innerHTML=renderAlert(soProdActive?'Nenhum cilindro de produção encontrado. Desative o filtro "Só produção" para ver todos.':'Nenhum cilindro encontrado no intervalo definido.');return;}
+  let rows,alertHtml='';
+  if(zeroMode){
+    // Perda 0: em vez de filtrar pela perda, ajustamos a altura para o valor exato
+    // (Dev ÷ Rep) que zera a perda, priorizando os mais próximos da altura desejada.
+    rows=[...allRows].sort((a,b)=>Math.abs(a.xAdj-X)-Math.abs(b.xAdj-X)).slice(0,40);
+    sortCol='xAdj';sortAsc=true;
+    alertHtml=renderAlert(`Modo <strong>perda zero</strong> — a altura foi ajustada para o valor exato que zera a perda em cada cilindro (ideal para facas sem perda, ex.: serrilha). Mostrando as 40 combinações com altura ajustada mais próxima de ${fmt(X,2)} mm.`,'info');
+  } else if(closestMode){
+    const target=(espMin+espMax)/2;
+    rows=[...allRows].sort((a,b)=>Math.abs(a.esp-target)-Math.abs(b.esp-target)).slice(0,40);
+    sortCol='esp';sortAsc=true;
+    alertHtml=renderAlert(`Modo <strong>mais próximos</strong> — 40 cilindros cujo espaçamento mais se aproxima de ${fmt(target,2)} mm.`,'info');
+  } else {
+    rows=allRows.filter(r=>r.esp>=espMin-ESP_EPS&&r.esp<=espMax+ESP_EPS);
+    if(!rows.length){
+      const best=[...allRows].sort((a,b)=>{const da=a.esp<espMin?espMin-a.esp:a.esp>espMax?a.esp-espMax:0;const db=b.esp<espMin?espMin-b.esp:b.esp>espMax?b.esp-espMax:0;return da-db;})[0];
+      panel.innerHTML=renderAlert(`Nenhum cilindro com perda entre ${fmt(espMin,2)} e ${fmt(espMax,2)} mm. O mais próximo tem perda de <strong>${fmt(best.esp,3)} mm</strong> (${best.n} dentes, ${best.repInt}×). Use <strong>"Mostrar os mais próximos"</strong>.`);
+      return;
+    }
+    sortCol='esp';sortAsc=true;
+  }
+  const espMed=rows.reduce((s,r)=>s+r.esp,0)/rows.length;
+  const deltaMed=zeroMode?rows.reduce((s,r)=>s+Math.abs(r.xAdj-X),0)/rows.length:0;
+  const reps=[...new Set(rows.map(r=>r.repInt))].sort((a,b)=>a-b);
+  const Y=parseFloat(document.getElementById('y-val')?.value)||0;
+  const maq=getMaquina();
+  const carr=calcCarreiras(Y,espMin,espMax,maq.maxW); carr.maq=maq.nome;
+  const carrFormula = Y>0 ? `<div class="formula" style="margin-top:8px"><span>Carreiras</span><span class="hl">=</span><span>Carreiras × (Y + Perda) ≤ Largura máx</span><span style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap"><code>Y = ${fmt(Y,2)} mm</code><code>${maq.nome} = ${fmt(maq.maxW,2)} mm</code>${carr.opts.length?`<code>Opções: ${carr.opts.map(o=>`${o.n}× (${fmt(o.esp,2)})`).join(' · ')}</code>`:''}</span></div>` : '';
+  const formula = zeroMode
+    ? `<div class="formula"><span>Altura ajustada</span><span class="hl">=</span><span>Dev ÷ Rep</span><span style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap"><code>X desejado = ${fmt(X,2)} mm</code><code>Passo = ${fmt(passo,5)} mm</code><code>Perda = 0 (exata)</code>${soProdActive?'<code>★ Só produção</code>':''}</span></div>`
+    : `<div class="formula"><span>Perda</span><span class="hl">=</span><span>(Dev − Rep × X) ÷ Rep</span><span style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap"><code>X = ${fmt(X,2)} mm</code><code>Passo = ${fmt(passo,5)} mm</code><code>Filtro = ${fmt(espMin,2)}–${fmt(espMax,2)} mm</code>${soProdActive?'<code>★ Só produção</code>':''}</span></div>`;
+  panel.innerHTML=alertHtml+renderStats(rows.length,X,passo,espMed,reps,closestMode,carr,Y,zeroMode,deltaMed)+formula+carrFormula+renderTable(rows,closestMode,espMin,espMax,zeroMode,X);
+  saveState();
+}
+
+/* ═══ TAB: COMPARATIVO ═══ */
+let slotCounter=0;
+const slots=[];
+function addSlot(defaultVal){
+  const idx=slots.length,id=++slotCounter;
+  slots.push({id,color:SLOT_COLORS[idx%SLOT_COLORS.length],name:SLOT_NAMES[idx%SLOT_NAMES.length],bg:SLOT_BG[idx%SLOT_BG.length]});
+  const s=slots[slots.length-1];
+  const val=defaultVal!=null?defaultVal:'';
+  const div=document.createElement('div');
+  div.className='cmp-slot';div.dataset.slotId=id;
+  div.innerHTML=`<div class="cmp-slot-hdr"><div class="cmp-dot" style="background:${s.color}"></div><span class="cmp-slot-lbl">Faca ${s.name}</span><button class="cmp-slot-rm" onclick="removeSlot(${id})"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><input type="number" id="cx-${id}" value="${val}" min="0.1" step="0.01" placeholder="Altura (mm)"><span class="cmp-slot-note">altura X em mm</span>`;
+  document.getElementById('cmp-slots').appendChild(div);
+  updateRemoveBtns();
+}
+function removeSlot(id){
+  if(slots.length<=2) return;
+  slots.splice(slots.findIndex(s=>s.id===id),1);
+  document.querySelector(`.cmp-slot[data-slot-id="${id}"]`)?.remove();
+  document.querySelectorAll('.cmp-slot').forEach((el,i)=>{
+    const sid=parseInt(el.dataset.slotId),s=slots.find(s=>s.id===sid);if(!s)return;
+    s.color=SLOT_COLORS[i%SLOT_COLORS.length];s.name=SLOT_NAMES[i%SLOT_NAMES.length];
+    el.querySelector('.cmp-dot').style.background=s.color;
+    el.querySelector('.cmp-slot-lbl').textContent=`Faca ${s.name}`;
+  });
+  updateRemoveBtns();
+}
+function updateRemoveBtns(){
+  document.querySelectorAll('.cmp-slot-rm').forEach(b=>{ b.style.opacity=slots.length<=2?'0.2':'1'; b.style.pointerEvents=slots.length<=2?'none':'auto'; });
+}
+[50,75,100,120].forEach(v=>addSlot(v));
+
+function comparar(){
+  const passo=getCPasso();
+  const nMin=parseInt(document.getElementById('cn-min').value);
+  const nMax=parseInt(document.getElementById('cn-max').value);
+  const repMax=parseInt(document.getElementById('crep-max').value);
+  const espMin=(v=>isNaN(v)?ESP_MIN_DEFAULT:v)(parseFloat(document.getElementById('c-esp-min').value));
+  const espMax=(v=>isNaN(v)?ESP_MAX_DEFAULT:v)(parseFloat(document.getElementById('c-esp-max').value));
+  const panel=document.getElementById('cmp-panel');
+  const activeSlots=slots.map((s,i)=>{ const el=document.getElementById(`cx-${s.id}`); return {slot:s,slotIdx:i,X:el?parseFloat(el.value)||0:0}; }).filter(s=>s.X>0);
+  if(activeSlots.length<2){panel.innerHTML=renderAlert('Informe ao menos 2 alturas válidas para comparar.');return;}
+  const midPoint=(espMin+espMax)/2;
+  const allSets=activeSlots.map(({slot,slotIdx,X})=>{
+    const all=buildRows(X,passo,nMin,nMax,repMax);
+    const bestByN=new Map();
+    all.forEach(r=>{
+      const inF=r.esp>=espMin-ESP_EPS&&r.esp<=espMax+ESP_EPS;
+      if(!bestByN.has(r.n)){bestByN.set(r.n,{...r,inFilter:inF});}
+      else{const cur=bestByN.get(r.n);if(!cur.inFilter&&inF){bestByN.set(r.n,{...r,inFilter:inF});}else if(cur.inFilter===inF&&Math.abs(r.esp-midPoint)<Math.abs(cur.esp-midPoint)){bestByN.set(r.n,{...r,inFilter:inF});}}
+    });
+    const hasData=[...bestByN.values()].some(r=>r.inFilter);
+    return {slot,slotIdx,X,bestByN,hasData};
+  });
+  const diaMap=new Map();
+  allSets.forEach(({slot,slotIdx,X,bestByN})=>{
+    bestByN.forEach((r,n)=>{
+      if(!diaMap.has(n)) diaMap.set(n,{n:r.n,dev:r.dev,dia:r.dia,matches:[]});
+      diaMap.get(n).matches.push({slotIdx,slot,X,rep:r.repInt,esp:r.esp,inFilter:r.inFilter});
+    });
+  });
+  const entries=[...diaMap.values()].filter(e=>nearProd(e.dia)!=null||e.matches.some(m=>m.inFilter)).sort((a,b)=>{const pa=nearProd(a.dia)!=null?0:1,pb=nearProd(b.dia)!=null?0:1;if(pa!==pb)return pa-pb;return a.dia-b.dia;});
+  const inFS=e=>new Set(e.matches.filter(m=>m.inFilter).map(m=>m.slotIdx));
+  const multiCount=entries.filter(e=>inFS(e).size>=2).length;
+  const prodCount=entries.filter(e=>nearProd(e.dia)!=null).length;
+  const multiProdCount=entries.filter(e=>nearProd(e.dia)!=null&&inFS(e).size>=2).length;
+  // Filtro "só no filtro" — esconde diâmetros sem nenhum encaixe válido
+  const shownEntries = cmpFilterActive
+    ? entries.filter(e => e.matches.some(m => m.inFilter))
+    : entries;
+
+  const _yVal = parseFloat(document.getElementById('y-val')?.value)||0;
+  const xHeaders=activeSlots.map(({slot,X})=>`<th class="x-hdr" style="border-bottom-color:${slot.color};color:${slot.color}">Faca ${slot.name}<br><span style="font-size:11.5px;font-weight:600;opacity:.75">${fmt(X,2)} mm</span></th>`).join('');
+  const tbodyRows=shownEntries.map(e=>{
+    const pd=nearProd(e.dia),inFIdxs=inFS(e),isMulti=inFIdxs.size>=2,isProd=pd!=null;
+    let rc='';if(isProd&&isMulti)rc='prod multi';else if(isProd)rc='prod';else if(isMulti)rc='multi';
+    const _larguraCmp=parseFloat(document.getElementById('y-val')?.value)||0;
+    const _priceCmp=priceChip(e.n,_larguraCmp)||'<span style="color:var(--muted-fg);font-size:11px">—</span>';
+    const diaCell=`<div style="display:flex;align-items:center;gap:5px;flex-wrap:nowrap"><span style="font-weight:700">${fmt(e.dia,2)}</span>${isProd?`<span class="cmp-badge-prod">Ø${pd}</span>`:''}${isMulti?`<span class="cmp-badge-multi">${inFIdxs.size} facas</span>`:''}</div>`;
+    const cells=activeSlots.map(({slotIdx})=>{
+      const m=e.matches.find(m=>m.slotIdx===slotIdx);
+      if(!m) return `<td><span class="cmp-cell-no">—</span></td>`;
+      if(m.inFilter) return `<td><div class="cmp-cell-ok"><span class="cmp-esp">${fmt(m.esp,3)}</span><span class="cmp-rep"><span class="rc ${repCls(m.rep)}" style="font-size:10px;padding:1px 7px">${m.rep}×</span></span></div></td>`;
+      return `<td><div class="cmp-cell-ok" style="opacity:.4" title="Fora do filtro ${fmt(espMin,2)}–${fmt(espMax,2)} mm"><span class="cmp-esp" style="background:var(--muted);color:var(--muted-fg)">${fmt(m.esp,3)}</span><span class="cmp-rep"><span class="rc rn" style="font-size:10px;padding:1px 7px">${m.rep}×</span></span></div></td>`;
+    }).join('');
+    return `<tr class="${rc}"><td>${diaCell}</td>${cells}<td style="text-align:center">${_priceCmp}</td></tr>`;
+  }).join('');
+  const warnings=allSets.filter(s=>!s.hasData).map(s=>`Faca ${s.slot.name} (${fmt(s.X,2)} mm): sem encaixe no filtro ${fmt(espMin,2)}–${fmt(espMax,2)} mm`).join('<br>');
+  const warnHtml=warnings?`<div class="alert alert-warn" style="margin-bottom:12px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><div>${warnings}</div></div>`:'';
+  panel.innerHTML=warnHtml+`<div class="cmp-grid-wrap"><div class="cmp-hdr"><div class="cmp-hdr-title fd">Comparativo de Diâmetros<span class="cnt">${shownEntries.length} cilindros</span>${prodCount?`<span class="cnt-prod">★ ${prodCount} em produção</span>`:''}${multiCount?`<span class="cnt" style="background:var(--success-bg);color:var(--success-fg)">${multiCount} compartilhados</span>`:''}</div><div class="cmp-legend"><div class="cmp-leg"><span class="ld" style="background:#FFFCDE;border-left:3px solid #FFE815"></span>Produção</div><div class="cmp-leg"><span class="ld" style="background:var(--success-bg);border:1px solid #b7e7c4"></span>≥2 facas</div><div class="cmp-leg"><span class="cmp-esp" style="font-size:10px;padding:1px 8px">3,200</span>Perda (mm)</div><div class="cmp-leg"><span class="cmp-esp" style="font-size:10px;padding:1px 8px;background:var(--muted);color:var(--muted-fg);opacity:.6">5,100</span>Fora filtro</div></div></div><div class="cmp-scroll"><table class="cmp-table"><thead><tr><th>Diâmetro (mm)</th>${xHeaders}<th style="color:var(--muted-fg)">Preço (R$)</th></tr></thead><tbody>${tbodyRows||'<tr><td colspan="99" style="text-align:center;padding:2rem;color:var(--muted-fg)">Nenhum resultado.</td></tr>'}</tbody></table></div><div class="cmp-summ"><div class="cmp-summ-item"><b>${shownEntries.length}</b> cilindros</div><div class="cmp-summ-item"><b>${prodCount}</b> em produção</div><div class="cmp-summ-item"><b>${multiCount}</b> compartilhados</div><div class="cmp-summ-item"><b>${multiProdCount}</b> prod+compartilhado</div><div class="cmp-summ-item" style="margin-left:auto;font-size:10px;opacity:.5">Perda = (Dev − Rep × X) ÷ Rep · Filtro ${fmt(espMin,2)}–${fmt(espMax,2)} mm</div></div></div>`;
+  saveState();
+}
+
+/* ═══ TAB: FACAS POR DIÂMETRO ═══ */
+function selectDiaProd(dia){ document.getElementById('bd-dia').value=dia; document.querySelectorAll('#bd-prod-chips .prod-chip').forEach(c=>c.classList.toggle('active',parseFloat(c.dataset.dia)===dia)); }
+
+function bdAddDia(){
+  const el = document.getElementById('bd-new-dia');
+  const v = parseFloat((el?.value||'').replace(',','.'));
+  if(!parqueAdd(v)) { el.value=''; return; }
+  el.value='';
+  bdRenderChips(); refreshParqueUI();
+}
+
+function bdRenderChips(){
+  const wrap = document.getElementById('bd-prod-chips');
+  if(!wrap) return;
+  const id = maqId();
+  const dias = getProdDias();
+  const padrao = PARQUE_DEFAULT[id] || [];
+  if(!dias.length){
+    wrap.innerHTML = `<span style="font-size:12px;color:var(--muted-fg)">Nenhum cilindro cadastrado para esta máquina — adicione abaixo.</span>`;
+    return;
+  }
+  wrap.innerHTML = dias.map(d=>{
+    const isExtra = !padrao.includes(d);
+    return `<button class="prod-chip${isExtra?' extra-chip':''}" data-dia="${d}" onclick="selectDiaProd(${d})"
+      title="${isExtra?'Adicionado manualmente':'Padrão'} · duplo clique para remover"
+      style="${isExtra?'border-style:dashed;':''}"
+      ondblclick="bdRemoveDia(${d})">${d}</button>`;
+  }).join('');
+  const cur = parseFloat(document.getElementById('bd-dia')?.value);
+  if(cur) wrap.querySelectorAll('.prod-chip').forEach(c=>c.classList.toggle('active',parseFloat(c.dataset.dia)===cur));
+}
+document.getElementById('bd-dia').addEventListener('input',()=>{ const v=parseFloat(document.getElementById('bd-dia').value); document.querySelectorAll('#bd-prod-chips .prod-chip').forEach(c=>c.classList.toggle('active',parseFloat(c.dataset.dia)===v)); });
+
+function bdRemoveDia(d){
+  parqueRemove(d);
+  bdRenderChips(); refreshParqueUI();
+}
+
+// Mantém os dois seletores de máquina em sincronia e redesenha o que depende do parque
+function setMaquina(v){
+  const a=document.getElementById('maquina'), b=document.getElementById('bd-maquina');
+  if(a && a.value!==v) a.value=v;
+  if(b && b.value!==v) b.value=v;
+  document.getElementById('maq-custom-field').style.display = v==='custom'?'block':'none';
+  saveState();
+  bdRenderChips(); refreshParqueUI();
+}
+function refreshParqueUI(){
+  const dias=getProdDias(), nome=getMaquina().nome;
+  const sub=document.getElementById('so-prod-sub');
+  if(sub) sub.textContent = dias.length ? `Exibir apenas os ${dias.length} diâmetros da ${nome}` : `Nenhum cilindro cadastrado para a ${nome}`;
+  const line=document.getElementById('prod-line-dias');
+  if(line) line.textContent = dias.length ? dias.join(' · ') : 'nenhum cadastrado';
+}
+// Init chips ao carregar
+bdRenderChips();
+
+function calcByDia(){
+  const dia=parseFloat(document.getElementById('bd-dia').value)||0;
+  const passo=(()=>{ const v=document.getElementById('bd-passo').value; return v==='pi'?Math.PI:parseFloat(v); })();
+  const repMax=parseInt(document.getElementById('bd-rep-max').value)||8;
+  const espMin=(v=>isNaN(v)?ESP_MIN_DEFAULT:v)(parseFloat(document.getElementById('bd-esp-min').value));
+  const espMax=(v=>isNaN(v)?ESP_MAX_DEFAULT:v)(parseFloat(document.getElementById('bd-esp-max').value));
+  const verifX=parseFloat(document.getElementById('bd-verif').value)||0;
+  const panel=document.getElementById('bd-panel');
+  if(!dia||dia<=0){panel.innerHTML=renderAlert('Informe um diâmetro válido.');return;}
+  if(espMin>espMax){panel.innerHTML=renderAlert('Perda mín. não pode ser maior que máx.');return;}
+  const n=Math.round(dia*Math.PI/passo);
+  const dev=n*passo,diaReal=dev/Math.PI;
+  const midEsp=(espMin+espMax)/2;
+  const rows=[];
+  for(let rep=1;rep<=repMax;rep++){
+    const xIdeal=dev/rep-espMin,xMin=dev/rep-espMax,xMax=dev/rep-espMin;
+    if(xMin<=-ESP_EPS/rep) continue;
+    rows.push({rep,xMin,xMax,xIdeal,intervalo:xMax-xMin});
+  }
+  if(!rows.length){panel.innerHTML=renderAlert('Nenhuma repetição válida para esse diâmetro e espaçamento.');return;}
+
+  const maxInt=Math.max(...rows.map(r=>r.intervalo),0.001);
+
+  const infoBar=`<div class="dia-info-bar">
+    <div class="dia-info-item"><span class="dia-info-lbl">Diâmetro</span><span class="dia-info-val">Ø ${fmt(dia,2)}</span><span class="dia-info-sub">mm — entrada</span></div>
+    <div class="dia-info-divider"></div>
+    <div class="dia-info-item"><span class="dia-info-lbl">Dentes</span><span class="dia-info-val">${n}</span><span class="dia-info-sub">${passo===Math.PI?'M1':'Passo '+fmt(passo,5)}</span></div>
+    <div class="dia-info-divider"></div>
+    <div class="dia-info-item"><span class="dia-info-lbl">Desenvolvimento</span><span class="dia-info-val">${fmt(dev,4)}</span><span class="dia-info-sub">mm = ${n}×${passo===Math.PI?'π':fmt(passo,5)}</span></div>
+    <div class="dia-info-divider"></div>
+    <div class="dia-info-item"><span class="dia-info-lbl">Diâmetro real</span><span class="dia-info-val">Ø ${fmt(diaReal,4)}</span><span class="dia-info-sub">${Math.abs(diaReal-dia)<0.01?'<span style="color:#155724;font-weight:800">✓ exato</span>':'aprox.'}</span></div>
+    <div class="dia-info-divider"></div>
+    <div class="dia-info-item"><span class="dia-info-lbl">Filtro de perda</span><span class="dia-info-val">${fmt(espMin,2)} – ${fmt(espMax,2)}</span><span class="dia-info-sub">mm</span></div>
+    <div class="dia-info-divider"></div>
+    <div class="dia-info-item"><span class="dia-info-lbl">Preço aprox.</span><span class="dia-info-val" style="color:#155724">${brl(Math.max(valorFaca(n,parseFloat(document.getElementById('y-val')?.value)||0),0) + valorEngr(n))}</span><span class="dia-info-sub">Faca ${brl(valorFaca(n,parseFloat(document.getElementById('y-val')?.value)||0))} + Engr. ${n}×1,76 = ${brl(valorEngr(n))}</span></div>
+  </div>`;
+
+  // ── VERIFICADOR ──
+  let verifHtml='';
+  if(verifX>0){
+    const midEsp2=(espMin+espMax)/2;
+    let bestRep=null,bestEsp=null;
+    for(const r of rows){
+      if(verifX>=r.xMin-0.001&&verifX<=r.xMax+0.001){
+        const espR=(dev-r.rep*verifX)/r.rep;
+        if(bestRep===null||Math.abs(espR-midEsp2)<Math.abs(bestEsp-midEsp2)){bestRep=r;bestEsp=espR;}
+      }
+    }
+    if(bestRep!==null){
+      verifHtml=`<div class="verif-result verif-ok">
+        <strong>✓ Faca ${fmt(verifX,2)} mm encaixa</strong> com <strong>${bestRep.rep}×</strong> repetições e perda de <strong>${fmt(bestEsp,3)} mm</strong> — dentro do filtro [${fmt(espMin,2)} – ${fmt(espMax,2)} mm].
+      </div>`;
+    } else {
+      let closestRep=null,closestEsp=null;
+      for(let rep=1;rep<=repMax;rep++){
+        if(dev<rep*verifX) continue;
+        const espR=(dev-rep*verifX)/rep;
+        if(espR<-ESP_EPS) continue;
+        if(closestRep===null||Math.abs(espR-midEsp2)<Math.abs(closestEsp-midEsp2)){closestRep=rep;closestEsp=espR;}
+      }
+      if(closestRep!==null){
+        verifHtml=`<div class="verif-result verif-out">
+          <strong>⚠ Faca ${fmt(verifX,2)} mm não encaixa no filtro</strong> aqui. Melhor opção: <strong>${closestRep}×</strong> repetições com perda de <strong>${fmt(closestEsp,3)} mm</strong> (fora do range ${fmt(espMin,2)}–${fmt(espMax,2)} mm).
+        </div>`;
+      } else {
+        verifHtml=`<div class="verif-result verif-err">
+          <strong>✗ Faca ${fmt(verifX,2)} mm é maior que o desenvolvimento deste cilindro</strong> (${fmt(dev,4)} mm).
+        </div>`;
+      }
+    }
+  }
+
+  // ── TABELA DE ALTURAS ──
+  const tbody=rows.map(r=>{
+    const barW=Math.round((r.intervalo/maxInt)*100);
+    const nicePicks=[];
+    for(let x=Math.ceil(r.xMin*2)/2;x<=r.xMax+0.001;x+=0.5){
+      const xr=Math.round(x*100)/100;
+      if(xr>=r.xMin-0.001&&xr<=r.xMax+0.001){nicePicks.push({x:xr,esp:(dev-r.rep*xr)/r.rep});}
+    }
+    const niceStr=nicePicks.length
+      ?nicePicks.slice(0,5).map(p=>`<span class="range-tag" title="Perda: ${fmt(p.esp,3)} mm">${fmt(p.x,1)}<span style="color:var(--muted-fg);font-size:9px;margin-left:2px">(${fmt(p.esp,2)})</span></span>`).join(' ')
+      :`<span style="color:var(--muted-fg);font-size:11px">—</span>`;
+    const espIdealReal=(dev-r.rep*r.xIdeal)/r.rep;
+    return `<tr>
+      <td><span class="rep-big">${r.rep}×</span></td>
+      <td style="font-weight:600">${fmt(dev/r.rep,4)}</td>
+      <td><span class="x-range-pill">${fmt(r.xMin,3)} <span class="x-range-sep">→</span> ${fmt(r.xMax,3)}</span></td>
+      <td>
+        <span class="x-ideal-pill">${fmt(r.xIdeal,3)}</span>
+        <div style="font-size:10px;color:var(--muted-fg);margin-top:3px;text-align:right">perda: <b style="color:var(--fg)">${fmt(espIdealReal,3)} mm</b></div>
+      </td>
+      <td>
+        <div class="range-bar-wrap">
+          <div class="range-bar" style="width:${barW}%"></div>
+          <span style="font-size:11px;color:var(--muted-fg);min-width:36px;text-align:right">${fmt(r.intervalo,3)}</span>
+        </div>
+      </td>
+      <td>${niceStr}</td>
+    </tr>`;
+  }).join('');
+
+  panel.innerHTML = infoBar
+    + (verifHtml ? `<div style="margin-top:14px">${verifHtml}</div>` : '')
+    + `<div style="margin-top:16px">
+        <div class="by-dia-tbl">
+          <div class="tbl-bar">
+            <div class="tbl-title fd">Alturas válidas por repetição <span class="cnt">${rows.length} opções</span></div>
+            <div class="legend">
+              <div class="leg"><span class="x-range-pill" style="font-size:10px;padding:2px 8px">mín→máx</span>Intervalo</div>
+              <div class="leg"><span class="x-ideal-pill" style="font-size:10px;padding:2px 8px">ideal</span>Altura máx. com perda mín.</div>
+            </div>
+          </div>
+          <div class="tbl-scroll">
+            <table>
+              <thead><tr>
+                <th style="text-align:left;padding-left:18px;width:70px">Rep.</th>
+                <th>Dev÷Rep (mm)</th>
+                <th>Intervalo de alturas (mm)</th>
+                <th>Altura ideal + perda</th>
+                <th>Margem (mm)</th>
+                <th>Sugestões 0,5 a 0,5 (perda)</th>
+              </tr></thead>
+              <tbody>${tbody}</tbody>
+            </table>
+          </div>
+          <div class="by-dia-foot">
+            <span><b>Ideal</b> = Dev÷Rep − perdaMín → perda = ${fmt(espMin,2)} mm</span>
+            <span><b>Margem</b> = perdaMáx − perdaMín = ${fmt(espMax-espMin,2)} mm</span>
+          </div>
+        </div>
+      </div>`;
+  saveState();
+}
+
+/* ═══ TAB: CLICHÊ ═══ */
+
+// ── State ──
+const CL_LS_MODULES = 'r2flexo:modules';
+const CL_LS_PLATES  = 'r2flexo:plates';
+
+const CL_DEFAULT_MODULES = [
+  { id:'m1',     name:'M1 (passo π)',     pitch: Math.PI   },
+  { id:'cp1-8',  name:'CP 1/8" (3,175)', pitch: 3.175     },
+  { id:'cp5-32', name:'CP 5/32" (3,969)',pitch: 3.96875   },
+  { id:'cp3-16', name:'CP 3/16" (4,762)',pitch: 4.7625    },
+  { id:'cp1-4',  name:'CP 1/4" (6,35)',  pitch: 6.35      },
+];
+// K = 2π × (espessura − poliéster de base).  Poliéster padrão dos fotopolímeros = 0,127 mm.
+// Valores derivados da fórmula, não digitados à mão (a tabela publicada traz 23,759
+// para a 3,94 mm, o que é erro de digitação — a fórmula dá 23,958).
+const CL_POLY_PADRAO = 0.127;
+const CL_DEFAULT_PLATES = [
+  { id:'p114', name:'Clichê 1,14 mm', t:1.14, poly:CL_POLY_PADRAO },
+  { id:'p170', name:'Clichê 1,70 mm', t:1.70, poly:CL_POLY_PADRAO },
+  { id:'p284', name:'Clichê 2,84 mm', t:2.84, poly:CL_POLY_PADRAO },
+  { id:'p394', name:'Clichê 3,94 mm', t:3.94, poly:CL_POLY_PADRAO },
+  { id:'p500', name:'Clichê 5,00 mm', t:5.00, poly:CL_POLY_PADRAO },
+  { id:'p635', name:'Clichê 6,35 mm', t:6.35, poly:CL_POLY_PADRAO },
+].map(p=>({...p, k: 2*Math.PI*(p.t - p.poly)}));
+
+const CL_LS_VER = 'r2flexo:plates-ver', CL_VER = '2';
+if(localStorage.getItem(CL_LS_VER) !== CL_VER){
+  // v2: corrige K das chapas 1,14 (6,22 → 6,365) e 1,70 (9,90 → 9,883) e amplia a tabela
+  localStorage.removeItem(CL_LS_PLATES);
+  localStorage.setItem(CL_LS_VER, CL_VER);
+}
+let clModules    = JSON.parse(localStorage.getItem(CL_LS_MODULES) || 'null') || CL_DEFAULT_MODULES;
+let clPlates     = JSON.parse(localStorage.getItem(CL_LS_PLATES)  || 'null') || CL_DEFAULT_PLATES;
+let clModuleId   = clModules[0]?.id || 'm1';
+let clPlateId    = clPlates[0]?.id  || 'p170';
+
+function clSave(){
+  localStorage.setItem(CL_LS_MODULES, JSON.stringify(clModules));
+  localStorage.setItem(CL_LS_PLATES,  JSON.stringify(clPlates));
+}
+
+// ── fmt pt-BR ──
+function clFmt(n, d=3){
+  if(!Number.isFinite(n)) return '—';
+  return n.toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d});
+}
+
+// ── K from thickness ──
+function kFromThickness(t, poly=0.127){ return 2 * Math.PI * (t - poly); }
+
+// ── Render chips ──
+function clRenderChips(){
+  const mWrap = document.getElementById('cl-module-chips');
+  const pWrap = document.getElementById('cl-plate-chips');
+  if(!mWrap||!pWrap) return;
+
+  mWrap.innerHTML = clModules.map(m=>`
+    <button onclick="clSetModule('${m.id}')" data-clm="${m.id}"
+      style="padding:8px 14px;border-radius:20px;font-size:13px;font-weight:700;border:none;cursor:pointer;transition:all .15s;
+      background:${m.id===clModuleId?'var(--fg)':'var(--muted)'};
+      color:${m.id===clModuleId?'var(--yellow)':'var(--fg)'}">
+      ${m.name}
+    </button>`).join('');
+
+  pWrap.innerHTML = clPlates.map(p=>`
+    <button onclick="clSetPlate('${p.id}')" data-clp="${p.id}"
+      style="padding:8px 14px;border-radius:20px;font-size:13px;font-weight:700;border:none;cursor:pointer;transition:all .15s;
+      background:${p.id===clPlateId?'var(--fg)':'var(--muted)'};
+      color:${p.id===clPlateId?'var(--yellow)':'var(--fg)'}">
+      ${p.name}
+    </button>`).join('');
+}
+
+function clSetModule(id){ clModuleId=id; clRenderChips(); clCalc(); }
+function clSetPlate(id) { clPlateId=id;  clRenderChips(); clCalc(); }
+
+// ── Core calc ──
+function clCalc(){
+  const teeth  = parseFloat((document.getElementById('cl-teeth')?.value||'').replace(',','.'));
+  const mod    = clModules.find(m=>m.id===clModuleId) || clModules[0];
+  const plate  = clPlates.find(p=>p.id===clPlateId)  || clPlates[0];
+  const artIn  = parseFloat((document.getElementById('cl-art')?.value||'').replace(',','.'));
+
+  const rPct     = document.getElementById('cl-r-pct');
+  const rRepeat  = document.getElementById('cl-r-repeat');
+  const rPrint   = document.getElementById('cl-r-print');
+  const rFormula = document.getElementById('cl-r-formula');
+  const rArtOut  = document.getElementById('cl-art-out');
+
+  if(!mod||!plate||!Number.isFinite(teeth)||teeth<=0){
+    if(rPct)    rPct.textContent    = '—';
+    if(rRepeat) rRepeat.textContent = '—';
+    if(rPrint)  rPrint.textContent  = '—';
+    if(rFormula)rFormula.textContent= 'Informe os dados acima';
+    if(rArtOut) rArtOut.textContent = '—';
+    return;
+  }
+
+  const R    = teeth * mod.pitch;
+  const K    = plate.k;
+  const TI   = R - K;
+  const pct  = R > 0 ? (K / R) * 100 : 0;
+  const factor = R > 0 ? TI / R : 0;
+
+  if(rPct)    rPct.textContent    = clFmt(pct, 3);
+  if(rRepeat) rRepeat.textContent = clFmt(R, 3) + ' mm';
+  if(rPrint)  rPrint.textContent  = clFmt(TI, 3) + ' mm';
+  if(rFormula)rFormula.textContent= `R = ${teeth} × ${clFmt(mod.pitch,5)} = ${clFmt(R,3)} mm · K = ${plate.t!=null?`2π × (${clFmt(plate.t,2)} − ${clFmt(plate.poly??CL_POLY_PADRAO,3)}) = `:''}${clFmt(K,3)} · Distorção % = K/R × 100`;
+
+  if(rArtOut){
+    if(Number.isFinite(artIn) && artIn > 0){
+      rArtOut.textContent = clFmt(artIn * factor, 4) + ' mm';
+      rArtOut.style.color = 'var(--fg)';
+    } else {
+      rArtOut.textContent = '—';
+      rArtOut.style.color = 'var(--muted-fg)';
+    }
+  }
+}
+
+// ── Settings ──
+function clOpenSettings(){
+  clRenderSettings();
+  document.getElementById('cl-settings-overlay').style.display='block';
+  document.body.style.overflow='hidden';
+}
+function clCloseSettings(){
+  document.getElementById('cl-settings-overlay').style.display='none';
+  document.body.style.overflow='';
+  clRenderChips();
+  clCalc();
+}
+
+function clRenderSettings(){
+  const mEl = document.getElementById('cl-settings-modules');
+  const pEl = document.getElementById('cl-settings-plates');
+  if(mEl) mEl.innerHTML = clModules.map(m=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;background:var(--card);border-radius:12px;padding:10px 14px;margin-bottom:8px;border:1.5px solid var(--border)">
+      <div><div style="font-weight:700;font-size:13px">${m.name}</div>
+        <div style="font-size:10.5px;color:var(--muted-fg)">passo ${clFmt(m.pitch,5)} mm/dente</div></div>
+      <button onclick="clRemoveModule('${m.id}')"
+        style="width:32px;height:32px;border-radius:50%;border:none;background:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--muted-fg)">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>
+      </button>
+    </div>`).join('');
+
+  if(pEl) pEl.innerHTML = clPlates.map(p=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;background:var(--card);border-radius:12px;padding:10px 14px;margin-bottom:8px;border:1.5px solid var(--border)">
+      <div><div style="font-weight:700;font-size:13px">${p.name}</div>
+        <div style="font-size:10.5px;color:var(--muted-fg)">K = ${clFmt(p.k,3)}</div></div>
+      <button onclick="clRemovePlate('${p.id}')"
+        style="width:32px;height:32px;border-radius:50%;border:none;background:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--muted-fg)">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>
+      </button>
+    </div>`).join('');
+}
+
+function clRemoveModule(id){
+  clModules = clModules.filter(m=>m.id!==id);
+  if(!clModules.find(m=>m.id===clModuleId)) clModuleId = clModules[0]?.id||'';
+  clSave(); clRenderSettings();
+}
+function clRemovePlate(id){
+  clPlates = clPlates.filter(p=>p.id!==id);
+  if(!clPlates.find(p=>p.id===clPlateId)) clPlateId = clPlates[0]?.id||'';
+  clSave(); clRenderSettings();
+}
+function clAddModule(){
+  const name  = document.getElementById('cls-mod-name')?.value.trim();
+  const pitch = parseFloat((document.getElementById('cls-mod-pitch')?.value||'').replace(',','.'));
+  if(!name||!Number.isFinite(pitch)||pitch<=0) return;
+  clModules.push({id:'m_'+Date.now(), name, pitch});
+  clSave();
+  document.getElementById('cls-mod-name').value='';
+  document.getElementById('cls-mod-pitch').value='';
+  clRenderSettings();
+}
+function clAddPlate(){
+  const name  = document.getElementById('cls-pl-name')?.value.trim();
+  const thick = parseFloat((document.getElementById('cls-pl-thick')?.value||'').replace(',','.'));
+  const poly  = parseFloat((document.getElementById('cls-pl-poly')?.value||'0.127').replace(',','.')) || 0;
+  if(!name||!Number.isFinite(thick)||thick<=0) return;
+  const k = kFromThickness(thick, poly);
+  clPlates.push({id:'p_'+Date.now(), name, t:thick, poly, k});
+  clSave();
+  document.getElementById('cls-pl-name').value='';
+  document.getElementById('cls-pl-thick').value='';
+  clRenderSettings();
+}
+
+/* ═══ TAB: VALOR CLICHÊ ═══ */
+
+// ── State ──
+const VC_LS_CHAPA = 'r2flexo:vcChapa';
+// distorcao = K = 2π × (espessura − 0,127) — mesma constante da aba Distorção do Clichê
+const VC_CHAPAS = [
+  { id:'chapa114', label:'1,14 mm', distorcao: 2*Math.PI*(1.14-0.127), taxa:0.235 },
+  { id:'chapa170', label:'1,70 mm', distorcao: 2*Math.PI*(1.70-0.127), taxa:0.22  },
+];
+let vcChapaId = localStorage.getItem(VC_LS_CHAPA) || VC_CHAPAS[0].id;
+
+// ── fmt pt-BR ──
+function vcFmt(n, d=2){
+  if(!Number.isFinite(n)) return '—';
+  return n.toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d});
+}
+
+// ── Render chips ──
+function vcRenderChips(){
+  const wrap = document.getElementById('vc-chapa-chips');
+  if(!wrap) return;
+  wrap.innerHTML = VC_CHAPAS.map(c=>`
+    <button onclick="vcSetChapa('${c.id}')" data-vcc="${c.id}"
+      style="padding:8px 14px;border-radius:20px;font-size:13px;font-weight:700;border:none;cursor:pointer;transition:all .15s;
+      background:${c.id===vcChapaId?'var(--fg)':'var(--muted)'};
+      color:${c.id===vcChapaId?'var(--yellow)':'var(--fg)'}">
+      ${c.label}
+    </button>`).join('');
+}
+function vcSetChapa(id){ vcChapaId=id; localStorage.setItem(VC_LS_CHAPA, id); vcRenderChips(); vcCalc(); }
+
+// ── Core calc ──
+function vcCalc(){
+  const diam      = parseFloat((document.getElementById('vc-diametro')?.value||'').replace(',','.'));
+  const largEtq   = parseFloat((document.getElementById('vc-largura-etq')?.value||'').replace(',','.'));
+  const carreiras = parseFloat((document.getElementById('vc-carreiras')?.value||'').replace(',','.'));
+  const jogos     = parseFloat((document.getElementById('vc-jogos')?.value||'').replace(',','.'));
+  const cores     = parseFloat((document.getElementById('vc-cores')?.value||'').replace(',','.')) || 1;
+  const prova     = parseFloat((document.getElementById('vc-prova')?.value||'0').replace(',','.')) || 0;
+  const chapa     = VC_CHAPAS.find(c=>c.id===vcChapaId) || VC_CHAPAS[0];
+
+  const rAltura   = document.getElementById('vc-r-altura');
+  const rLargura  = document.getElementById('vc-r-largura');
+  const rArea     = document.getElementById('vc-r-area');
+  const rAreaNote = document.getElementById('vc-r-area-note');
+  const rCor      = document.getElementById('vc-r-cor');
+  const rTotal    = document.getElementById('vc-r-total');
+  const rFormula  = document.getElementById('vc-r-formula');
+
+  if(!Number.isFinite(diam) || diam<=0 || !Number.isFinite(largEtq) || largEtq<=0 || !Number.isFinite(carreiras) || carreiras<1){
+    if(rAltura)  rAltura.textContent  = '—';
+    if(rLargura) rLargura.textContent = '—';
+    if(rArea)    rArea.textContent    = '—';
+    if(rCor)     rCor.textContent     = '—';
+    if(rTotal)   rTotal.textContent   = '—';
+    if(rAreaNote)rAreaNote.style.display = 'none';
+    if(rFormula) rFormula.textContent = 'Informe os dados acima';
+    return;
+  }
+
+  const alturaBruta = (diam * Math.PI) + 40 - chapa.distorcao;
+  const altura  = Math.round(alturaBruta / 5) * 5;
+  const largura = (largEtq * carreiras) + (3 * (carreiras - 1));
+
+  if(rAltura)  rAltura.textContent  = vcFmt(altura, 0)  + ' mm';
+  if(rLargura) rLargura.textContent = vcFmt(largura, 2) + ' mm';
+
+  if(jogos === 1){
+    const area     = (altura * largura) / 100;
+    const valorCor = area * chapa.taxa;
+    const total    = (valorCor * cores) + prova;
+    if(rArea)     rArea.textContent  = vcFmt(area, 2) + ' cm²';
+    if(rCor)      rCor.textContent   = 'R$ ' + vcFmt(valorCor, 2);
+    if(rTotal)    rTotal.textContent = 'R$ ' + vcFmt(total, 2);
+    if(rAreaNote) rAreaNote.style.display = 'none';
+  } else {
+    if(rArea)     rArea.textContent  = '—';
+    if(rCor)      rCor.textContent   = '—';
+    if(rTotal)    rTotal.textContent = '—';
+    if(rAreaNote) rAreaNote.style.display = 'block';
+  }
+
+  if(rFormula) rFormula.textContent =
+    `Altura = ARRED5(${vcFmt(diam,2)}×π + 40 − ${vcFmt(chapa.distorcao,2)}) = ${vcFmt(altura,0)} mm · Taxa = ${vcFmt(chapa.taxa,3)}`;
+}
+
+// ── Init ──
+(function clInit(){
+  // garante que chips e calc rodam quando a aba for exibida
+  const orig = window.switchTab;
+  // será chamado após switchTab ser definido; usar MutationObserver ou setTimeout
+  setTimeout(()=>{
+    clRenderChips();
+    clCalc();
+    vcRenderChips();
+    vcCalc();
+  }, 0);
+})();
+
+
+/* ═══ TAB: BOBINAS ═══ */
+
+const BB_LS_HIST = 'r2flexo:bobina-hist';
+const BB_LS_KEYS = ['bb-ext','bb-int','bb-esp','bb-larg'];
+let bbHist = (()=>{ try{ return JSON.parse(localStorage.getItem(BB_LS_HIST)||'[]'); }catch(e){ return []; } })();
+
+function bbFmt(n, d=2){
+  if(!Number.isFinite(n)) return '—';
+  return n.toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d});
+}
+function bbNum(id){ return parseFloat((document.getElementById(id)?.value||'').replace(',','.')); }
+
+// Comprimento de uma bobina enrolada:
+// a seção transversal do material (L × espessura) é igual à área da coroa circular.
+//     L × t = π × (Dext² − Dint²) ÷ 4     →     L = π × (Dext² − Dint²) ÷ (4 × t)
+function bbComprimento(Dext, Dint, t){ return Math.PI * (Dext*Dext - Dint*Dint) / (4*t); }
+
+function bbCalc(){
+  const Dext = bbNum('bb-ext'), Dint = bbNum('bb-int'), t = bbNum('bb-esp'), larg = bbNum('bb-larg');
+  const rM=document.getElementById('bb-r-m'), rMM=document.getElementById('bb-r-mm'),
+        rA=document.getElementById('bb-r-area'), rAN=document.getElementById('bb-r-area-note'),
+        rV=document.getElementById('bb-r-voltas'), rP=document.getElementById('bb-r-parede'),
+        rF=document.getElementById('bb-r-formula');
+  const limpar = msg => { [rM,rMM,rA,rV,rP].forEach(e=>{ if(e) e.textContent='—'; }); if(rAN) rAN.style.display='none'; if(rF) rF.textContent=msg; };
+
+  if(!Number.isFinite(Dext)||!Number.isFinite(Dint)||!Number.isFinite(t)||Dext<=0||Dint<0||t<=0) return limpar('Informe os dados acima');
+  if(Dext<=Dint) return limpar('O Ø externo precisa ser maior que o interno');
+
+  const mm = bbComprimento(Dext, Dint, t);
+  const parede = (Dext - Dint)/2;
+  const voltas = parede / t;
+
+  if(rM)  rM.textContent  = bbFmt(mm/1000, 2);
+  if(rMM) rMM.textContent = bbFmt(mm, 0) + ' mm';
+  if(rV)  rV.textContent  = bbFmt(voltas, 0);
+  if(rP)  rP.textContent  = bbFmt(parede, 2) + ' mm';
+
+  if(Number.isFinite(larg) && larg>0){
+    if(rA)  rA.textContent = bbFmt((mm/1000)*(larg/1000), 2) + ' m²';
+    if(rAN) rAN.style.display='none';
+  } else {
+    if(rA)  rA.textContent = '—';
+    if(rAN) rAN.style.display='block';
+  }
+
+  if(rF) rF.textContent = `L = π × (${bbFmt(Dext,1)}² − ${bbFmt(Dint,1)}²) ÷ (4 × ${bbFmt(t,3)}) = ${bbFmt(mm/1000,2)} m`;
+  BB_LS_KEYS.forEach(k=>{ const el=document.getElementById(k); if(el) localStorage.setItem('r2-'+k, el.value); });
+}
+
+function bbSalvar(){
+  const Dext=bbNum('bb-ext'), Dint=bbNum('bb-int'), t=bbNum('bb-esp'), larg=bbNum('bb-larg');
+  if(!Number.isFinite(Dext)||!Number.isFinite(Dint)||!Number.isFinite(t)||Dext<=Dint||t<=0) return;
+  bbHist.unshift({ Dext, Dint, t, larg: Number.isFinite(larg)?larg:null, mm: bbComprimento(Dext,Dint,t), ts: Date.now() });
+  bbHist = bbHist.slice(0,20);
+  localStorage.setItem(BB_LS_HIST, JSON.stringify(bbHist));
+  bbRenderHist();
+}
+function bbRemover(ts){
+  bbHist = bbHist.filter(h=>h.ts!==ts);
+  localStorage.setItem(BB_LS_HIST, JSON.stringify(bbHist));
+  bbRenderHist();
+}
+function bbLimpar(){
+  if(!bbHist.length) return;
+  bbHist = []; localStorage.setItem(BB_LS_HIST,'[]'); bbRenderHist();
+}
+function bbRenderHist(){
+  const w = document.getElementById('bb-hist');
+  if(!w) return;
+  if(!bbHist.length){
+    w.innerHTML = `<div class="card" style="padding:18px;text-align:center;font-size:12px;color:var(--muted-fg)">— nenhum cálculo ainda —</div>`;
+    return;
+  }
+  w.innerHTML = bbHist.map(h=>{
+    const d = new Date(h.ts);
+    const area = h.larg ? ` · ${bbFmt((h.mm/1000)*(h.larg/1000),2)} m²` : '';
+    return `<div class="card" style="padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px">
+      <div style="flex:1;min-width:0">
+        <div class="fd" style="font-size:20px;font-weight:800;letter-spacing:-.5px">${bbFmt(h.mm/1000,2)} m</div>
+        <div style="font-size:11px;color:var(--muted-fg);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+          Ø${bbFmt(h.Dext,0)}/${bbFmt(h.Dint,0)} · esp ${bbFmt(h.t,3)}${h.larg?` · larg ${bbFmt(h.larg,0)}`:''}${area}
+        </div>
+      </div>
+      <div style="font-size:10px;color:var(--muted-fg);white-space:nowrap">${d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})}</div>
+      <button onclick="bbRemover(${h.ts})" aria-label="Remover" style="background:none;border:none;color:var(--muted-fg);cursor:pointer;padding:4px;line-height:0">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>`;
+  }).join('');
+}
+BB_LS_KEYS.forEach(k=>{ const el=document.getElementById(k), v=localStorage.getItem('r2-'+k); if(el&&v!==null) el.value=v; });
+bbRenderHist();
+
+/* ═══ TAB SWITCH ═══ */
+function switchTab(tab){
+  ['calc','compare','bydia','cliche','valor','bobina','substrato','caixa'].forEach(t=>{
+    document.getElementById(`view-${t}`).style.display = t===tab ? 'block' : 'none';
+    document.getElementById(`tab-${t}`).classList.toggle('active', t===tab);
+  });
+  if(tab==='cliche'){ clRenderChips(); clCalc(); }
+  if(tab==='valor'){ vcRenderChips(); vcCalc(); }
+  if(tab==='bobina'){ bbRenderHist(); bbCalc(); }
+  // Calculadoras isoladas em iframe: carrega só na primeira vez que abre a aba.
+  if(tab==='substrato'||tab==='caixa'){ const f=document.getElementById('if-'+tab); if(f && !f.src) f.src=f.dataset.src; }
+  localStorage.setItem('r2-tab', tab);
+}
+
+/* ═══ INIT ═══ */
+loadState();
+updateThemeIcon();
+setMaquina(document.getElementById('maquina')?.value || 'classic');
+const lastTab = localStorage.getItem('r2-tab');
+if(lastTab && ['calc','compare','bydia','cliche','valor','bobina','substrato','caixa'].includes(lastTab)) switchTab(lastTab);
+
+/* ═══ FILTRO DE ABAS (por permissão do usuário, via ?tabs=) ═══ */
+(function applyTabFilter(){
+  const raw = new URLSearchParams(location.search).get('tabs');
+  if(raw === null) return;                       // sem parâmetro = standalone, mostra tudo
+  const allowed = raw.split(',').map(s=>s.trim()).filter(Boolean);
+  const all = ['calc','compare','bydia','cliche','valor','bobina','substrato','caixa'];
+  all.forEach(t=>{
+    const show = allowed.includes(t);
+    const btn = document.getElementById('tab-'+t); if(btn) btn.style.display = show ? '' : 'none';
+    if(!show){ const view = document.getElementById('view-'+t); if(view) view.style.display='none'; }
+  });
+  const cur = localStorage.getItem('r2-tab');
+  if(!cur || !allowed.includes(cur)){
+    const first = all.find(t=>allowed.includes(t));
+    if(first) switchTab(first);
+  }
+})();
+</script>
+
+<!-- PWA Manifest -->
+<script>
+const _manifest = {
+  name:'R2 Hub — Calculadoras',short_name:'R2 Hub',
+  description:'Calculadora de desenvolvimento de facas para flexografia',
+  start_url:'.',display:'standalone',
+  background_color:'#F1F1F1',theme_color:'#FFE815',
+  icons:[{src:`data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' fill='%23FFE815' rx='40'/><text x='96' y='130' font-size='100' text-anchor='middle' font-family='serif' font-weight='bold' fill='%23252425'>F</text></svg>`,sizes:'192x192',type:'image/svg+xml'}]
+};
+const _blob = new Blob([JSON.stringify(_manifest)],{type:'application/manifest+json'});
+const _link = document.createElement('link');_link.rel='manifest';_link.href=URL.createObjectURL(_blob);
+document.head.appendChild(_link);
+</script>
+
+</body>
+</html>

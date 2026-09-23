@@ -1,0 +1,672 @@
+{
+ "018.01": {
+  "bruto": "509 Substrato:",
+  "diam": 50,
+  "medida": "50x50"
+ },
+ "020.02": {
+  "bruto": "559 Substrato:",
+  "diam": 55,
+  "medida": "87x40"
+ },
+ "076.01": {
+  "bruto": "490 Substrato:",
+  "diam": 49,
+  "medida": "115x150,94"
+ },
+ "091.01": {
+  "bruto": "530 Substrato:",
+  "diam": 53,
+  "medida": "50x80"
+ },
+ "093.01": {
+  "bruto": "950 45,00",
+  "diam": 95,
+  "medida": "57x295,45"
+ },
+ "094.01": {
+  "bruto": "790 Substrato:",
+  "diam": 79,
+  "medida": null
+ },
+ "095.01": {
+  "bruto": "790 Substrato:",
+  "diam": 79,
+  "medida": "70x122"
+ },
+ "100x60": {
+  "bruto": "810 Substrato:",
+  "diam": 81,
+  "medida": "100x60"
+ },
+ "110.01": {
+  "bruto": "038 Corte",
+  "diam": 38,
+  "medida": "45x39,8"
+ },
+ "117.01": {
+  "bruto": "519 Substrato:",
+  "diam": 51,
+  "medida": "50x37"
+ },
+ "135.01": {
+  "bruto": "942 Corte",
+  "diam": 94,
+  "medida": "134x33"
+ },
+ "146.01": {
+  "bruto": "248 Corte",
+  "diam": 48,
+  "medida": "60x30"
+ },
+ "165.01": {
+  "bruto": "519 Substrato:",
+  "diam": 51,
+  "medida": "17x37"
+ },
+ "190.01": {
+  "bruto": "530 Substrato:",
+  "diam": 53,
+  "medida": "55x162,5"
+ },
+ "198.01": {
+  "bruto": "609 Substrato:",
+  "diam": 60,
+  "medida": "46x34,7"
+ },
+ "204.01": {
+  "bruto": "750 Substrato:",
+  "diam": 75,
+  "medida": "35x115"
+ },
+ "265.01": {
+  "bruto": "942 Corte",
+  "diam": 94,
+  "medida": "134x33"
+ },
+ "A011.02": {
+  "bruto": "948 Corte",
+  "diam": 94,
+  "medida": "134x30"
+ },
+ "FAC0006.04": {
+  "bruto": "54 =",
+  "diam": 54,
+  "medida": "38,66x40"
+ },
+ "FAC0007.01": {
+  "bruto": "380 Substrato:",
+  "diam": 38,
+  "medida": "24x12"
+ },
+ "FAC0021.01": {
+  "bruto": "519 Substrato:",
+  "diam": 51,
+  "medida": "35x20"
+ },
+ "FAC0022.01": {
+  "bruto": "790 Substrato:",
+  "diam": 79,
+  "medida": "35x121,09"
+ },
+ "FAC0025.01": {
+  "bruto": "460 Substrato:",
+  "diam": 46,
+  "medida": "38,66x70"
+ },
+ "FAC0029.01": {
+  "bruto": "61 5",
+  "diam": 61,
+  "medida": "40x35"
+ },
+ "FAC0056.02": {
+  "bruto": "860 Substrato:",
+  "diam": 86,
+  "medida": "70x135,09"
+ },
+ "FAC0062.03": {
+  "bruto": "55 u",
+  "diam": 55,
+  "medida": "59,5x40"
+ },
+ "FAC0063.02": {
+  "bruto": "53 =",
+  "diam": 53,
+  "medida": "59,5x80"
+ },
+ "FAC0064.01": {
+  "bruto": null,
+  "diam": null,
+  "medida": "150x30"
+ },
+ "FAC0065.03": {
+  "bruto": "480 eeaeeeeeeeeereeeaeee",
+  "diam": 48,
+  "medida": "134x30"
+ },
+ "FAC0068.01": {
+  "bruto": "700 Substrato:",
+  "diam": 70,
+  "medida": "59,5x70"
+ },
+ "FAC0069.01": {
+  "bruto": "540 Substrato:",
+  "diam": 54,
+  "medida": "50x40"
+ },
+ "FAC0070.01": {
+  "bruto": "740 Faca",
+  "diam": 74,
+  "medida": "60x75"
+ },
+ "FAC0071.02": {
+  "bruto": "50 =",
+  "diam": 50,
+  "medida": "59,5x50"
+ },
+ "FAC0072.03": {
+  "bruto": "630 Raio",
+  "diam": 63,
+  "medida": "59,5x96"
+ },
+ "FAC0073.01": {
+  "bruto": "6109 Substrato:",
+  "diam": null,
+  "medida": "59,5x35"
+ },
+ "FAC0074.01": {
+  "bruto": "460 Substrato:",
+  "diam": 46,
+  "medida": "100x45"
+ },
+ "FAC0075.06": {
+  "bruto": "520 Substrato:",
+  "diam": 52,
+  "medida": "105x30"
+ },
+ "FAC0076.01": {
+  "bruto": "480 O",
+  "diam": 48,
+  "medida": "50x75"
+ },
+ "FAC0078.01": {
+  "bruto": "540 Substrato:",
+  "diam": 54,
+  "medida": "38x40"
+ },
+ "FAC0080.01": {
+  "bruto": "810 Substrato:",
+  "diam": 81,
+  "medida": "38,66x124"
+ },
+ "FAC0081.01": {
+  "bruto": "609 Substrato:",
+  "diam": 60,
+  "medida": "90x60"
+ },
+ "FAC0082.01": {
+  "bruto": "50 o",
+  "diam": 50,
+  "medida": "50x50"
+ },
+ "FAC0085.02": {
+  "bruto": "720 Substrato:",
+  "diam": 72,
+  "medida": "80x110"
+ },
+ "FAC0086.01": {
+  "bruto": "520 Substrato:",
+  "diam": 52,
+  "medida": "60x160,36"
+ },
+ "FAC0089.02": {
+  "bruto": "65 ll",
+  "diam": 65,
+  "medida": null
+ },
+ "FAC0092.01": {
+  "bruto": "65 o",
+  "diam": 65,
+  "medida": "1200x65"
+ },
+ "FAC0096.01": {
+  "bruto": "50 =",
+  "diam": 50,
+  "medida": "100x50"
+ },
+ "FAC0097.01": {
+  "bruto": "650 Substrato:",
+  "diam": 65,
+  "medida": "65x65,068"
+ },
+ "FAC0100.01": {
+  "bruto": "7719 Substrato:",
+  "diam": null,
+  "medida": "60x45,19"
+ },
+ "FAC0101.01": {
+  "bruto": "70 D",
+  "diam": 70,
+  "medida": "134x110"
+ },
+ "FAC0102.01": {
+  "bruto": "5009 Substrato:",
+  "diam": null,
+  "medida": "105x75"
+ },
+ "FAC0103.01": {
+  "bruto": "49 =",
+  "diam": 49,
+  "medida": "102x151"
+ },
+ "FAC0111.01": {
+  "bruto": "790 Substrato:",
+  "diam": 79,
+  "medida": "85x120,9"
+ },
+ "FAC0113.01": {
+  "bruto": "53 ku",
+  "diam": 53,
+  "medida": "80x80"
+ },
+ "FAC0114.01": {
+  "bruto": "650 Substrato:",
+  "diam": 65,
+  "medida": "100x100"
+ },
+ "FAC0115.01": {
+  "bruto": "740 Substrato:",
+  "diam": 74,
+  "medida": "80x113"
+ },
+ "FAC0116.01": {
+  "bruto": "51 Engrenagem:",
+  "diam": 51,
+  "medida": "26x37"
+ },
+ "FAC0119.01": {
+  "bruto": "7009 Substrato:",
+  "diam": null,
+  "medida": "45x71"
+ },
+ "FAC0120.01": {
+  "bruto": "619 Substrato:",
+  "diam": 61,
+  "medida": "105x63,879"
+ },
+ "FAC0121.01": {
+  "bruto": "65 u",
+  "diam": 65,
+  "medida": "100x201,2"
+ },
+ "FAC0125.01": {
+  "bruto": "550 Substrato:",
+  "diam": 55,
+  "medida": "80x34,6"
+ },
+ "FAC0130.01": {
+  "bruto": "700 Substrato:",
+  "diam": 70,
+  "medida": "70x70"
+ },
+ "FAC0131.01": {
+  "bruto": "7909 Substrato:",
+  "diam": null,
+  "medida": "40x121"
+ },
+ "FAC0134.01": {
+  "bruto": "41 fe)",
+  "diam": 41,
+  "medida": "77x62"
+ },
+ "FAC0135.01": {
+  "bruto": "810 Substrato:",
+  "diam": 81,
+  "medida": "105x60"
+ },
+ "FAC0136.01": {
+  "bruto": "720 Substrato:",
+  "diam": 72,
+  "medida": "80x110,1"
+ },
+ "FAC0138.01": {
+  "bruto": "42 =",
+  "diam": 42,
+  "medida": "80x30"
+ },
+ "FAC0139.01": {
+  "bruto": "52 ku",
+  "diam": 52,
+  "medida": "90x30,17"
+ },
+ "FAC0140.01": {
+  "bruto": "55 fe)",
+  "diam": 55,
+  "medida": "90x55"
+ },
+ "FAC0142.01": {
+  "bruto": "559 Substrato:",
+  "diam": 55,
+  "medida": "90x55"
+ },
+ "FAC0143.01": {
+  "bruto": "810 Substrato:",
+  "diam": 81,
+  "medida": "80x124"
+ },
+ "FAC0144.01": {
+  "bruto": "559 Substrato:",
+  "diam": 55,
+  "medida": "40x40"
+ },
+ "FAC0145.01": {
+  "bruto": "48 =",
+  "diam": 48,
+  "medida": "132x38"
+ },
+ "FAC0147.01": {
+  "bruto": "943 Corte",
+  "diam": 94,
+  "medida": "134x45"
+ },
+ "FAC0148.01": {
+  "bruto": "480 Substrato:",
+  "diam": 48,
+  "medida": "35x22,13"
+ },
+ "FAC0152.01": {
+  "bruto": "530 Substrato:",
+  "diam": 53,
+  "medida": "60x80"
+ },
+ "FAC0153.01": {
+  "bruto": "52 u",
+  "diam": 52,
+  "medida": "100x160,38"
+ },
+ "FAC0154.01": {
+  "bruto": "709 Substrato:",
+  "diam": 70,
+  "medida": "48x107"
+ },
+ "FAC0161.01": {
+  "bruto": "819 Substrato:",
+  "diam": 81,
+  "medida": "70x82"
+ },
+ "FAC0164.01": {
+  "bruto": null,
+  "diam": null,
+  "medida": "102x76"
+ },
+ "FAC0167.01": {
+  "bruto": "53 =-E",
+  "diam": 53,
+  "medida": "59,5x60"
+ },
+ "FAC0168.01": {
+  "bruto": "700 Substrato:",
+  "diam": 70,
+  "medida": "138x219,9"
+ },
+ "FAC0170.01": {
+  "bruto": "630 Substrato:",
+  "diam": 63,
+  "medida": "108x63"
+ },
+ "FAC0171.01": {
+  "bruto": "720 Substrato:",
+  "diam": 72,
+  "medida": "135x75,40"
+ },
+ "FAC0175.01": {
+  "bruto": "910 Substrato:",
+  "diam": 91,
+  "medida": "59,5x140"
+ },
+ "FAC0178.01": {
+  "bruto": "5009 Substrato:",
+  "diam": null,
+  "medida": "50x75"
+ },
+ "FAC0179.01": {
+  "bruto": "720 Substrato:",
+  "diam": 72,
+  "medida": "59,5x110"
+ },
+ "FAC0181.01": {
+  "bruto": "780 Substrato:",
+  "diam": 78,
+  "medida": "104,84x120"
+ },
+ "FAC0184.01": {
+  "bruto": "72 ll",
+  "diam": 72,
+  "medida": "110x110"
+ },
+ "FAC0185.01": {
+  "bruto": "539 Substrato:",
+  "diam": 53,
+  "medida": "52x164"
+ },
+ "FAC0186.01": {
+  "bruto": "650 Substrato:",
+  "diam": 65,
+  "medida": "50x100"
+ },
+ "FAC0216.01": {
+  "bruto": "720 Substrato:",
+  "diam": 72,
+  "medida": "80x110"
+ },
+ "FAC0221.01": {
+  "bruto": "780 Substrato:",
+  "diam": 78,
+  "medida": "59,5x120"
+ },
+ "FAC0222.01": {
+  "bruto": "599 Faca",
+  "diam": 59,
+  "medida": "60x182"
+ },
+ "FAC0231.01": {
+  "bruto": "720 Faca",
+  "diam": 72,
+  "medida": "64x73"
+ },
+ "FAC0232.01": {
+  "bruto": "650 Substrato:",
+  "diam": 65,
+  "medida": "30x201"
+ },
+ "FAC0233.01": {
+  "bruto": "559 Substrato:",
+  "diam": 55,
+  "medida": "60x170"
+ },
+ "FAC0235.01": {
+  "bruto": "780 Substrato:",
+  "diam": 78,
+  "medida": "70x242"
+ },
+ "FAC0245.01": {
+  "bruto": "810 Substrato:",
+  "diam": 81,
+  "medida": "80x60"
+ },
+ "FAC0248.01": {
+  "bruto": "840 Substrato:",
+  "diam": 84,
+  "medida": "90x129,5"
+ },
+ "FAC0248": {
+  "bruto": "840 Substrato:",
+  "diam": 84,
+  "medida": "90x129,5"
+ },
+ "FAC0252.01": {
+  "bruto": "540 Substrato:",
+  "diam": 54,
+  "medida": "50x40"
+ },
+ "FAC0254.01": {
+  "bruto": "539 Substrato:",
+  "diam": 53,
+  "medida": "70x80"
+ },
+ "FAC0255.01": {
+  "bruto": "780 Substrato:",
+  "diam": 78,
+  "medida": "105x120"
+ },
+ "FAC0256.01": {
+  "bruto": "819 Fac",
+  "diam": 81,
+  "medida": "45x82"
+ },
+ "FAC0257.01": {
+  "bruto": "780 Substrato:",
+  "diam": 78,
+  "medida": "100x120"
+ },
+ "FAC0259.01": {
+  "bruto": "650 Substrato:",
+  "diam": 65,
+  "medida": "60x100"
+ },
+ "FAC0261.01": {
+  "bruto": "650 aca",
+  "diam": 65,
+  "medida": "70x100"
+ },
+ "FAC0262.01": {
+  "bruto": "66 AMTITITITAITAIT",
+  "diam": 66,
+  "medida": "100x100"
+ },
+ "FAC0264.01": {
+  "bruto": "66 AMTITITITAIT",
+  "diam": 66,
+  "medida": "160x103,67"
+ },
+ "FAC0267.01": {
+  "bruto": "960 Substrato:",
+  "diam": 96,
+  "medida": "40x148"
+ },
+ "FAC0270.01": {
+  "bruto": "720 Substrato:",
+  "diam": 72,
+  "medida": "80x110"
+ },
+ "Faca-59,5x50": {
+  "bruto": "509 Substrato:",
+  "diam": 50,
+  "medida": "59,5x50"
+ },
+ "Rossi 59,5x80": {
+  "bruto": "720 Substrato:",
+  "diam": 72,
+  "medida": "80x110"
+ },
+ "SN02.01": {
+  "bruto": "650 Substrato:",
+  "diam": 65,
+  "medida": "45x48"
+ },
+ "SN1.01": {
+  "bruto": "609 Substrato:",
+  "diam": 60,
+  "medida": "60x91"
+ },
+ "SN10.01": {
+  "bruto": "650 Substrato:",
+  "diam": 65,
+  "medida": "40x100"
+ },
+ "SN11.01": {
+  "bruto": "520 Substrato:",
+  "diam": 52,
+  "medida": "49x24,5"
+ },
+ "SN13.01": {
+  "bruto": "720 Substrato:",
+  "diam": 72,
+  "medida": "60x72"
+ },
+ "SN15.01": {
+  "bruto": "810 Substrato:",
+  "diam": 81,
+  "medida": "125x125"
+ },
+ "SN22.01": {
+  "bruto": "5509 E",
+  "diam": null,
+  "medida": null
+ },
+ "SN23.01": {
+  "bruto": "659 A",
+  "diam": 65,
+  "medida": "160x32,967"
+ },
+ "SN28.01": {
+  "bruto": "7009 Substrato:",
+  "diam": null,
+  "medida": "130x110"
+ },
+ "SN34.01": {
+  "bruto": "480 Substrato:",
+  "diam": 48,
+  "medida": "134x50"
+ },
+ "SN35.01": {
+  "bruto": "819 Substrato:",
+  "diam": 81,
+  "medida": "30x25"
+ },
+ "SN37.01": {
+  "bruto": "519 Substrato:",
+  "diam": 51,
+  "medida": "110x50"
+ },
+ "SN38.01": {
+  "bruto": "599 Substrato:",
+  "diam": 59,
+  "medida": "59,5x90"
+ },
+ "SN39.01": {
+  "bruto": "910 Substrato:",
+  "diam": 91,
+  "medida": "90x140"
+ },
+ "SN41.01": {
+  "bruto": "969 Substrato:",
+  "diam": 96,
+  "medida": "30x148,38"
+ },
+ "SN42.01": {
+  "bruto": "780 S",
+  "diam": 78,
+  "medida": "50x120"
+ },
+ "SN43.01": {
+  "bruto": "780 S",
+  "diam": 78,
+  "medida": "80x120"
+ },
+ "SN44.01": {
+  "bruto": "580 Substrato:",
+  "diam": 58,
+  "medida": "34x23"
+ },
+ "SN6.01": {
+  "bruto": "720 Substrato:",
+  "diam": 72,
+  "medida": "42x110"
+ },
+ "SN9.01": {
+  "bruto": "1020 Substrato:",
+  "diam": null,
+  "medida": "80x157"
+ }
+}

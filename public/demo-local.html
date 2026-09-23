@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>R2 Hub · carregar demonstração</title>
+<style>
+  body{margin:0;min-height:100vh;display:grid;place-items:center;background:#f1f1f1;color:#252425;
+       font:400 16px/1.5 Inter,system-ui,sans-serif;padding:24px}
+  .cx{max-width:520px;background:#fff;border-radius:14px;padding:32px 30px;
+      box-shadow:0 1px 0 rgba(0,0,0,.04),0 20px 40px -30px rgba(0,0,0,.25)}
+  h1{font:800 26px/1.2 Inter,sans-serif;margin:0 0 10px}
+  p{color:#5c5a5c;margin:0 0 18px}
+  button{width:100%;border:0;border-radius:10px;padding:16px;cursor:pointer;
+         font:800 16px/1 Inter,sans-serif;background:#ffe815;color:#252425}
+  .lim{background:transparent;color:#8d8b8d;font-weight:600;margin-top:10px}
+  .ok{background:#252425;color:#ffe815;border-radius:10px;padding:14px 16px;margin-top:18px;
+      font:600 14.5px/1.45 Inter,sans-serif;display:none}
+  ul{color:#5c5a5c;font-size:14.5px;padding-left:20px;margin:0 0 18px}
+</style>
+</head>
+<body>
+<div class="cx">
+  <h1>Carregar a demonstração neste navegador</h1>
+  <p>Os pedidos, clichês e facas já estão no servidor. O que falta aqui são as telas que
+     guardam o estado no próprio navegador:</p>
+  <ul>
+    <li>Fábrica — máquinas rodando e apontamentos do mês</li>
+    <li>Estoque — faltas de matéria-prima e etiquetas em caixa</li>
+  </ul>
+  <button id="carregar">Carregar demonstração</button>
+  <button class="lim" id="limpar">limpar a demonstração deste navegador</button>
+  <div class="ok" id="ok"></div>
+</div>
+<script>
+const CLIENTES = ["Frigorífico Vale Verde","Laticínios Serra Azul","Cervejaria Ilha Grande","Moinho Três Rios",
+  "Hortifruti Boa Safra","Panificadora Pão Nosso","Biscoitos Vitória","Café Serrano","Supermercado União",
+  "Açaí do Norte","Sorvetes Polar","Massas Nonna Rosa"];
+const SUBS = ["Térmico AA","BOPP brilho","Couché","Térmico","BOPP fosco","Cartão couché"];
+const MAQ = [["classic","Classic",180],["force","Force",260],["maqflex","Maqflex",210],
+             ["delrey4","Del Rey 4",240],["delrey5","Del Rey 5",280]];
+let s = 424242;
+const rnd = () => (s = (s*1103515245+12345) % 2147483648) / 2147483648;
+const um = (a) => a[Math.floor(rnd()*a.length)];
+const int = (a,b) => Math.floor(a + rnd()*(b-a+1));
+const os = () => "#" + String(int(11,60)).padStart(4,"0");
+const brl = (v) => "R$ " + v.toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});
+
+function carregar() {
+  const agora = Date.now();
+
+  /* duas máquinas rodando agora, uma parada com OS carregada */
+  const painel = {};
+  painel.classic = { pedido: { num: os(), cliente: um(CLIENTES), medida: "80x60", substrato: um(SUBS),
+      metragem: "1000", rolos: "600", status: "Em produção", prazo: "12/08/2026" },
+    rodando: true, inicio: agora - 47*60*1000, acumulado: 0, valor: 180 };
+  painel.delrey5 = { pedido: { num: os(), cliente: um(CLIENTES), medida: "50x30", substrato: um(SUBS),
+      metragem: "500", rolos: "1200", status: "Em produção", prazo: "10/08/2026" },
+    rodando: true, inicio: agora - 2*3600*1000 - 12*60*1000, acumulado: 0, valor: 280 };
+  painel.force = { pedido: { num: os(), cliente: um(CLIENTES), medida: "100x50", substrato: um(SUBS),
+      metragem: "800", rolos: "400", status: "Em produção", prazo: "14/08/2026" },
+    rodando: false, inicio: 0, acumulado: 38*60*1000, valor: 260 };
+  localStorage.setItem("r2.painel.v1", JSON.stringify(painel));
+
+  /* apontamentos do mês: ~90 produções nas últimas 4 semanas */
+  const log = [];
+  for (let i = 0; i < 90; i++) {
+    const d = new Date(agora - int(1, 29)*86400000 - int(0,10)*3600000);
+    const [, nome, valorHora] = um(MAQ);
+    const ms = int(25, 260) * 60 * 1000;
+    const metros = int(300, 9000);
+    log.push({ data: d.toISOString(), maquina: nome, os: os(), cliente: um(CLIENTES),
+      substrato: um(SUBS), medida: int(40,110)+"x"+int(25,80), ms,
+      custo: Math.round(valorHora * (ms/3600000) * 100)/100, metros,
+      tag: rnd() < 0.94 ? "Finalizado" : "Cancelado" });
+  }
+  log.sort((a,b) => b.data.localeCompare(a.data));
+  localStorage.setItem("r2.producao.v1", JSON.stringify(log));
+
+  /* estoque: faltas de MP (2 abertas) e etiquetas em caixa */
+  const dd = (dias) => { const d = new Date(agora - dias*86400000);
+    return String(d.getDate()).padStart(2,"0")+"/"+String(d.getMonth()+1).padStart(2,"0")+"/"+String(d.getFullYear()).slice(2); };
+  const faltas = [
+    { id:"f1", num: os(), motivo:"Substrato acabou", obs:"Térmico AA 100mm zerado no estoque.",
+      quem:"Danilo", data: dd(0), hora:"08:20", previsao: dd(-2), status:"aberta" },
+    { id:"f2", num: os(), motivo:"Largura indisponível", obs:"Só tem bobina de 250, o pedido pede 320.",
+      quem:"Gabriel / Italo", data: dd(1), hora:"14:05", previsao: dd(-3), status:"aberta" },
+    { id:"f3", num: os(), motivo:"Metragem insuficiente no rolo", obs:"", quem:"Danilo", data: dd(6),
+      hora:"10:40", previsao:"", status:"resolvida", resolvidoEm: dd(5), resolvidoPor:"Gabriel / Italo" },
+    { id:"f4", num: os(), motivo:"Aguardando entrega do fornecedor", obs:"Couché AA chegou na quinta.",
+      quem:"Gabriel / Italo", data: dd(12), hora:"09:15", previsao:"", status:"resolvida",
+      resolvidoEm: dd(9), resolvidoPor:"Danilo" },
+  ];
+  localStorage.setItem("r2.estoque.faltas.v1", JSON.stringify(faltas));
+
+  const etq = [];
+  for (let i = 0; i < 14; i++) {
+    const porCaixa = um([1000, 2000, 5000]);
+    etq.push({ id: "e"+i, medida: int(40,110)+"x"+int(25,80), substrato: um(SUBS),
+      cliente: um(CLIENTES), caixas: int(0, 14), porCaixa, minimo: um([2, 3, 4]) });
+  }
+  localStorage.setItem("r2.estoque.etiquetas.v1", JSON.stringify(etq));
+
+  const total = log.reduce((t,l)=>t+l.custo,0);
+  mostrar("Pronto. Fábrica com 2 máquinas rodando, " + log.length +
+    " apontamentos no mês (" + brl(total) + " de custo de máquina) e o Estoque com 2 faltas abertas.<br><br>" +
+    "<a href='/hub?tela=home' style='color:#ffe815'>Abrir o Hub &rsaquo;</a>");
+}
+
+function limpar() {
+  ["r2.painel.v1","r2.producao.v1","r2.estoque.faltas.v1","r2.estoque.etiquetas.v1","r2.painel.maquinas.v2"]
+    .forEach(k => localStorage.removeItem(k));
+  mostrar("Demonstração local removida deste navegador. Os dados do servidor continuam como estão.");
+}
+
+function mostrar(html) {
+  const el = document.getElementById("ok");
+  el.innerHTML = html;
+  el.style.display = "block";
+}
+
+document.getElementById("carregar").onclick = carregar;
+document.getElementById("limpar").onclick = limpar;
+</script>
+</body>
+</html>

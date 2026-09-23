@@ -1,0 +1,326 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-yellow: var(--yellow);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-display: "Fraunces", Georgia, serif;
+}
+
+:root {
+  --radius: 0.625rem;
+  /* Vendas x Design — R2 Flexo palette */
+  --background: oklch(0.953 0 0);            /* #F1F1F1 */
+  --foreground: oklch(0.225 0.005 285);      /* #252425 */
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.225 0.005 285);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.225 0.005 285);
+  --primary: oklch(0.225 0.005 285);
+  --primary-foreground: oklch(0.92 0.18 100); /* yellow on dark */
+  --secondary: oklch(0.953 0 0);
+  --secondary-foreground: oklch(0.225 0.005 285);
+  --muted: oklch(0.953 0 0);
+  --muted-foreground: oklch(0.6 0 0);         /* #888 */
+  --accent: oklch(0.92 0.18 100);             /* yellow */
+  --accent-foreground: oklch(0.225 0.005 285);
+  --yellow: oklch(0.92 0.18 100);             /* #FFE815 */
+  --destructive: oklch(0.55 0.21 27);         /* #c0392b */
+  --destructive-foreground: oklch(0.99 0 0);
+  --success: oklch(0.63 0.14 152);            /* #27ae60 */
+  --warning: oklch(0.71 0.16 55);             /* #e67e22 */
+  --danger: oklch(0.55 0.21 27);
+  --border: oklch(0.88 0 0);                  /* #E0E0E0 */
+  --input: oklch(0.88 0 0);
+  --ring: oklch(0.225 0.005 285);
+}
+
+.dark {
+  --background: oklch(0.18 0.005 285);
+  --foreground: oklch(0.98 0 0);
+  --card: oklch(0.225 0.005 285);
+  --card-foreground: oklch(0.98 0 0);
+  --popover: oklch(0.225 0.005 285);
+  --popover-foreground: oklch(0.98 0 0);
+  --primary: oklch(0.92 0.18 100);
+  --primary-foreground: oklch(0.225 0.005 285);
+  --secondary: oklch(0.28 0.005 285);
+  --secondary-foreground: oklch(0.98 0 0);
+  --muted: oklch(0.28 0.005 285);
+  --muted-foreground: oklch(0.7 0 0);
+  --accent: oklch(0.92 0.18 100);
+  --accent-foreground: oklch(0.225 0.005 285);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.92 0.18 100);
+}
+
+@layer base {
+  * { border-color: var(--color-border); }
+  html, body {
+    font-family: var(--font-sans);
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    -webkit-font-smoothing: antialiased;
+    font-size: 14px;
+  }
+  .font-display { font-family: var(--font-display); font-variation-settings: "SOFT" 100; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   V3 — tokens de cor/tipografia/forma (DESIGN.md + GRID.md).
+   Papéis semânticos: componentes usam ESTES, nunca hex cravado.
+   ═══════════════════════════════════════════════════════════════════ */
+:root{
+  /* Marca */
+  --bg:        #efefef;
+  --ink:       #1d1d1b;
+
+  /* Escala de cinzas (Bootstrap gray, ~210°) */
+  --gray-050: #f8f9fa;
+  --gray-100: #e9ecef;
+  --gray-200: #dee2e6;
+  --gray-300: #ced4da;
+  --gray-400: #adb5bd;
+  --gray-500: #6c757d;
+  --gray-600: #495057;
+  --gray-700: #343a40;
+  --gray-800: #212529;
+
+  /* Papéis semânticos */
+  --yellow:         #ffe91d;           /* amarelo-marca exato (DESIGN.md) */
+  --surface:        #ffffff;
+  --surface-sunken: var(--bg);         /* #efefef — faixa de foco da tabela */
+  --page:           var(--bg);
+  --text:           var(--ink);
+  --text-muted:     var(--gray-500);
+  --text-faint:     var(--gray-400);
+  --stroke:         var(--gray-300);   /* #ced4da — traço das bordas dos cards */
+  --divider:        var(--gray-300);
+  --on-accent:      var(--ink);
+  --rail-bg:        var(--ink);
+  --on-rail:        #ffffff;
+  --info:           #2ea3f2;   /* placeholder de conteúdo pendente — não é UI final */
+
+  /* Estados da orelha do card de pedido */
+  --order-wait:  #ffe91d;
+  --order-doing: var(--ink);
+  --order-idle:  var(--gray-300);
+
+  /* Tipografia */
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  /* Forma — raio 10 em TODOS os cantos; bordas cinzas sempre de 1,6987pt */
+  --radius-card:  10px;
+  --radius-field: 10px;
+  --radius-pill:  10px;
+  --radius-rail:  10px;
+  --border-w:     1.6987pt;
+
+  /* Elevação */
+  --sh:      0 1px 0 rgba(0,0,0,.04), 0 16px 32px -24px rgba(0,0,0,.22);
+  --sh-pill: 0 1px 4px rgba(0,0,0,.09);
+}
+
+/* Display Fraunces super soft black — títulos, números grandes, nomes. */
+.fd{
+  font-family: var(--font-display);
+  font-variation-settings: "SOFT" 100, "opsz" 144, "wght" 900;
+  font-weight: 900;
+}
+/* Fraunces SuperSoft BOLD (700) — nomes de cliente nos cards (DESIGN.md). */
+.fd-b{
+  font-family: var(--font-display);
+  font-variation-settings: "SOFT" 100, "opsz" 144, "wght" 700;
+  font-weight: 700;
+}
+.fmono{ font-family: var(--font-mono); font-variant-numeric: lining-nums tabular-nums; }
+
+/* Status badges */
+.s-nova       { background:#fff3cd; color:#856404; }
+.s-criacao    { background:#cfe2ff; color:#084298; }
+.s-aguardando { background:#e8d5f5; color:#5a1a8a; }
+.s-revisao    { background:#fde8e8; color:#c0392b; }
+.s-aprovada   { background:#d4edda; color:#155724; }
+.s-cliche     { background:#fff0e0; color:#884400; }
+.s-concluido  { background:#e2e2e2; color:#555; }
+.s-cancelado  { background:#f8d7da; color:#721c24; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   V1a — interações do handoff design_handoff_r2_hub (README §Interações).
+   Classes usadas pelos componentes em src/components/v1a/.
+   ═══════════════════════════════════════════════════════════════════ */
+.r2row:hover{background:#f6f6f6!important}
+.r2chip{transition:transform .12s ease,background .12s ease}
+.r2chip:hover{transform:translateY(-1px)}
+.r2card{transition:transform .16s ease,box-shadow .16s ease,flex-grow .3s cubic-bezier(.4,0,.2,1),flex-basis .3s cubic-bezier(.4,0,.2,1)}
+.r2card:hover{transform:translateY(-2px);box-shadow:0 1px 0 rgba(0,0,0,.04),0 28px 50px -30px rgba(0,0,0,.35)}
+.r2ic:hover{background:#3a383a!important}
+.r2rowd:hover{background:rgba(255,255,255,.06)!important}
+.pm-ic:hover{background:#e0e0e0!important}
+.pm-act{transition:transform .12s ease,background .12s ease}
+.pm-act:hover{transform:translateY(-1px)}
+.pm-row:hover{background:#f6f6f6!important}
+
+/* Modal do pedido v2 (handoff `Pedido-modal v2`) — o que nao da para fazer
+   com estilo inline: hover de linha, revelacao do hex da cor e a barra de
+   rolagem fina de 8px que o handoff pede em todo scroll interno. */
+.pv-row:hover{background:#f6f6f6!important}
+.pv-dark:hover{background:#3a383a!important}
+.pv-chip:hover{filter:brightness(.97)}
+.pv-cor .pv-hex{max-width:0;overflow:hidden;opacity:0;transition:max-width .14s ease,opacity .14s ease,margin-left .14s ease}
+.pv-cor:hover .pv-hex,.pv-cor:focus-visible .pv-hex{max-width:90px;opacity:1;margin-left:0}
+.pv-sc{scrollbar-width:thin;scrollbar-color:#dcdbdc transparent}
+.pv-sc::-webkit-scrollbar{width:8px;height:8px}
+.pv-sc::-webkit-scrollbar-track{background:transparent}
+.pv-sc::-webkit-scrollbar-thumb{background:#dcdbdc;border-radius:999px}
+
+.r2tile{transition:transform .16s ease,box-shadow .16s ease}
+.r2tile:hover{transform:translateY(-2px)}
+.r2rail{transition:width .2s ease,background .2s ease,box-shadow .2s ease}
+.r2rail:hover{width:238px!important;background:rgba(37,36,37,.94)!important;backdrop-filter:blur(8px) saturate(115%);-webkit-backdrop-filter:blur(8px) saturate(115%);box-shadow:0 30px 70px -20px rgba(0,0,0,.55)!important}
+.r2rail .r2lbl{opacity:0;transition:opacity .15s ease}
+.r2rail:hover .r2lbl{opacity:1}
+.r2mark,.r2word{position:absolute;left:0;transition:opacity .22s ease,transform .22s ease}
+.r2word{opacity:0;transform:translateX(-6px)}
+.r2rail:hover .r2mark{opacity:0;transform:translateX(-6px)}
+.r2rail:hover .r2word{opacity:1;transform:none}
+
+/* Fade de entrada de página — o mesmo respiro do vídeo da capa (600ms ease).
+   Aplicado no container raiz de cada página do Hub; re-dispara a cada mount. */
+@keyframes paginaFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.fade-page { animation: paginaFade 600ms ease both; }
+
+/* Faixa que rola na horizontal sem barra visível (pílulas de papel da Home). */
+.r2scroll-x{overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none;scroll-behavior:smooth}
+.r2scroll-x::-webkit-scrollbar{display:none}
+
+/* lista de páginas do rail: rola sem mostrar barra (o rail tem 76px) */
+.r2rail-lista { scrollbar-width: none; }
+.r2rail-lista::-webkit-scrollbar { display: none; }
+
+/* modais aproveitam a tela: contrapeso do encolhimento do palco (--mzoom vem
+   do EstagioV1a). Overlay dentro de overlay volta a 1 para nao compor. */
+.r2modal { zoom: var(--mzoom, 1); }
+.r2modal .r2modal { zoom: 1; }
+
+/* Folha A4 das Calculadoras: na tela ela nao existe; na impressao ela e a
+   UNICA coisa que aparece (o palco 1920 escalado nao imprime bem). O no sai
+   por portal direto no <body>, por isso o seletor de irmao. */
+#r2-print { display: none; }
+@media print {
+  @page { size: A4 portrait; margin: 11mm 12mm; }
+  html, body { height: auto !important; overflow: visible !important; background: #fff !important; }
+  body > *:not(#r2-print) { display: none !important; }
+  #r2-print { display: block !important; }
+  .r2-nobreak { break-inside: avoid; page-break-inside: avoid; }
+}
+
+/* ————— Hub 1.0 (home-hub-1.0.dc.html) —————
+   Classes com prefixo h10- para nao colidir com as do V1a enquanto as duas
+   gerações convivem: a Home ja e 1.0, as demais telas ainda sao V1a. */
+.h10-navi { position: relative; transition: opacity .15s ease; }
+.h10-navi:hover { opacity: .55; }
+.h10-navi.on::after { content: ""; position: absolute; left: 0; right: 0; bottom: -8px; height: 3px; background: #000; }
+.h10-dot { transition: transform .15s ease; }
+.h10-dot:hover { transform: scale(1.12); }
+.h10-spark { position: absolute; z-index: 46; pointer-events: none; transform-origin: center; animation: h10brilho 2.6s ease-in-out infinite; }
+@keyframes h10badge { 0%, 100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-4px) scale(1.08); } }
+@keyframes h10brilho { 0%, 100% { opacity: 0; transform: scale(.4) rotate(0deg); } 45% { opacity: 1; transform: scale(1) rotate(20deg); } 70% { opacity: .5; transform: scale(.8) rotate(35deg); } }
+/* Pedidos 1.0 — trilha de cartoes com snap horizontal. */
+.p10-trilha { scrollbar-width: none; -ms-overflow-style: none; scroll-snap-type: x mandatory; }
+.p10-trilha::-webkit-scrollbar { display: none; height: 0; width: 0; }
+.p10-card { transition: transform .32s cubic-bezier(.22,.61,.36,1), box-shadow .32s ease; scroll-snap-align: start; will-change: transform; transform-origin: bottom center; backface-visibility: hidden; }
+/* So a sombra externa. O handoff tinha tambem um `inset 0 0 0 1px` quase
+   preto, que redesenhava o contorno inteiro no hover — com os cards sem
+   contorno lateral, isso criava um traco que nao existe em repouso. */
+.p10-card:hover { z-index: 5; transform: scale(1.015); box-shadow: 0 22px 40px -20px rgba(0,0,0,.42); }
+.p10-plus { transition: transform .2s ease; }
+.p10-card:hover .p10-plus { transform: rotate(90deg); }
+.p10-flat { transition: opacity .15s ease; }
+.p10-flat:hover { opacity: .6; }
+.p10-dot { transition: transform .15s ease; }
+.p10-dot:hover { transform: scale(1.14); }
+.p10-linha { transition: background .12s ease; }
+.p10-linha:hover { background: rgba(37,36,37,.05); }
+@keyframes p10dica { from { opacity: 0; } to { opacity: 1; } }
+.p10-dica { animation: p10dica .4s ease both; }
+
+/* Novo pedido 1.0 — os quatro cartoes de etapa. */
+.np10-card { transition: transform .32s cubic-bezier(.22,.61,.36,1), box-shadow .32s ease; will-change: transform; transform-origin: bottom center; backface-visibility: hidden; }
+.np10-card:hover { z-index: 5; transform: scale(1.015); box-shadow: 0 22px 40px -20px rgba(0,0,0,.42), inset 0 0 0 1px rgba(0,0,0,.85); }
+.np10-card:hover .np10-seta { transform: translateX(6px); }
+.np10-seta { transition: transform .22s ease; }
+.np10-flat { transition: opacity .15s ease; }
+.np10-flat:hover { opacity: .6; }
+.np10-chips { scrollbar-width: none; -ms-overflow-style: none; }
+.np10-chips::-webkit-scrollbar { display: none; height: 0; }
+
+/* Hero da Home 1.0. A saudacao entra letra a letra segurando uma cor CMYK e
+   so entao assenta; depois sai e entra o titulo fixo, que fica.
+   A cor de chegada e var(--fim), nao o preto do projeto, porque um papel de
+   parede escuro troca o texto para branco: se o keyframe assentasse num preto
+   fixo ele desfaria essa escolha no ultimo quadro. */
+@keyframes h10ola {
+  0%   { opacity: 0; transform: translateY(50px) scale(.66) rotate(9deg); color: var(--acc); }
+  18%  { opacity: 1; }
+  34%  { transform: translateY(-11px) scale(1.07) rotate(-2.5deg); color: var(--acc); }
+  50%  { transform: translateY(4px) scale(.99) rotate(.5deg); color: var(--acc); }
+  66%  { transform: translateY(0) scale(1) rotate(0); color: var(--acc); }
+  100% { opacity: 1; transform: translateY(0) scale(1) rotate(0); color: var(--fim); }
+}
+@keyframes h10olaOut { to { opacity: 0; transform: translateY(-22px); } }
+@keyframes h10letra {
+  0%   { opacity: 0; transform: translateY(46px) scale(.7) rotate(7deg); }
+  20%  { opacity: 1; }
+  40%  { transform: translateY(-9px) scale(1.06) rotate(-2deg); }
+  70%  { transform: translateY(0) scale(1) rotate(0); }
+  100% { opacity: 1; transform: none; }
+}
+/* O hero e escrito uma letra por <span> para animar cada uma. Como sao
+   inline-block, o leitor de tela tende a soletrar; entao as letras ficam
+   aria-hidden e o texto de verdade vai neste span invisivel. */
+.h10-so-leitor { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+.h10-saud { animation: h10olaOut .5s cubic-bezier(.5, 0, .75, 0) 2.05s forwards; }
+.h10-ll { display: inline-block; opacity: 0; animation: h10ola .92s cubic-bezier(.2, .8, .25, 1) both; }
+.h10-fl { display: inline-block; opacity: 0; transition: color .1s ease; animation: h10letra .8s cubic-bezier(.2, .8, .25, 1) both; }
+@media (prefers-reduced-motion: reduce) {
+  .h10-spark, .h10-badge { animation: none !important; }
+  .np10-card, .np10-seta { transition: none !important; }
+  .np10-card:hover { transform: none; }
+  /* as letras nascem em opacity 0 e so a animacao as revela — sem ela o texto
+     sumiria por completo, entao aqui elas nascem prontas. */
+  .h10-saud, .h10-ll, .h10-fl { animation: none !important; opacity: 1; }
+}

@@ -1,0 +1,915 @@
+<title>Nova solicitação e card do pedido</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..900&family=Inter:wght@400..800&display=swap">
+
+<style>
+  :root {
+    --ink: #252425;
+    --amarelo: #ffe815;
+    --fundo: #f1f1f1;
+    --superficie: #ffffff;
+    --poco: #fafafa;
+    --texto: #252425;
+    --rotulo: #5c5a5c;
+    --secundario: #8d8b8d;
+    --terciario: #b3b1b3;
+    --borda: #d6d5d6;
+    --divisor: #ececec;
+    --trilho: #e0e0e0;
+    --sombra-card: 0 1px 0 rgba(0,0,0,.04), 0 20px 40px -30px rgba(0,0,0,.25);
+    --mono: ui-monospace, Menlo, Consolas, monospace;
+    --display: Fraunces, Georgia, serif;
+    --corpo: Inter, system-ui, -apple-system, sans-serif;
+    --medida: 68ch;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --fundo: #191819;
+      --superficie: #232223;
+      --poco: #1f1e1f;
+      --texto: #f1f1f1;
+      --rotulo: #b3b1b3;
+      --secundario: #969496;
+      --terciario: #7e7c7e;
+      --borda: #3d3b3d;
+      --divisor: #322f32;
+      --trilho: #3d3b3d;
+      --sombra-card: 0 1px 0 rgba(0,0,0,.3), 0 20px 40px -30px rgba(0,0,0,.8);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --fundo: #191819;
+    --superficie: #232223;
+    --poco: #1f1e1f;
+    --texto: #f1f1f1;
+    --rotulo: #b3b1b3;
+    --secundario: #969496;
+    --terciario: #7e7c7e;
+    --borda: #3d3b3d;
+    --divisor: #322f32;
+    --trilho: #3d3b3d;
+    --sombra-card: 0 1px 0 rgba(0,0,0,.3), 0 20px 40px -30px rgba(0,0,0,.8);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--fundo);
+    color: var(--texto);
+    font: 400 16px/1.65 var(--corpo);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .folha {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 56px 28px 96px;
+    display: flex;
+    flex-direction: column;
+    gap: 44px;
+  }
+
+  .prosa { max-width: var(--medida); }
+
+  /* ————— cabeçalho ————— */
+  .capa { display: flex; flex-direction: column; gap: 18px; }
+
+  .sobrenome {
+    font: 600 12.5px/1 var(--mono);
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--secundario);
+  }
+
+  h1 {
+    margin: 0;
+    font-family: var(--display);
+    font-variation-settings: 'opsz' 144;
+    font-weight: 800;
+    font-size: clamp(38px, 6vw, 62px);
+    line-height: .96;
+    letter-spacing: -.03em;
+    text-wrap: balance;
+  }
+
+  .linha-fina {
+    font-size: 17.5px;
+    line-height: 1.6;
+    color: var(--rotulo);
+    max-width: var(--medida);
+  }
+
+  .atalhos {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    padding-top: 6px;
+  }
+
+  .atalhos a {
+    font: 600 13px/1 var(--corpo);
+    color: var(--texto);
+    text-decoration: none;
+    border: 1.5px solid var(--borda);
+    border-radius: 999px;
+    padding: 9px 14px;
+    transition: background .12s ease, border-color .12s ease;
+  }
+
+  .atalhos a:hover, .atalhos a:focus-visible {
+    background: var(--amarelo);
+    border-color: var(--amarelo);
+    color: #252425;
+  }
+
+  /* ————— seções ————— */
+  section { display: flex; flex-direction: column; gap: 18px; scroll-margin-top: 24px; }
+
+  h2 {
+    margin: 0;
+    font-family: var(--display);
+    font-variation-settings: 'opsz' 96;
+    font-weight: 700;
+    font-size: clamp(26px, 3.4vw, 34px);
+    line-height: 1.05;
+    letter-spacing: -.02em;
+    text-wrap: balance;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--divisor);
+  }
+
+  h3 {
+    margin: 14px 0 0;
+    font: 800 18px/1.3 var(--corpo);
+    letter-spacing: -.01em;
+  }
+
+  h4 {
+    margin: 10px 0 0;
+    font: 600 12.5px/1 var(--mono);
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--secundario);
+  }
+
+  p { margin: 0; max-width: var(--medida); }
+  p + p { margin-top: 12px; }
+
+  ul { margin: 0; padding-left: 20px; max-width: var(--medida); }
+  li + li { margin-top: 7px; }
+
+  code {
+    font: 500 .88em/1.4 var(--mono);
+    background: var(--poco);
+    border: 1px solid var(--divisor);
+    border-radius: 4px;
+    padding: 1px 5px;
+  }
+
+  strong { font-weight: 700; }
+
+  /* ————— tabelas ————— */
+  .rolagem { overflow-x: auto; border-radius: 10px; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--superficie);
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: var(--sombra-card);
+    font-size: 14.5px;
+  }
+
+  th {
+    text-align: left;
+    font: 600 11.5px/1 var(--mono);
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--secundario);
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--divisor);
+    white-space: nowrap;
+  }
+
+  td {
+    padding: 13px 16px;
+    border-bottom: 1px solid var(--divisor);
+    vertical-align: top;
+  }
+
+  tbody tr:last-child td { border-bottom: 0; }
+
+  td.dado, .num {
+    font-family: var(--mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 13.5px;
+    white-space: nowrap;
+  }
+
+  td.dado { color: var(--rotulo); }
+
+  /* ————— amostras vivas ————— */
+  .amostras {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: 10px;
+  }
+
+  .amostra {
+    background: var(--superficie);
+    border-radius: 10px;
+    padding: 12px;
+    box-shadow: var(--sombra-card);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .chapa {
+    height: 62px;
+    border-radius: 7px;
+    box-shadow: inset 0 0 0 1px rgba(37,36,37,.12);
+  }
+
+  .amostra dt { font: 700 14px/1.2 var(--corpo); }
+  .amostra dd { margin: 3px 0 0; font: 500 12.5px/1.3 var(--mono); color: var(--secundario); }
+  .amostra dd.uso { font-family: var(--corpo); font-weight: 400; font-size: 13px; color: var(--rotulo); margin-top: 6px; }
+
+  /* peças reais do produto, montadas com os valores do código */
+  .palco {
+    background: var(--superficie);
+    border-radius: 12px;
+    padding: 22px;
+    box-shadow: var(--sombra-card);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .peca-legenda {
+    flex: 1 1 100%;
+    font: 600 11.5px/1 var(--mono);
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--secundario);
+  }
+
+  .chip-on, .chip-off {
+    border-radius: 999px;
+    padding: 8px 9px;
+    font: 600 11px/1 var(--corpo);
+    border: 2px solid;
+    white-space: nowrap;
+  }
+  .chip-on  { background: #252425; color: #ffe815; border-color: #252425; }
+  .chip-off { background: #f1f1f1; color: #5c5a5c; border-color: #f1f1f1; }
+
+  .pilula {
+    font: 700 12.5px/1 var(--corpo);
+    letter-spacing: .03em;
+    text-transform: uppercase;
+    padding: 7px 11px 6px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+
+  .campo-inp {
+    background: #f1f1f1;
+    border: 2px solid #f1f1f1;
+    border-radius: 7px;
+    padding: 12px 14px;
+    font: 600 15px/1.2 var(--corpo);
+    color: #252425;
+    min-width: 220px;
+  }
+
+  .barra-trilho {
+    width: 150px; height: 6px;
+    background: #e0e0e0;
+    border-radius: 999px;
+    overflow: hidden;
+  }
+  .barra-fill { height: 100%; width: 67%; background: #ffe815; border-radius: 999px; }
+
+  /* ————— blocos de destaque ————— */
+  .nota {
+    background: var(--superficie);
+    border-left: 4px solid var(--amarelo);
+    border-radius: 0 10px 10px 0;
+    padding: 16px 20px;
+    box-shadow: var(--sombra-card);
+    max-width: var(--medida);
+  }
+
+  .nota h4 { margin-top: 0; color: var(--texto); }
+  .nota p { margin-top: 8px; font-size: 15px; color: var(--rotulo); }
+
+  .fonte {
+    font: 500 12.5px/1.5 var(--mono);
+    color: var(--secundario);
+    background: var(--poco);
+    border: 1px solid var(--divisor);
+    border-radius: 8px;
+    padding: 10px 14px;
+    display: inline-block;
+    max-width: 100%;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  /* ————— tipografia demonstrada ————— */
+  .tipo-linha {
+    background: var(--superficie);
+    border-radius: 10px;
+    padding: 18px 20px;
+    box-shadow: var(--sombra-card);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .tipo-spec { font: 500 12.5px/1.4 var(--mono); color: var(--secundario); text-align: right; }
+
+  .rodape {
+    border-top: 1px solid var(--divisor);
+    padding-top: 22px;
+    font-size: 14px;
+    color: var(--secundario);
+    max-width: var(--medida);
+  }
+
+  a { color: inherit; }
+
+  :focus-visible { outline: 2.5px solid var(--amarelo); outline-offset: 2px; border-radius: 4px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+</style>
+
+<div class="folha">
+
+  <header class="capa">
+    <div class="sobrenome">R2 Hub · handoff v1a</div>
+    <h1>Nova solicitação e card do pedido</h1>
+    <p class="linha-fina">
+      Especificação das duas peças a partir do código em produção: o modal que abre um pedido
+      e o cartão que o mostra na fila. Toda medida aqui foi lida do componente, não estimada —
+      onde a decisão tem um porquê que não se vê na tela, o porquê está escrito junto.
+    </p>
+    <nav class="atalhos">
+      <a href="#tokens">Tokens</a>
+      <a href="#modal">Modal</a>
+      <a href="#cliente">Estados do cliente</a>
+      <a href="#card">Card do pedido</a>
+      <a href="#interacoes">Interações</a>
+      <a href="#a11y">Acessibilidade</a>
+    </nav>
+  </header>
+
+  <section id="tokens">
+    <h2>Palco e tokens</h2>
+
+    <p class="prosa">
+      Todo o v1a é desenhado num palco fixo de <strong>1920 × 1290</strong> escalado para a
+      viewport — nenhuma tela tem breakpoints. O que muda em monitor menor é o zoom do palco
+      inteiro, não o arranjo dos blocos. Os modais herdam esse zoom por
+      <code>.r2modal { zoom: var(--mzoom, 1) }</code>, e um modal dentro de outro volta a 1.
+    </p>
+
+    <div class="fonte">src/components/v1a/HubV1a.tsx · STAGE_W 1920 · STAGE_H 1290</div>
+
+    <h4>Cor</h4>
+    <div class="amostras">
+      <div class="amostra">
+        <div class="chapa" style="background:#252425"></div>
+        <dl>
+          <dt>INK</dt>
+          <dd>#252425</dd>
+          <dd class="uso">Texto, chip ligado, cartão de origem interna</dd>
+        </dl>
+      </div>
+      <div class="amostra">
+        <div class="chapa" style="background:#ffe815"></div>
+        <dl>
+          <dt>AMARELO</dt>
+          <dd>#ffe815</dd>
+          <dd class="uso">Ação principal, alerta, atraso, progresso</dd>
+        </dl>
+      </div>
+      <div class="amostra">
+        <div class="chapa" style="background:#f1f1f1"></div>
+        <dl>
+          <dt>FUNDO</dt>
+          <dd>#f1f1f1</dd>
+          <dd class="uso">Fundo do modal, campo em repouso, chip desligado</dd>
+        </dl>
+      </div>
+      <div class="amostra">
+        <div class="chapa" style="background:#ffffff"></div>
+        <dl>
+          <dt>Superfície</dt>
+          <dd>#ffffff</dd>
+          <dd class="uso">Cartão dentro do modal, botão Cancelar</dd>
+        </dl>
+      </div>
+    </div>
+
+    <h4>Escala de cinzas em uso</h4>
+    <div class="rolagem">
+      <table>
+        <thead>
+          <tr><th>Valor</th><th>Papel</th><th>Onde aparece</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="dado">#5c5a5c</td><td>Rótulo de campo</td><td>Todos os <code>&lt;label&gt;</code> do formulário, texto do chip desligado</td></tr>
+          <tr><td class="dado">#8d8b8d</td><td>Texto secundário</td><td>Sobrenome do modal, tamanho do anexo, legenda de rodapé</td></tr>
+          <tr><td class="dado">#b3b1b3</td><td>Texto auxiliar</td><td>Ajuda sob os campos, placeholder, rótulo de dado no card</td></tr>
+          <tr><td class="dado">#d6d5d6</td><td>Borda tracejada</td><td>Área de anexo, botão “adicionar”, moldura da prévia</td></tr>
+          <tr><td class="dado">#e0e0e0</td><td>Borda sólida / trilho</td><td>Botão Tabela Pantone, trilho da barra de progresso</td></tr>
+          <tr><td class="dado">#ececec</td><td>Divisor</td><td>Linha vertical do card aberto, contorno das listas suspensas</td></tr>
+          <tr><td class="dado">#fafafa</td><td>Poço</td><td>Fundo da prévia da etiqueta e da área de anexo</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h4>Tipografia</h4>
+
+    <div class="tipo-linha">
+      <span style="font-family:var(--display);font-variation-settings:'opsz' 96;font-weight:700;font-size:38px;line-height:1;letter-spacing:-.03em">Nova solicitação de arte</span>
+      <span class="tipo-spec">Fraunces · opsz 96 · w700<br>38px / 1.0 · ls −.03em</span>
+    </div>
+
+    <div class="tipo-linha">
+      <span style="font-family:var(--display);font-variation-settings:'opsz' 96;font-weight:700;font-size:32px;line-height:.98;letter-spacing:-.03em">Panificadora São Geraldo</span>
+      <span class="tipo-spec">Fraunces · opsz 96 · w700<br>32px / 0.98 · card aberto</span>
+    </div>
+
+    <div class="tipo-linha">
+      <span style="font:800 19px/1 var(--corpo);letter-spacing:-.01em">Cores de impressão</span>
+      <span class="tipo-spec">Inter 800 · 19px<br>título de cartão</span>
+    </div>
+
+    <div class="tipo-linha">
+      <span style="font:600 14.5px/1 var(--corpo);color:var(--rotulo)">Largura da matéria-prima (mm) *</span>
+      <span class="tipo-spec">Inter 600 · 14.5px<br>#5c5a5c · rótulo</span>
+    </div>
+
+    <div class="tipo-linha">
+      <span style="font:600 13.5px/1.2 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--secundario)">R2 Hub · solicitar arte</span>
+      <span class="tipo-spec">mono 600 · 13.5px<br>ls .14em · caixa alta</span>
+    </div>
+
+    <p class="prosa">
+      A Fraunces entra sempre pelo helper <code>fr(opsz, weight)</code>, que fixa
+      <code>'SOFT' 100</code> e move o eixo óptico conforme o corpo — título grande usa
+      <code>opsz 96</code>, valor de dado no card usa <code>opsz 48</code>. Não troque por
+      <code>font-size</code> sozinho: sem o eixo óptico certo a letra engorda.
+    </p>
+
+    <h4>Sombra e raio</h4>
+    <div class="rolagem">
+      <table>
+        <thead><tr><th>Token</th><th>Valor</th><th>Uso</th></tr></thead>
+        <tbody>
+          <tr><td class="dado">SOMBRA_CARD</td><td class="dado">0 1px 0 rgba(0,0,0,.04), 0 20px 40px −30px rgba(0,0,0,.25)</td><td>Cartão em repouso</td></tr>
+          <tr><td class="dado">sombra do modal</td><td class="dado">0 50px 100px −30px rgba(0,0,0,.6)</td><td>Painel do modal sobre o overlay</td></tr>
+          <tr><td class="dado">lista suspensa</td><td class="dado">0 20px 40px −18px rgba(0,0,0,.45), 0 0 0 1px #ececec</td><td>Autocomplete de pasta e de Pantone</td></tr>
+          <tr><td class="dado">raio</td><td class="dado">14 · 12 · 10 · 9 · 8 · 7 · 999</td><td>Modal · cartão · card de faca · lista · aviso · campo · pílula</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="modal">
+    <h2>Modal — Nova solicitação de arte</h2>
+
+    <div class="fonte">src/components/v1a/modais/NovaArteModalV1a.tsx</div>
+
+    <p class="prosa">
+      Formulário de abertura de pedido, em três colunas, que começa vazio. Entrega
+      <code>onEnviar(cliente)</code> quando válido e, se a rota passar <code>aoCriar</code>,
+      cria o pedido de verdade e devolve o número para o aviso.
+    </p>
+
+    <h3>Estrutura</h3>
+    <div class="rolagem">
+      <table>
+        <thead><tr><th>Camada</th><th>Especificação</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Overlay</td>
+            <td class="dado">position absolute · inset 0 · z-index 60<br>rgba(37,36,37,.52) · backdrop-filter blur(4px)<br>padding 36 · border-radius 14</td>
+          </tr>
+          <tr>
+            <td>Painel</td>
+            <td class="dado">width min(1560px, 98%) · max-height 100%<br>background #f1f1f1 · radius 14 · padding 26<br>flex column · gap 14</td>
+          </tr>
+          <tr>
+            <td>Cabeçalho</td>
+            <td class="dado">flex · align flex-end · gap 24<br>sobrenome mono 13.5 ls .14em · título Fraunces 38<br>progresso + botão fechar 36×36</td>
+          </tr>
+          <tr>
+            <td>Corpo</td>
+            <td class="dado">grid 3 × 1fr · gap 12 · align stretch<br>flex 1 1 auto · min-height 0 · overflow-y auto</td>
+          </tr>
+          <tr>
+            <td>Rodapé</td>
+            <td class="dado">flex · gap 10 · fora da área de rolagem<br>mensagem + Cancelar + Enviar solicitação</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="nota">
+      <h4>Por que 1560 e não 1180</h4>
+      <p>
+        O desenho original tinha 1180px de largura e o modal fechava em 1218px de altura, num
+        palco de 1290. Qualquer campo novo empurrava o rodapé — e o botão de enviar — para fora
+        da tela. Alargar e baixar resolveu: a prévia da etiqueta saiu da coluna do meio para a
+        terceira, que era ela quem esticava tudo. O corpo rola por dentro; o rodapé nunca sai
+        do lugar.
+      </p>
+    </div>
+
+    <h3>Peças do formulário</h3>
+    <div class="palco">
+      <span class="peca-legenda">Campo · INP</span>
+      <span class="campo-inp">620</span>
+      <span style="font:400 13.5px/1.4 var(--corpo);color:var(--terciario)">bg #f1f1f1 · borda 2px #f1f1f1 · raio 7 · padding 12/14 · Inter 600 15</span>
+    </div>
+
+    <div class="palco">
+      <span class="peca-legenda">Chip de escolha única · ligado e desligado</span>
+      <span class="chip-on">Térmico</span>
+      <span class="chip-off">Papel couché</span>
+      <span class="chip-off">BOPP brilho</span>
+      <span style="font:400 13.5px/1.4 var(--corpo);color:var(--terciario)">grid 3 colunas · gap 6 · raio 999 · padding 8/9 · Inter 600 11</span>
+    </div>
+
+    <div class="palco">
+      <span class="peca-legenda">Progresso do preenchimento</span>
+      <span style="font:600 13.5px/1 var(--corpo);letter-spacing:.1em;text-transform:uppercase;color:var(--secundario)">67% preenchido</span>
+      <span class="barra-trilho"><span class="barra-fill"></span></span>
+      <span style="font:400 13.5px/1.4 var(--corpo);color:var(--terciario)">150 × 6 · trilho #e0e0e0 · transition width .2s ease</span>
+    </div>
+
+    <h3>Colunas</h3>
+    <div class="rolagem">
+      <table>
+        <thead><tr><th>Coluna</th><th>Cartões</th><th>Campos</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>1 — quem e em quê</strong></td>
+            <td>Dados do cliente · Matéria-prima · Tarja no verso · Verniz · Cold stamp</td>
+            <td class="dado">cliente* · material* · largMateria*<br>tarjaVerso · verniz · coldStamp</td>
+          </tr>
+          <tr>
+            <td><strong>2 — o que é</strong></td>
+            <td>Medidas da etiqueta · Cores de impressão</td>
+            <td class="dado">facaCod · largura* · altura*<br>carreiras* · forma* · cores* · coresDesc</td>
+          </tr>
+          <tr>
+            <td><strong>3 — como fazer</strong></td>
+            <td>Briefing da arte · Prévia da etiqueta · Anexos (opcional)</td>
+            <td class="dado">descricao* · linkRef · arquivos[]</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="prosa">
+      Os três blocos sim/não da coluna 1 — <strong>tarja no verso, verniz e cold stamp</strong> —
+      são perguntas do pedido, não recado no briefing: cada um muda a montagem do clichê, e a
+      produção precisa saber antes de a arte fechar. Padrão de todos: <em>Não</em>.
+    </p>
+
+    <h3>Validação</h3>
+    <p class="prosa">
+      Nove campos obrigatórios: <code>cliente</code>, <code>materia</code>,
+      <code>largMateria</code>, <code>largura</code>, <code>altura</code>, <code>forma</code>,
+      <code>cores</code>, <code>descricao</code>, <code>carreiras</code>. A porcentagem do
+      cabeçalho é a contagem de preenchidos sobre nove, arredondada. Anexo <strong>não</strong>
+      é obrigatório — o rótulo diz “(opcional)” porque a moldura tracejada dava a impressão
+      contrária.
+    </p>
+
+    <div class="rolagem">
+      <table>
+        <thead><tr><th>Estado</th><th>Botão Enviar</th><th>Mensagem do rodapé</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Incompleto</td>
+            <td class="dado">opacity .45 · cursor not-allowed<br>continua clicável, mas <code>enviar()</code> retorna cedo</td>
+            <td>“Preencha os campos obrigatórios para enviar.”</td>
+          </tr>
+          <tr>
+            <td>Completo</td>
+            <td class="dado">opacity 1 · cursor pointer · bg AMARELO</td>
+            <td>“Tudo pronto — a arte entra na fila do design.”</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Sub-modais</h3>
+    <div class="rolagem">
+      <table>
+        <thead><tr><th>Sub-modal</th><th>Especificação</th><th>Efeito ao escolher</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>Catálogo de facas</strong></td>
+            <td class="dado">z-index 80 · width 1180 · height 100%<br>grid 5 colunas · gap 12 · teto de 60 cards<br>card: desenho 150px + medida Fraunces 18 + código mono</td>
+            <td>Preenche largura e altura pela medida da faca, anexa <code>&lt;cod&gt;.pdf</code> como item ilustrativo e guarda <code>facaCod</code> para o briefing</td>
+          </tr>
+          <tr>
+            <td><strong>Tabela Pantone</strong></td>
+            <td class="dado">componente <code>PantoneModalV1a</code></td>
+            <td>Acrescenta o nome à especificação de cores e a amostra hex à fila de pílulas removíveis</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="prosa">
+      A faca escolhida vira item da lista de anexos <strong>sem <code>file</code></strong> — é
+      ilustrativo e não sobe para o servidor. Só os anexos com <code>file</code> viram upload.
+    </p>
+  </section>
+
+  <section id="cliente">
+    <h2>Estados do campo cliente</h2>
+
+    <p class="prosa">
+      Esta é a parte do modal que mais merece atenção na reimplementação. O campo não é um
+      texto livre: ele escolhe <strong>para qual pasta da rede</strong> os arquivos vão. Já
+      houve arte parando no cliente errado porque a tela não dizia onde ia salvar, e a área de
+      aviso abaixo do campo existe para isso. Ela nunca fica vazia depois de dois caracteres.
+    </p>
+
+    <div class="rolagem">
+      <table>
+        <thead><tr><th>Condição</th><th>Fundo</th><th>Mensagem</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>Pasta escolhida</strong><br><span class="num">pasta ≠ ""</span></td>
+            <td class="dado">#f1f1f1 · ícone de check</td>
+            <td>“Os arquivos vão para a pasta <strong>X</strong>, que já existe na rede.”</td>
+          </tr>
+          <tr>
+            <td><strong>Existe pasta com o nome exato e não foi escolhida</strong><br><span class="num">pastaExata</span></td>
+            <td class="dado">AMARELO · ícone de alerta</td>
+            <td>“Já existe a pasta <strong>X</strong> na rede. <em>Usar esta pasta</em> — confira se é mesmo este cliente antes de seguir.”</td>
+          </tr>
+          <tr>
+            <td><strong>Existem parecidas</strong><br><span class="num">parecidasFora</span></td>
+            <td class="dado">AMARELO · ícone de alerta</td>
+            <td>“Vai criar a pasta <strong>X</strong>. Mas já existe <strong>Y, Z</strong> — se for o mesmo cliente, escolha na lista acima.”</td>
+          </tr>
+          <tr>
+            <td><strong>Cliente novo mesmo</strong></td>
+            <td class="dado">#f1f1f1</td>
+            <td>“Cliente novo: a pasta <strong>X</strong> será criada na rede.”</td>
+          </tr>
+          <tr>
+            <td><strong>Menos de 2 caracteres</strong></td>
+            <td class="dado">sem caixa — só texto #b3b1b3</td>
+            <td>“Escolha a pasta que já existe na rede ou crie uma nova — é para lá que vão os anexos e as artes.”</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="nota">
+      <h4>Os dois cortes do aviso “parecidas”</h4>
+      <p>
+        Sem freio, o alerta viraria ruído e ninguém leria mais nenhum. Duas regras o contêm: o
+        trecho em comum precisa ter ao menos <strong>5 caracteres</strong> (senão uma pasta
+        chamada “c” casaria com tudo) e valer ao menos <strong>metade</strong> do nome maior.
+        É o que faz “SANTA LUZIA” alertar sobre “Casa Santa Luzia” sem alertar sobre meia
+        centena de nomes que apenas contêm “casa”.
+      </p>
+    </div>
+
+    <h4>Lista suspensa</h4>
+    <p class="prosa">
+      Abre a partir de 2 caracteres, teto de 40 resultados, altura máxima 260px com rolagem.
+      Os ~5 mil nomes são carregados uma vez ao abrir o modal e filtrados no navegador — ida ao
+      servidor a cada tecla, numa unidade de rede, não responde. A última linha é sempre
+      <strong>“Criar pasta nova: X”</strong>, mesmo com resultados acima. Enquanto carrega:
+      “carregando as pastas da rede…”. Se a rede falhar, a lista vem vazia e criar pasta nova
+      continua funcionando.
+    </p>
+  </section>
+
+  <section id="card">
+    <h2>Card do pedido</h2>
+
+    <div class="fonte">src/components/v1a/PedidosV1a.tsx · faixa “Recentes”, altura 186</div>
+
+    <p class="prosa">
+      A faixa é um acordeão horizontal: um card <strong>aberto</strong> de 560px e os demais
+      <strong>fechados</strong> em 98px, alinhados à direita. Clique num fechado abre-o; clique
+      no aberto abre o pedido. A transição é de <code>flex-basis</code>, não de largura.
+    </p>
+
+    <div class="rolagem">
+      <table>
+        <thead><tr><th>Propriedade</th><th>Aberto</th><th>Fechado</th></tr></thead>
+        <tbody>
+          <tr><td>Base</td><td class="dado">flex 0 0 560px</td><td class="dado">flex 0 0 98px</td></tr>
+          <tr><td>Padding</td><td class="dado">16 / 20 / 14</td><td class="dado">16 / 6 / 14</td></tr>
+          <tr><td>Conteúdo</td><td>Sobrenome, cliente, pílulas, divisor e grade 2×2 de dados</td><td>Índice, nome na vertical, ponto de estado</td></tr>
+          <tr><td>Nome</td><td class="dado">Fraunces opsz 96 · 32px / 0.98<br>clamp de 2 linhas</td><td class="dado">writing-mode vertical-rl + rotate(180deg)<br>corpo por <code>nomeEmPe()</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Fundo por origem e status</h3>
+    <div class="palco">
+      <span class="peca-legenda">Os três fundos possíveis</span>
+      <span class="pilula" style="background:#fff;color:#252425;box-shadow:inset 0 0 0 1px #ececec">Branco · ninguém pegou</span>
+      <span class="pilula" style="background:#ffe815;color:#252425">Amarelo · produção ou Revisão</span>
+      <span class="pilula" style="background:#252425;color:#f1f1f1">INK · origem interna</span>
+    </div>
+
+    <p class="prosa">
+      É a mesma regra da Central: branco quer dizer que ninguém assumiu; amarelo quer dizer que
+      já começou e espera alguém. O card <strong>não tem orelha colorida</strong> — o fundo já
+      diz o status, e a faixa lateral era um segundo código de cor para a mesma informação. A
+      marca de 4px continua no filtro lateral e nas linhas da tabela.
+    </p>
+
+    <h3>Pílulas do card aberto</h3>
+    <p class="prosa">
+      Três, nesta ordem, sem quebra de linha: <strong>Abrir pedido</strong> (contorno,
+      largura fixa), <strong>status</strong> (encolhe com reticências) e, só quando se aplica,
+      <strong>atraso ou entregue</strong>. A pílula de prazo foi removida — a data de entrega já
+      está na grade de dados do mesmo cartão, e três pílulas com um status comprido
+      (“Aguardando design”) passavam dos 285px disponíveis e invadiam o bloco da direita.
+    </p>
+
+    <div class="rolagem">
+      <table>
+        <thead><tr><th>Status</th><th>Fundo</th><th>Texto</th><th>Orelha (filtro e tabela)</th></tr></thead>
+        <tbody>
+          <tr><td>Aguardando Design</td><td class="dado">#f1f1f1</td><td class="dado">#252425</td><td class="dado">#d6d5d6</td></tr>
+          <tr><td>Revisão</td><td class="dado">#252425</td><td class="dado">#f1f1f1</td><td class="dado">#ffe815</td></tr>
+          <tr><td>Design aprovado</td><td class="dado">#252425</td><td class="dado">#ffe815</td><td class="dado">#252425</td></tr>
+          <tr><td>Clichê solicitado</td><td class="dado">#ffe815</td><td class="dado">#252425</td><td class="dado">#8d8b8d</td></tr>
+          <tr><td>Aguardando clichê</td><td class="dado">#ffe815</td><td class="dado">#252425</td><td class="dado">#4a484a</td></tr>
+          <tr><td>Clichê recebido</td><td class="dado">#fffbe0</td><td class="dado">#252425</td><td class="dado">#ffe815</td></tr>
+          <tr><td>Em produção</td><td class="dado">#252425</td><td class="dado">#ffe815</td><td class="dado">#ffe815</td></tr>
+          <tr><td>Finalizado</td><td class="dado">#f1f1f1</td><td class="dado">#8d8b8d</td><td class="dado">#f1f1f1</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="prosa">
+      Num card amarelo ou INK a pílula de status inverte para não sumir no fundo: fica branca
+      sobre amarelo, e <code>#3a383a</code> sobre INK.
+    </p>
+
+    <h3>Texto que encolhe em vez de quebrar</h3>
+    <div class="rolagem">
+      <table>
+        <thead><tr><th>Helper</th><th>Regra</th><th>Motivo</th></tr></thead>
+        <tbody>
+          <tr>
+            <td class="dado">corpoValor(v)</td>
+            <td class="dado">≤ 8 caracteres → 17px<br>≤ 12 → 14.5px<br>&gt; 12 → 12.5px</td>
+            <td>“CÓD PRD-30045” é muito mais largo que “70×50” e empurrava o cartão</td>
+          </tr>
+          <tr>
+            <td class="dado">nomeEmPe(nome)</td>
+            <td class="dado">&gt; 34 → 14px · &gt; 26 → 16px<br>&gt; 20 → 18px · &gt; 16 → 22px · resto 25px<br>max-width = corpo × 1.14 × 2</td>
+            <td>Nome comprido na vertical precisa caber em duas linhas dentro de 98px</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Arrastar</h3>
+    <div class="rolagem">
+      <table>
+        <thead><tr><th>Gesto</th><th>Alvo</th><th>Efeito</th><th>Sinal visual</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Card da fila → tabela</td>
+            <td class="dado">aoAprovarPedido</td>
+            <td>Arte aprovada, sai da fila</td>
+            <td class="dado">outline 3px dashed AMARELO na tabela</td>
+          </tr>
+          <tr>
+            <td>Linha da tabela → faixa</td>
+            <td class="dado">aoVoltarFila</td>
+            <td>Volta para a fila do design</td>
+            <td class="dado">outline 3px dashed AMARELO · offset 6</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="prosa">
+      Sem os callbacks, os dois gestos ficam desligados e o atributo <code>draggable</code> nem
+      é aplicado — o card não deve parecer arrastável para quem não pode aprovar. Fila vazia
+      mostra “Fila vazia / Nenhum pedido esperando design. Arraste uma linha da tabela para
+      trazer de volta”, e o texto troca para “Solte aqui” enquanto algo paira sobre ela.
+    </p>
+  </section>
+
+  <section id="interacoes">
+    <h2>Interações compartilhadas</h2>
+
+    <div class="fonte">src/styles.css · §V1a — interações do handoff</div>
+
+    <div class="rolagem">
+      <table>
+        <thead><tr><th>Classe</th><th>Repouso</th><th>Hover</th><th>Transição</th></tr></thead>
+        <tbody>
+          <tr><td class="dado">.r2chip</td><td>—</td><td class="dado">translateY(−1px)</td><td class="dado">transform .12s ease, background .12s ease</td></tr>
+          <tr><td class="dado">.r2card</td><td class="dado">SOMBRA_CARD</td><td class="dado">translateY(−2px)<br>0 28px 50px −30px rgba(0,0,0,.35)</td><td class="dado">transform .16s, box-shadow .16s<br>flex-basis .3s cubic-bezier(.4,0,.2,1)</td></tr>
+          <tr><td class="dado">.r2row</td><td>—</td><td class="dado">background #f6f6f6</td><td class="dado">—</td></tr>
+          <tr><td class="dado">.pm-ic</td><td class="dado">background #fff</td><td class="dado">background #e0e0e0</td><td class="dado">—</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>ESC</h3>
+    <p class="prosa">
+      Um único ouvinte global fecha o modal de maior <code>z-index</code> entre os abertos —
+      <code>.r2modal</code> ou <code>[data-modal-esc]</code>. Onde o modal não fecha por clique
+      no fundo, como este formulário, ele clica no elemento marcado
+      <code>data-esc-fechar</code>; nos demais, simula o clique no próprio fundo. Com modais
+      empilhados (catálogo de facas sobre a nova solicitação) fecha um por vez, de cima para
+      baixo. Ao reimplementar, marque o botão de fechar com <code>data-esc-fechar</code> ou o
+      ESC não terá o que clicar.
+    </p>
+  </section>
+
+  <section id="a11y">
+    <h2>Acessibilidade — o que falta</h2>
+
+    <p class="prosa">
+      Levantamento honesto do estado atual, para quem for reimplementar não copiar as lacunas
+      junto com as medidas.
+    </p>
+
+    <div class="rolagem">
+      <table>
+        <thead><tr><th>Ponto</th><th>Hoje</th><th>O que fazer</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Semântica do modal</td>
+            <td>Nenhum <code>role="dialog"</code> nem <code>aria-modal</code></td>
+            <td>Adicionar ambos e rotular pelo título com <code>aria-labelledby</code></td>
+          </tr>
+          <tr>
+            <td>Foco</td>
+            <td>Não é preso no modal nem devolvido ao fechar</td>
+            <td>Prender o foco no painel e devolver ao botão que abriu</td>
+          </tr>
+          <tr>
+            <td>Rótulos</td>
+            <td><code>&lt;label&gt;</code> sem <code>for</code> e campo sem <code>id</code></td>
+            <td>Ligar os dois — hoje o leitor de tela anuncia o campo sem nome</td>
+          </tr>
+          <tr>
+            <td>Obrigatório</td>
+            <td>Marcado só pelo asterisco visual</td>
+            <td>Acrescentar <code>required</code> / <code>aria-required</code></td>
+          </tr>
+          <tr>
+            <td>Contraste</td>
+            <td class="dado">#b3b1b3 sobre #fff ≈ 2,1:1<br>#8d8b8d sobre #fff ≈ 3,3:1</td>
+            <td>Ambos abaixo de 4,5:1 para texto normal. Só afeta texto auxiliar, mas ajuda e placeholder deveriam escurecer</td>
+          </tr>
+          <tr>
+            <td>Arrastar</td>
+            <td>Sem alternativa por teclado</td>
+            <td>Os dois gestos já têm equivalente por botão em outras telas; expor aqui também</td>
+          </tr>
+          <tr>
+            <td>Ganho</td>
+            <td>ESC fecha, chips são <code>&lt;button&gt;</code>, tudo é alcançável por Tab</td>
+            <td>Manter</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <p class="rodape">
+    Lido do código em produção em 20/08/2026. Onde este documento e o componente divergirem,
+    o componente está certo — e o documento, desatualizado.
+  </p>
+
+</div>

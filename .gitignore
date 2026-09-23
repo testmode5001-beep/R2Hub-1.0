@@ -1,0 +1,55 @@
+# ————— NUNCA versionar: dados e segredos —————
+# O hub guarda gente, cliente e senha. Nada disso sai da fábrica.
+# (Atenção: git não aceita comentário na MESMA linha do padrão — o comentário
+#  vira parte do padrão e a regra não pega nada. Por isso eles vêm acima.)
+
+# bancos SQLite: usuários com hash de senha, pedidos, clientes
+data/
+# pasta de clientes do ambiente de teste
+dev-data/
+# ca.key e hub.key — quem tem isso forja o certificado do hub
+certs/
+# SMTP e e-mail da clicheria
+.env
+.env.*
+!.env.example
+
+# ————— o que se reinstala ou se gera —————
+node_modules
+# node.exe do vigia: baixa de novo, não versiona 89 MB
+runtime/
+dist
+dist-ssr
+.output
+.vinxi
+.tanstack/**
+.nitro
+*.local
+.lovable/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Histórico antigo guardado de lado ao recomeçar o repositório
+.git-lovable-antigo/
+
+# Wrangler / Cloudflare
+.wrangler/
+.dev.vars
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

@@ -1,0 +1,128 @@
+Verificando 134 fichas divergentes em alta resolução…
+  10/134…
+  20/134…
+  30/134…
+  40/134…
+  50/134…
+  60/134…
+  70/134…
+  80/134…
+  90/134…
+Image too small to scale!! (2x48 vs min width of 3)
+Line cannot be recognized!!
+  100/134…
+  110/134…
+  120/134…
+  130/134…
+
+Ruído de OCR confirmado (catálogo já certo): 30
+
+DIVERGÊNCIAS REAIS (6):
+  · 093.01: catálogo Ø96 (Z95) ≠ ficha Ø95 → Z95  [bruto "950 45,00"] · 57x295,45
+  · 135.01: catálogo Ø42 (Z42) ≠ ficha Ø94 → Z94  [bruto "942 Corte"] · 134x33
+  · 190.01: catálogo Ø47 (Z47) ≠ ficha Ø53 → Z53  [bruto "530 Substrato:"] · 55x162,5
+  · 198.01: catálogo Ø50 (Z50) ≠ ficha Ø60 → Z60  [bruto "609 Substrato:"] · 46x34,7
+  · FAC0256.01: catálogo Ø70 (Z70) ≠ ficha Ø81 → Z81  [bruto "819 Fac"] · 45x82
+  · FAC0267.01: catálogo Ø97 (Z96) ≠ ficha Ø96 → Z95  [bruto "960 Substrato:"] · 40x148
+
+SEM Z NA TABELA (87):
+  · 020.02: ficha Ø55 → Z55  [bruto "559 Substrato:"] · 87x40
+  · 100x60: ficha Ø81 → Z81  [bruto "810 Substrato:"] · 100x60
+  · 204.01: ficha Ø75 → Z75  [bruto "750 Substrato:"] · 35x115
+  · 265.01: ficha Ø94 → Z94  [bruto "942 Corte"] · 134x33
+  · A011.02: ficha Ø94 → Z94  [bruto "948 Corte"] · 134x30
+  · FAC0006.04: ficha Ø54 → Z54  [bruto "54 ="] · 38,66x40
+  · FAC0007.01: ficha Ø38 → Z38  [bruto "380 Substrato:"] · 24x12
+  · FAC0025.01: ficha Ø46 → Z46  [bruto "460 Substrato:"] · 38,66x70
+  · FAC0029.01: ficha Ø61 → Z61  [bruto "61 5"] · 40x35
+  · FAC0062.03: ficha Ø55 → Z55  [bruto "55 u"] · 59,5x40
+  · FAC0063.02: ficha Ø53 → Z53  [bruto "53 ="] · 59,5x80
+  · FAC0065.03: ficha Ø48 → Z48  [bruto "480 eeaeeeeeeeeereeeaeee"] · 134x30
+  · FAC0068.01: ficha Ø70 → Z70  [bruto "700 Substrato:"] · 59,5x70
+  · FAC0070.01: ficha Ø74 → Z74  [bruto "740 Faca"] · 60x75
+  · FAC0071.02: ficha Ø50 → Z50  [bruto "50 ="] · 59,5x50
+  · FAC0072.03: ficha Ø63 → Z63  [bruto "630 Raio"] · 59,5x96
+  · FAC0074.01: ficha Ø46 → Z46  [bruto "460 Substrato:"] · 100x45
+  · FAC0075.06: ficha Ø52 → Z52  [bruto "520 Substrato:"] · 105x30
+  · FAC0076.01: ficha Ø48 → Z48  [bruto "480 O"] · 50x75
+  · FAC0078.01: ficha Ø54 → Z54  [bruto "540 Substrato:"] · 38x40
+  · FAC0080.01: ficha Ø81 → Z81  [bruto "810 Substrato:"] · 38,66x124
+  · FAC0081.01: ficha Ø60 → Z60  [bruto "609 Substrato:"] · 90x60
+  · FAC0082.01: ficha Ø50 → Z50  [bruto "50 o"] · 50x50
+  · FAC0085.02: ficha Ø72 → Z72  [bruto "720 Substrato:"] · 80x110
+  · FAC0086.01: ficha Ø52 → Z52  [bruto "520 Substrato:"] · 60x160,36
+  · FAC0089.02: ficha Ø65 → Z65  [bruto "65 ll"]
+  · FAC0092.01: ficha Ø65 → Z65  [bruto "65 o"] · 1200x65
+  · FAC0096.01: ficha Ø50 → Z50  [bruto "50 ="] · 100x50
+  · FAC0097.01: ficha Ø65 → Z65  [bruto "650 Substrato:"] · 65x65,068
+  · FAC0101.01: ficha Ø70 → Z70  [bruto "70 D"] · 134x110
+  · FAC0103.01: ficha Ø49 → Z49  [bruto "49 ="] · 102x151
+  · FAC0111.01: ficha Ø79 → Z79  [bruto "790 Substrato:"] · 85x120,9
+  · FAC0113.01: ficha Ø53 → Z53  [bruto "53 ku"] · 80x80
+  · FAC0114.01: ficha Ø65 → Z65  [bruto "650 Substrato:"] · 100x100
+  · FAC0115.01: ficha Ø74 → Z74  [bruto "740 Substrato:"] · 80x113
+  · FAC0116.01: ficha Ø51 → Z51  [bruto "51 Engrenagem:"] · 26x37
+  · FAC0120.01: ficha Ø61 → Z61  [bruto "619 Substrato:"] · 105x63,879
+  · FAC0121.01: ficha Ø65 → Z65  [bruto "65 u"] · 100x201,2
+  · FAC0125.01: ficha Ø55 → Z55  [bruto "550 Substrato:"] · 80x34,6
+  · FAC0130.01: ficha Ø70 → Z70  [bruto "700 Substrato:"] · 70x70
+  · FAC0134.01: ficha Ø41 → Z41  [bruto "41 fe)"] · 77x62
+  · FAC0135.01: ficha Ø81 → Z81  [bruto "810 Substrato:"] · 105x60
+  · FAC0136.01: ficha Ø72 → Z72  [bruto "720 Substrato:"] · 80x110,1
+  · FAC0138.01: ficha Ø42 → Z42  [bruto "42 ="] · 80x30
+  · FAC0139.01: ficha Ø52 → Z52  [bruto "52 ku"] · 90x30,17
+  · FAC0140.01: ficha Ø55 → Z55  [bruto "55 fe)"] · 90x55
+  · FAC0142.01: ficha Ø55 → Z55  [bruto "559 Substrato:"] · 90x55
+  · FAC0143.01: ficha Ø81 → Z81  [bruto "810 Substrato:"] · 80x124
+  · FAC0144.01: ficha Ø55 → Z55  [bruto "559 Substrato:"] · 40x40
+  · FAC0145.01: ficha Ø48 → Z48  [bruto "48 ="] · 132x38
+  · FAC0147.01: ficha Ø94 → Z94  [bruto "943 Corte"] · 134x45
+  · FAC0148.01: ficha Ø48 → Z48  [bruto "480 Substrato:"] · 35x22,13
+  · FAC0152.01: ficha Ø53 → Z53  [bruto "530 Substrato:"] · 60x80
+  · FAC0153.01: ficha Ø52 → Z52  [bruto "52 u"] · 100x160,38
+  · FAC0154.01: ficha Ø70 → Z70  [bruto "709 Substrato:"] · 48x107
+  · FAC0161.01: ficha Ø81 → Z81  [bruto "819 Substrato:"] · 70x82
+  · FAC0167.01: ficha Ø53 → Z53  [bruto "53 =-E"] · 59,5x60
+  · FAC0168.01: ficha Ø70 → Z70  [bruto "700 Substrato:"] · 138x219,9
+  · FAC0170.01: ficha Ø63 → Z63  [bruto "630 Substrato:"] · 108x63
+  · FAC0171.01: ficha Ø72 → Z72  [bruto "720 Substrato:"] · 135x75,40
+  · FAC0175.01: ficha Ø91 → Z91  [bruto "910 Substrato:"] · 59,5x140
+  · FAC0179.01: ficha Ø72 → Z72  [bruto "720 Substrato:"] · 59,5x110
+  · FAC0181.01: ficha Ø78 → Z78  [bruto "780 Substrato:"] · 104,84x120
+  · FAC0184.01: ficha Ø72 → Z72  [bruto "72 ll"] · 110x110
+  · FAC0185.01: ficha Ø53 → Z53  [bruto "539 Substrato:"] · 52x164
+  · FAC0186.01: ficha Ø65 → Z65  [bruto "650 Substrato:"] · 50x100
+  · FAC0216.01: ficha Ø72 → Z72  [bruto "720 Substrato:"] · 80x110
+  · FAC0221.01: ficha Ø78 → Z78  [bruto "780 Substrato:"] · 59,5x120
+  · FAC0231.01: ficha Ø72 → Z72  [bruto "720 Faca"] · 64x73
+  · FAC0232.01: ficha Ø65 → Z65  [bruto "650 Substrato:"] · 30x201
+  · FAC0235.01: ficha Ø78 → Z78  [bruto "780 Substrato:"] · 70x242
+  · FAC0248: ficha Ø84 → Z84  [bruto "840 Substrato:"] · 90x129,5
+  · FAC0252.01: ficha Ø54 → Z54  [bruto "540 Substrato:"] · 50x40
+  · FAC0270.01: ficha Ø72 → Z72  [bruto "720 Substrato:"] · 80x110
+  · Faca-59,5x50: ficha Ø50 → Z50  [bruto "509 Substrato:"] · 59,5x50
+  · Rossi 59,5x80: ficha Ø72 → Z72  [bruto "720 Substrato:"] · 80x110
+  · SN02.01: ficha Ø65 → Z65  [bruto "650 Substrato:"] · 45x48
+  · SN1.01: ficha Ø60 → Z60  [bruto "609 Substrato:"] · 60x91
+  · SN13.01: ficha Ø72 → Z72  [bruto "720 Substrato:"] · 60x72
+  · SN23.01: ficha Ø65 → Z65  [bruto "659 A"] · 160x32,967
+  · SN34.01: ficha Ø48 → Z48  [bruto "480 Substrato:"] · 134x50
+  · SN37.01: ficha Ø51 → Z51  [bruto "519 Substrato:"] · 110x50
+  · SN38.01: ficha Ø59 → Z59  [bruto "599 Substrato:"] · 59,5x90
+  · SN41.01: ficha Ø96 → Z95  [bruto "969 Substrato:"] · 30x148,38
+  · SN42.01: ficha Ø78 → Z78  [bruto "780 S"] · 50x120
+  · SN43.01: ficha Ø78 → Z78  [bruto "780 S"] · 80x120
+  · SN6.01: ficha Ø72 → Z72  [bruto "720 Substrato:"] · 42x110
+
+INDEFINIDOS — revisar manualmente (11):
+  · FAC0064.01: bruto="?" (catálogo Ø—)
+  · FAC0073.01: bruto="6109 Substrato:" (catálogo Ø—)
+  · FAC0100.01: bruto="7719 Substrato:" (catálogo Ø—)
+  · FAC0102.01: bruto="5009 Substrato:" (catálogo Ø—)
+  · FAC0119.01: bruto="7009 Substrato:" (catálogo Ø—)
+  · FAC0131.01: bruto="7909 Substrato:" (catálogo Ø—)
+  · FAC0164.01: bruto="?" (catálogo Ø—)
+  · FAC0178.01: bruto="5009 Substrato:" (catálogo Ø—)
+  · SN22.01: bruto="5509 E" (catálogo Ø—)
+  · SN28.01: bruto="7009 Substrato:" (catálogo Ø—)
+  · SN9.01: bruto="1020 Substrato:" (catálogo Ø103)
