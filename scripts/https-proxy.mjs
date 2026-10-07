@@ -26,7 +26,23 @@ try {
   process.exit(1);
 }
 
+/* O teto do servidor (src/server.ts) também aqui, antes de repassar: acima de
+   210 MB, ou sem tamanho declarado, nem chega à 8081 (revisão de segurança,
+   02/10/2026). Quem decide o limite de quem não entrou é o servidor. */
+const TETO = 210 * 1024 * 1024;
+const COM_CORPO = new Set(["POST", "PUT", "PATCH"]);
+
 const seguro = criarHttps(tls, (req, res) => {
+  if (COM_CORPO.has(req.method ?? "")) {
+    const declarado = req.headers["content-length"];
+    const tamanho = declarado == null ? NaN : Number(declarado);
+    if (declarado == null || !Number.isFinite(tamanho) || tamanho > TETO) {
+      res.writeHead(declarado == null ? 411 : 413, { "content-type": "text/plain; charset=utf-8", connection: "close" });
+      /* fecha só depois que a resposta saiu: sem ler o corpo que vinha */
+      res.end(declarado == null ? "Envio sem tamanho declarado." : "Envio grande demais para o hub.", () => req.destroy());
+      return;
+    }
+  }
   const repasse = pedirHttp(
     { ...ALVO, path: req.url, method: req.method, headers: { ...req.headers } },
     (r) => {
@@ -36,7 +52,7 @@ const seguro = criarHttps(tls, (req, res) => {
   );
   repasse.on("error", () => {
     if (!res.headersSent) res.writeHead(502, { "content-type": "text/plain; charset=utf-8" });
-    res.end("R2 Hub reiniciando — tente de novo em alguns segundos.");
+    res.end("O hub está reiniciando. Tente de novo em alguns segundos.");
   });
   req.pipe(repasse);
 });

@@ -132,8 +132,22 @@ export function salvarVideoNovo(nome: string, dados: Buffer): VideoInfo {
   const dir = homeVideosDir();
   mkdirSync(dir, { recursive: true });
   const seguro = nomeSeguro(nome) || `midia${ext}`;
-  writeFileSync(path.join(dir, seguro), dados);
-  return { nome: seguro, tamanhoMB: Math.round(mb * 10) / 10, tipo };
+  /* Regra 1 da casa: nada se sobrescreve em \\server\Arte\Clientes. O envio
+     com nome que já existe na pasta (ou que vira o mesmo depois do
+     nomeSeguro) gravava por cima, e quem usava aquele vídeo ou papel passava
+     a ver outro. Agora ganha " (2)", " (3)"...; o "wx" cria só se não
+     existir, então dois envios ao mesmo tempo não se atropelam. */
+  const { name: base, ext: extSeguro } = path.parse(seguro);
+  for (let n = 1; n <= 999; n++) {
+    const final = n === 1 ? seguro : `${base} (${n})${extSeguro}`;
+    try {
+      writeFileSync(path.join(dir, final), dados, { flag: "wx" });
+      return { nome: final, tamanhoMB: Math.round(mb * 10) / 10, tipo };
+    } catch (e) {
+      if ((e as NodeJS.ErrnoException).code !== "EEXIST") throw e;
+    }
+  }
+  throw new Error("Já há arquivos demais com esse nome na pasta de vídeos. Renomeie o arquivo e envie de novo.");
 }
 
 /* Compat: a home continua chamando estes. */

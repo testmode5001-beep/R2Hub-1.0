@@ -547,7 +547,7 @@ export function FacasV1a({
           <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "flex-end", background: INK, borderRadius: 12, padding: "20px 22px 18px" }}>
             <div style={{ font: "600 12.5px/1 Inter,sans-serif", letterSpacing: ".12em", textTransform: "uppercase", color: "#8d8b8d" }}>Como funciona</div>
             <div style={{ font: "400 15px/1.5 Inter,sans-serif", color: "#b3b1b3", marginTop: 10 }}>
-              Cada faca tem um PDF com o desenho técnico. Ao excluir, a faca não é apagada — ela vai para <strong style={{ color: AMARELO }}>facas mortas</strong> e pode ser restaurada.
+              Cada faca tem um PDF com o desenho técnico. Ao excluir, a faca não é apagada: ela vai para <strong style={{ color: AMARELO }}>facas mortas</strong> e pode ser restaurada.
             </div>
           </div>
         </div>
@@ -663,14 +663,14 @@ export function FacasV1a({
               {lista.length === 0 && (
                 <div style={{ display: "grid", placeItems: "center", height: 180, font: "400 15px/1.4 Inter,sans-serif", color: "#8d8b8d" }}>
                   {vista === "mortas" && sistema === "Todos" && secao === "Todas" && zf === "Todos" && !busca
-                    ? "Nenhuma faca morta — as facas excluídas do catálogo aparecem aqui."
+                    ? "Nenhuma faca morta. As facas excluídas do catálogo aparecem aqui."
                     : "Nenhuma faca encontrada com esse filtro."}
                 </div>
               )}
             </div>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: 14, borderTop: "1px solid #f1f1f1" }}>
               <span style={{ font: "400 15px/1 Inter,sans-serif", color: "#8d8b8d" }}>
-                Mostrando {lista.length === 0 ? 0 : (pag - 1) * pp + 1}–{Math.min(pag * pp, lista.length)} de {lista.length}
+                Mostrando {lista.length === 0 ? 0 : (pag - 1) * pp + 1} a {Math.min(pag * pp, lista.length)} de {lista.length}
               </span>
               <div style={{ display: "flex", gap: 6 }}>
                 {(() => {
@@ -758,7 +758,7 @@ export function FacasV1a({
                 <div style={{ display: "flex", alignItems: "center", gap: 10, background: "#f1f1f1", borderRadius: 8, padding: "12px 14px", marginTop: 16 }}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8d8b8d" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flex: "none" }}><path d="M14 3.5H7a1.5 1.5 0 0 0-1.5 1.5v14A1.5 1.5 0 0 0 7 20.5h10a1.5 1.5 0 0 0 1.5-1.5V8z" /><path d="M14 3.5V8h4.5" /></svg>
                   <span style={{ font: "400 13.5px/1.45 Inter,sans-serif", color: "#8d8b8d" }}>
-                    O desenho técnico (PDF) entra pelo acervo de facas na rede, com o mesmo código — o cadastro aqui não envia arquivo.
+                    O desenho técnico (PDF) entra pelo acervo de facas na rede, com o mesmo código. O cadastro aqui não envia arquivo.
                   </span>
                 </div>
               </div>
@@ -801,7 +801,7 @@ export function FacasV1a({
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={compraCompleta ? INK : compraParcial ? "#a76a00" : "#8d8b8d"} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" style={{ flex: "none" }}><circle cx="12" cy="12" r="8.6" /><path d="M12 8v5" /><path d="M12 16h.01" /></svg>
                 <span style={{ flex: 1, font: "500 14.5px/1.45 Inter,sans-serif" }}>
                   {compraCompleta
-                    ? "Valor, fabricante e data preenchidos — esta faca entra no gasto com ferramental em Apontamentos."
+                    ? "Valor, fabricante e data preenchidos: esta faca entra no gasto com ferramental em Apontamentos."
                     : compraParcial
                       ? "Faltam dados: Apontamentos só recebe facas com valor, fabricante e data de entrega preenchidos."
                       : "Sem esses dados a faca entra apenas no catálogo, sem lançamento em Apontamentos."}
@@ -811,7 +811,7 @@ export function FacasV1a({
 
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <span style={{ flex: 1, font: "400 14.5px/1.4 Inter,sans-serif", color: "#8d8b8d" }}>
-                {novaValida ? "Pronto — a faca entra no catálogo com o PDF anexado." : "Código, medidas, sistema, seção e PDF são obrigatórios."}
+                {novaValida ? "Pronto: a faca entra no catálogo com o PDF anexado." : "Código, medidas, sistema, seção e PDF são obrigatórios."}
               </span>
               <button type="button" className="r2chip" onClick={() => setModalAberto(false)} style={{ background: "#fff", border: 0, borderRadius: 7, padding: "15px 22px", font: "600 15px/1 Inter,sans-serif", color: INK, cursor: "pointer" }}>Cancelar</button>
               <button type="button" className="r2chip" onClick={salvarFaca}
@@ -1080,7 +1080,7 @@ export function FacasV1a({
               <span style={{ width: 38, height: 38, flex: "none", display: "grid", placeItems: "center", background: AMARELO, borderRadius: 999 }}>
                 <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke={INK} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M12 8v5" /><path d="M12 16.4h.01" /><path d="M10.3 3.9 2.6 17.4A2 2 0 0 0 4.3 20.5h15.4a2 2 0 0 0 1.7-3.1L13.7 3.9a2 2 0 0 0-3.4 0z" /></svg>
               </span>
-              <div style={{ ...fr(72, 700), fontSize: 26, lineHeight: 1.05, letterSpacing: "-.02em", color: INK }}>Marcar como morta — {confirmFaca.cod}?</div>
+              <div style={{ ...fr(72, 700), fontSize: 26, lineHeight: 1.05, letterSpacing: "-.02em", color: INK }}>Marcar como morta: {confirmFaca.cod}?</div>
             </div>
             <div style={{ font: "400 15px/1.5 Inter,sans-serif", color: "#5c5a5c", margin: "14px 0 0" }}>
               A faca <strong style={{ color: INK }}>{confirmFaca.medida}</strong> sai do catálogo e vai para <strong style={{ color: INK }}>facas mortas</strong>. O PDF continua guardado e ela pode ser restaurada a qualquer momento.

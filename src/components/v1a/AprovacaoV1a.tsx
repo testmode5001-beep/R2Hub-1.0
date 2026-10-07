@@ -421,7 +421,7 @@ export function AprovacaoV1a({
                   <span style={{ flex: "none", font: "400 13px/1 Inter, sans-serif", color: "#b3b1b3", whiteSpace: "nowrap" }}>{podio.length ? "enviados à clicheria por dia" : "sem registros"}</span>
                 </div>
                 {podio.length === 0 && (
-                  <div style={{ font: "400 14.5px/1.4 Inter, sans-serif", color: "#b3b1b3", textWrap: "pretty" as any }}>Nenhum clichê aprovado ainda — os três dias que mais mandaram clichê para a clicheria aparecem aqui.</div>
+                  <div style={{ font: "400 14.5px/1.4 Inter, sans-serif", color: "#b3b1b3", textWrap: "pretty" as any }}>Nenhum clichê aprovado ainda. Os três dias que mais mandaram clichê para a clicheria aparecem aqui.</div>
                 )}
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   {podio.map(([dia, v], i) => (
@@ -584,7 +584,7 @@ export function AprovacaoV1a({
                                 {podeConcluirSemCliche && (
                                   <button type="button" className="r2chip"
                                     onClick={(ev) => { ev.stopPropagation(); setSemCliche({ id: p.raw.id, num: p.num, cliente: p.cliente }); }}
-                                    title="Fecha o pedido sem passar pela clicheria — dá para arrastar o card para “Concluídos” também"
+                                    title="Fecha o pedido sem passar pela clicheria. Dá para arrastar o card para “Concluídos” também"
                                     style={{ display: "inline-flex", alignItems: "center", gap: 7, border: 0, cursor: "pointer", borderRadius: 999, padding: "8px 13px 7px", font: "700 12.5px/1 Inter, sans-serif", letterSpacing: ".03em", textTransform: "uppercase", whiteSpace: "nowrap", background: interno ? AMARELO : INK, color: interno ? INK : AMARELO }}>
                                     <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke={interno ? INK : AMARELO} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" style={{ flex: "none" }}><path d="m4.5 12.5 5 5 10-11" /></svg>
                                     Concluir sem clichê
@@ -630,7 +630,7 @@ export function AprovacaoV1a({
               <div style={{ display: "flex", alignItems: "center", gap: 14, width: "100%", background: INK, borderRadius: 8, padding: "14px 16px 14px 18px" }}>
                 <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke={AMARELO} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ flex: "none" }}><path d="M3.5 12.5h6l1.5 2.5h2l1.5-2.5h6" /><path d="M3.5 12.5 6 5.5h12l2.5 7v6h-17z" /><path d="M12 3v5" /><path d="m9.5 6 2.5 2.5L14.5 6" /></svg>
                 <span style={{ flex: 1, font: "500 15px/1.35 Inter, sans-serif", color: "#f1f1f1" }}>
-                  Entrada automática — todo pedido aprovado em <strong style={{ color: AMARELO, fontWeight: 700 }}>Solicitação de arte</strong> cai nesta fila, sem cadastro manual.
+                  Entrada automática: todo pedido aprovado em <strong style={{ color: AMARELO, fontWeight: 700 }}>Solicitação de arte</strong> cai nesta fila, sem cadastro manual.
                 </span>
                 <button onClick={() => setModal({})} className="r2chip" style={{ flex: "none", background: "transparent", border: "2px solid #4a484a", borderRadius: 999, padding: "9px 15px", cursor: "pointer", font: "600 14.5px/1 Inter, sans-serif", color: "#f1f1f1", whiteSpace: "nowrap" }}>
                   Lançar manualmente
@@ -661,7 +661,7 @@ export function AprovacaoV1a({
                   <div style={{ flex: 1, minHeight: 0, overflow: "auto", display: "flex", flexDirection: "column", gap: 10, paddingRight: 2 }}>
                     {vis.length === 0 && (
                       <div style={{ display: "grid", placeItems: "center", background: "#fff", border: "2px dashed #d6d5d6", borderRadius: 12, padding: 26, font: "400 15px/1.4 Inter, sans-serif", color: "#8d8b8d", textAlign: "center" }}>
-                        {solicitacoes.length > 0 ? "Nenhuma solicitação com esse filtro." : "Nada na clicheria — todas as solicitações voltaram."}
+                        {solicitacoes.length > 0 ? "Nenhuma solicitação com esse filtro." : "Nada na clicheria. Todas as solicitações voltaram."}
                       </div>
                     )}
                     {vis.slice(0, 60).map((s) => {
@@ -704,7 +704,7 @@ export function AprovacaoV1a({
                                   style={{ border: 0, cursor: "pointer", borderRadius: 999, padding: "9px 13px", font: "700 13.5px/1 Inter, sans-serif", letterSpacing: ".04em", textTransform: "uppercase", background: conferida ? INK : AMARELO, color: conferida ? AMARELO : INK }}>
                                   {conferida ? "Conferida" : "Conferir"}
                                 </button>
-                                <button onClick={() => setAviso(`Reprovar ${s.num} — volta para Design aprovado (em breve no back-end).`)} className="r2chip"
+                                <button onClick={() => setAviso(`Reprovar ${s.num}: volta para Design aprovado (em breve no back-end).`)} className="r2chip"
                                   style={{ border: 0, cursor: "pointer", borderRadius: 999, padding: "9px 13px", font: "700 13.5px/1 Inter, sans-serif", letterSpacing: ".04em", textTransform: "uppercase", background: FUNDO, color: "#5c5a5c" }}>
                                   Reprovar
                                 </button>
@@ -773,7 +773,7 @@ export function AprovacaoV1a({
                   <div style={{ flex: 1, minHeight: 0, overflow: "auto", display: "flex", flexDirection: "column", gap: 10, paddingRight: 2 }}>
                     {concluidos.length === 0 && (
                       <div style={{ display: "grid", placeItems: "center", background: "#fff", border: "2px dashed #d6d5d6", borderRadius: 12, padding: 26, font: "400 15px/1.4 Inter, sans-serif", color: "#8d8b8d", textAlign: "center" }}>
-                        Nenhum clichê registrado ainda — use "Clichê chegou" num pedido enviado à clicheria.
+                        Nenhum clichê registrado ainda. Use "Clichê chegou" num pedido enviado à clicheria.
                       </div>
                     )}
                     {concluidos.length > 0 && concluidosVis.length === 0 && (
@@ -864,7 +864,7 @@ export function AprovacaoV1a({
                                   </span>
                                 ) : (
                                   <button onClick={(e) => { e.stopPropagation(); setVoltando(c.raw.id); }} className="r2chip"
-                                    title="Desfazer o recebimento — o pedido volta para a clicheria"
+                                    title="Desfazer o recebimento: o pedido volta para a clicheria"
                                     style={{ border: 0, cursor: "pointer", borderRadius: 999, padding: "9px 13px", font: "700 12.5px/1 Inter, sans-serif", letterSpacing: ".04em", textTransform: "uppercase", whiteSpace: "nowrap", background: "transparent", color: "#8d8b8d", boxShadow: "inset 0 0 0 1.5px #e2ddb4" }}>
                                     ↩ Voltar para a clicheria
                                   </button>
@@ -961,7 +961,7 @@ export function AprovacaoV1a({
             </div>
             <div style={{ background: "#fff", borderRadius: 12, padding: "20px 22px", font: "400 16px/1.5 Inter, sans-serif", color: "#5c5a5c" }}>
               O pedido volta para “Chegaram da aprovação de arte” e sai da conta do dia no Pódio.
-              O e-mail que já foi para a clicheria <strong style={{ color: INK }}>não se desfaz</strong> — avise a clicheria por fora.
+              O e-mail que já foi para a clicheria <strong style={{ color: INK }}>não se desfaz</strong>. Avise a clicheria por fora.
             </div>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 12 }}>
               <button type="button" className="r2chip" onClick={() => setCancelando(null)}
@@ -996,7 +996,7 @@ export function AprovacaoV1a({
             setRegistros((m) => ({ ...m, [chegou.num]: r }));
             aoRegistrarCliche?.(chegou.id, r);
             setChegou(null);
-            setAviso(`Clichê de ${chegou.num} registrado — ${r.itens.length} ${r.itens.length === 1 ? "clichê" : "clichês"} · ${brl(r.total)}`);
+            setAviso(`Clichê de ${chegou.num} registrado: ${r.itens.length} ${r.itens.length === 1 ? "clichê" : "clichês"} · ${brl(r.total)}`);
           }}
         />
       )}
@@ -1015,7 +1015,7 @@ export function AprovacaoV1a({
                 : "Fica registrado no histórico do pedido com a data e quem enviou. A observação é opcional."}
             </p>
             <textarea value={acaoTexto} onChange={(e) => setAcaoTexto(e.target.value)} rows={4}
-              placeholder={acao.tipo === "resposta" ? "O que foi respondido ao cliente" : "Observação (opcional) — por onde foi enviada, por exemplo"}
+              placeholder={acao.tipo === "resposta" ? "O que foi respondido ao cliente" : "Observação (opcional): por onde foi enviada, por exemplo"}
               style={{ width: "100%", resize: "vertical", background: "#fff", border: "2px solid #e0e0e0", borderRadius: 8, padding: "12px 13px", font: "500 15px/1.4 Inter, sans-serif", color: INK, outline: "none" }} />
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 16 }}>
               <button onClick={confirmarAcao} disabled={salvandoAcao} className="r2chip"
@@ -1199,7 +1199,7 @@ function ModalSolicitarCliche({ inicial, onFechar, onEnviar, aoEnviar }: {
               })}
             </div>
             <label style={{ ...label, margin: "18px 0 8px" }}>Cliente / referência <span style={{ font: "400 13.5px/1 Inter, sans-serif", color: "#8d8b8d" }}>opcional</span></label>
-            <input value={cliente} onChange={(e) => setCliente(e.target.value)} placeholder="Ex.: Padaria São João — rótulo bolo" style={input} />
+            <input value={cliente} onChange={(e) => setCliente(e.target.value)} placeholder="Ex.: Padaria São João, rótulo bolo" style={input} />
             <label style={{ ...label, margin: "18px 0 8px" }}>Cores <span style={{ color: INK }}>*</span></label>
             <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
               {cores.map((valor, i) => (
@@ -1342,7 +1342,7 @@ function ModalSolicitarCliche({ inicial, onFechar, onEnviar, aoEnviar }: {
 
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <span style={{ flex: 1, font: "400 14.5px/1.4 Inter, sans-serif", color: erroEnvio ? "#c0392b" : "#8d8b8d" }}>
-            {erroEnvio || (valida ? "Pronto — o e-mail sai com a arte e as cores anexadas." : "Escolha o tipo, as cores e o motivo.")}
+            {erroEnvio || (valida ? "Pronto. O e-mail sai com a arte e as cores anexadas." : "Escolha o tipo, as cores e o motivo.")}
           </span>
           <button onClick={onFechar} className="r2chip" style={{ background: "#fff", border: 0, borderRadius: 7, padding: "15px 22px", font: "600 15px/1 Inter, sans-serif", color: INK, cursor: "pointer" }}>Cancelar</button>
           <button

@@ -2,6 +2,14 @@
 // tela de Leitura do desktop (quadro da câmera). tesseract.js com worker e
 // idioma servidos pelo próprio hub em /tesseract — funciona sem internet.
 
+/** Onde o hub serve o tesseract (public/tesseract). A leitura das cores da
+    prova (cores-da-prova.ts) usa os mesmos arquivos. */
+export const OCR_LOCAL = {
+  workerPath: "/tesseract/worker.min.js",
+  corePath: "/tesseract",
+  langPath: "/tesseract",
+};
+
 /**
  * Foto de celular vem com 12 megapixels — o OCR não precisa disso e a memória
  * do aparelho não aguenta: reduz para 2000px no maior lado antes de ler.
@@ -34,9 +42,7 @@ export async function lerImagemOP(imagem: Blob, aoProgresso: (pct: number) => vo
   const { createWorker } = await import("tesseract.js");
   const pronta = await reduzirImagem(imagem);
   const worker = await createWorker("por", 1, {
-    workerPath: "/tesseract/worker.min.js",
-    corePath: "/tesseract",
-    langPath: "/tesseract",
+    ...OCR_LOCAL,
     logger: (m: { status: string; progress: number }) => {
       if (m.status === "recognizing text") aoProgresso(Math.round(m.progress * 100));
     },

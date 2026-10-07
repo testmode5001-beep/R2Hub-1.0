@@ -260,7 +260,7 @@ export function NovaArteModalV1a({ onFechar, onEnviar, aoCriar, cadastros, podeC
     const em = agora();
     try { localStorage.setItem(CHAVE, JSON.stringify({ em, dados })); } catch { /* storage bloqueado */ }
     setRascunhoEm(em);
-    if (!silencioso) aviso("Rascunho salvo — pode fechar e voltar depois");
+    if (!silencioso) aviso("Rascunho salvo. Pode fechar e voltar depois");
   };
   const guardarRef = useRef(guardar);
   guardarRef.current = guardar;
@@ -311,7 +311,7 @@ export function NovaArteModalV1a({ onFechar, onEnviar, aoCriar, cadastros, podeC
   }, [cliente, pastas]);
   const avisoCliente = useMemo(() => {
     const v = cliente.trim();
-    if (v.length < 2) return { tipo: "dica" as const, texto: "A pasta na rede vem do nome do cliente — anexos e artes vão para lá." };
+    if (v.length < 2) return { tipo: "dica" as const, texto: "A pasta na rede vem do nome do cliente. Anexos e artes vão para lá." };
     if (pasta) return { tipo: "ok" as const, texto: `Os arquivos vão para a pasta ${pasta}, que já existe na rede.` };
     const exata = pastas.find((p) => p.toLowerCase() === v.toLowerCase());
     if (exata) return { tipo: "alerta" as const, acao: exata, texto: `Já existe a pasta ${exata} na rede. Confira se é o mesmo cliente.` };
@@ -404,7 +404,7 @@ export function NovaArteModalV1a({ onFechar, onEnviar, aoCriar, cadastros, podeC
        nenhum, o envio filtrava por `file` e o PDF nunca subia — a tela dizia
        "anexada" e o designer não recebia nada. O que viaja é o CÓDIGO, no
        briefing; a modal do pedido abre o desenho direto do acervo. */
-    aviso(`Faca ${f.cod} escolhida — o código vai no briefing`);
+    aviso(`Faca ${f.cod} escolhida. O código vai no briefing`);
   };
 
   /* ————— aproveitamento da bobina ————— */
@@ -501,7 +501,7 @@ export function NovaArteModalV1a({ onFechar, onEnviar, aoCriar, cadastros, podeC
     if (enviando) return;
     /* Sem quem crie o pedido não existe envio: seguir daqui mostraria a tela
        de sucesso e apagaria o rascunho sem nada ter sido gravado. */
-    if (!aoCriar) { aviso("Esta tela está sem ligação com o servidor — nada foi enviado."); return; }
+    if (!aoCriar) { aviso("Esta tela está sem ligação com o servidor. Nada foi enviado."); return; }
     setEnviando(true);
     const nomes = coresAtuais.map((c) => c.nome);
     const listaCores = nomes.length
@@ -746,7 +746,7 @@ export function NovaArteModalV1a({ onFechar, onEnviar, aoCriar, cadastros, podeC
                       onChange={(e) => { setDescricao(e.target.value); autoGuardar(); }} onBlur={tocar("descricao")}
                       style={{ ...INP, flex: 1, minHeight: 0, resize: "none", lineHeight: 1.5, ...inpErro("descricao") }} />
                     <div style={{ font: "500 12.5px/1.4 Inter,sans-serif", marginTop: 10, color: erro("descricao") ? "#c42b26" : "#b3b1b3" }}>
-                      {erro("descricao") ? "Sem briefing o design volta a perguntar — descreva ao menos o essencial." : "Quanto mais claro aqui, menos idas e voltas depois."}
+                      {erro("descricao") ? "Sem briefing o design volta a perguntar. Descreva ao menos o essencial." : "Quanto mais claro aqui, menos idas e voltas depois."}
                     </div>
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", minHeight: 0, background: "#fafafa", padding: "22px 22px 20px" }}>
@@ -875,7 +875,7 @@ export function NovaArteModalV1a({ onFechar, onEnviar, aoCriar, cadastros, podeC
                         );
                       })}
                       {!facaSel && facasFiltradas.length === 0 && (
-                        <div style={{ padding: "14px 2px", font: "400 13px/1.4 Inter,sans-serif", color: "#b3b1b3" }}>Nenhuma faca com esse filtro — pode digitar as medidas à mão acima.</div>
+                        <div style={{ padding: "14px 2px", font: "400 13px/1.4 Inter,sans-serif", color: "#b3b1b3" }}>Nenhuma faca com esse filtro. Pode digitar as medidas à mão acima.</div>
                       )}
                     </div>
                   </div>
@@ -908,7 +908,7 @@ export function NovaArteModalV1a({ onFechar, onEnviar, aoCriar, cadastros, podeC
                     onChange={(e) => { setLargMateria(e.target.value); autoGuardar(); }}
                     style={{ ...INP, ...inpErro("largMateria") }} />
                   <div style={{ font: "400 12.5px/1.5 Inter,sans-serif", color: "#b3b1b3", marginTop: 10 }}>
-                    A largura da bobina define quantas carreiras cabem — confira o estoque antes de prometer prazo.
+                    A largura da bobina define quantas carreiras cabem. Confira o estoque antes de prometer prazo.
                   </div>
                   <label style={{ display: "block", font: "600 14px/1 Inter,sans-serif", color: "#5c5a5c", margin: "18px 0 8px" }}>Observações</label>
                   {/* `minHeight: 0` no textarea: é ele quem absorve a folga da
@@ -985,7 +985,7 @@ export function NovaArteModalV1a({ onFechar, onEnviar, aoCriar, cadastros, podeC
                       {pronta && cabem > nCarr && (
                         <button onClick={() => { setCarreiras(String(cabem)); autoGuardar(); }} className="r2chip"
                           style={{ display: "flex", alignItems: "center", gap: 9, width: "100%", marginTop: 12, background: "#f4f4f4", border: 0, borderRadius: 9, padding: "10px 12px", cursor: "pointer", textAlign: "left", font: "600 12.5px/1.35 Inter,sans-serif", color: INK }}>
-                          Cabem {cabem} carreiras nesta bobina — usar {cabem} reduz o refugo.
+                          Cabem {cabem} carreiras nesta bobina. Usar {cabem} reduz o refugo.
                         </button>
                       )}
                     </div>
@@ -1114,7 +1114,7 @@ export function NovaArteModalV1a({ onFechar, onEnviar, aoCriar, cadastros, podeC
                     <div style={{ flex: "none", ...EYEBROW, marginBottom: 12 }}>Cores deste pedido</div>
                     {coresAtuais.length === 0 && (
                       <div style={{ font: "500 14px/1.5 Inter,sans-serif", color: "#b3b1b3" }}>
-                        {cores ? `${cores} cor(es) — nomeie para o design não escolher por aproximação.` : "Nenhuma cor escolhida ainda."}
+                        {cores ? `${cores} cor(es): nomeie para o design não escolher por aproximação.` : "Nenhuma cor escolhida ainda."}
                       </div>
                     )}
                     <div style={{ minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column", gap: 5 }}>
@@ -1205,7 +1205,7 @@ export function NovaArteModalV1a({ onFechar, onEnviar, aoCriar, cadastros, podeC
                     <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", justifyContent: "center", gap: 10, padding: "10px 0" }}>
                       {[
                         "O pedido entra na fila do design com a pasta do cliente já criada na rede.",
-                        "O designer só recebe o que está aqui — se faltar informação, a arte para e volta para você.",
+                        "O designer só recebe o que está aqui. Se faltar informação, a arte para e volta para você.",
                         "A arte volta para sua aprovação antes de seguir para o clichê.",
                       ].map((texto, i) => (
                         <div key={i} style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
@@ -1224,7 +1224,7 @@ export function NovaArteModalV1a({ onFechar, onEnviar, aoCriar, cadastros, podeC
             <span style={{ flex: 1, minWidth: 0, font: "500 14px/1.4 Inter,sans-serif", color: faltamAqui.length && tentadas.includes(etapa) ? "#c42b26" : "#8d8b8d" }}>
               {faltamAqui.length
                 ? `Faltam nesta etapa: ${faltamAqui.map((k) => ROTULOS[k]).join(", ")}`
-                : totalFaltam === 0 ? "Tudo pronto — a arte entra na fila do design." : `Etapa completa. Ainda faltam ${totalFaltam} campos em outras etapas.`}
+                : totalFaltam === 0 ? "Tudo pronto. A arte entra na fila do design." : `Etapa completa. Ainda faltam ${totalFaltam} campos em outras etapas.`}
             </span>
             <button onClick={onFechar} className="r2chip" style={{ background: "transparent", border: 0, borderRadius: 8, padding: "14px 18px", font: "600 14.5px/1 Inter,sans-serif", color: "#8d8b8d", cursor: "pointer" }}>Cancelar</button>
             <button onClick={() => { if (etapa > 0) irPara(etapa - 1); }} className="r2chip"

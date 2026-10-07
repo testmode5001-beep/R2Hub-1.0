@@ -20,6 +20,8 @@ const PASSOS = [
   { l: '3/8"', v: 9.525 },
   { l: '1/2"', v: 12.7 },
 ];
+/** o passo da engrenagem em mm, pelo rótulo (a calculadora 1.0 usa) */
+export const PASSO_MM = (rotulo: string) => (PASSOS.find((p) => p.l === rotulo) || PASSOS[0]).v;
 const MAQUINAS = [{ l: "Classic 160", v: 160 }, { l: "Force 250", v: 250 }, { l: "Personalizada", v: 0 }];
 const PARQUE_CLASSIC = [50, 51, 52, 53, 54, 55, 59, 60, 63, 65, 70, 72, 74, 77, 78, 79, 81, 84, 86, 91, 96, 102];
 const CL_POLY = 0.127;
@@ -398,8 +400,8 @@ export function calcular(id: string, v: Vals): Resultado {
           .filter((c) => c.x > 0)
           .sort((a, b) => Math.abs(a.x - X) - Math.abs(b.x - X))[0];
         aviso = alvo
-          ? "Nenhum cilindro fecha com altura de " + f(X, 2) + " mm. A perda de " + f(espMin, 2) + " a " + f(espMax, 2) + " mm é o padrão da fábrica — o ajuste é na altura: com " + f(alvo.x, 2) + " mm (" + (alvo.x > X ? "+" : "") + f(alvo.x - X, 2) + " mm) a etiqueta fecha em Z" + alvo.rr.n + ", " + alvo.rr.rep + "× com perda de " + f(meio, 2) + " mm."
-          : "Nenhum cilindro com perda entre " + f(espMin, 2) + " e " + f(espMax, 2) + " mm. O mais próximo tem perda de " + f(best.esp, 3) + " mm (Z" + best.n + ", " + best.rep + "×) — use “Mais próximos”.";
+          ? "Nenhum cilindro fecha com altura de " + f(X, 2) + " mm. A perda de " + f(espMin, 2) + " a " + f(espMax, 2) + " mm é o padrão da fábrica. O ajuste é na altura: com " + f(alvo.x, 2) + " mm (" + (alvo.x > X ? "+" : "") + f(alvo.x - X, 2) + " mm) a etiqueta fecha em Z" + alvo.rr.n + ", " + alvo.rr.rep + "× com perda de " + f(meio, 2) + " mm."
+          : "Nenhum cilindro com perda entre " + f(espMin, 2) + " e " + f(espMax, 2) + " mm. O mais próximo tem perda de " + f(best.esp, 3) + " mm (Z" + best.n + ", " + best.rep + "×). Use “Mais próximos”.";
       }
     }
     const lista = rows.slice(0, 120);
@@ -559,7 +561,7 @@ export function calcular(id: string, v: Vals): Resultado {
       nota: facas.length < 2
         ? "Informe ao menos duas alturas para comparar."
         : semEncaixe.length
-          ? "Sem encaixe no filtro " + f(espMin, 2) + "–" + f(espMax, 2) + " mm: " + semEncaixe.map((fx) => "Faca " + fx[0] + " (" + f(fx[1], 2) + " mm)").join(", ") + "."
+          ? "Sem encaixe no filtro " + f(espMin, 2) + " a " + f(espMax, 2) + " mm: " + semEncaixe.map((fx) => "Faca " + fx[0] + " (" + f(fx[1], 2) + " mm)").join(", ") + "."
           : entradas.length + " cilindros atendem alguma das facas · " + prod + " no estoque · " + compart.length + " servem 2 ou mais.",
       linhas: [
         { label: "Facas comparadas", valor: facas.map((fx) => fx[0] + " " + f(fx[1], 2)).join(" · ") || "—" },
@@ -567,7 +569,7 @@ export function calcular(id: string, v: Vals): Resultado {
         { label: "No estoque", valor: String(prod) },
         { label: "Servem 2 ou mais facas", valor: String(compart.length), forte: true },
         { label: "Produção + compartilhados", valor: String(prodCompart), forte: true },
-        { label: "Filtro de perda", valor: f(espMin, 2) + " – " + f(espMax, 2) + " mm" },
+        { label: "Filtro de perda", valor: f(espMin, 2) + " a " + f(espMax, 2) + " mm" },
       ],
       tabela: {
         titulo: "Comparativo de diâmetros",
@@ -738,7 +740,11 @@ export function calcular(id: string, v: Vals): Resultado {
     const largura = largEtq * carreiras + 3 * (carreiras - 1);
     const umJogo = jogos === 1;
     const area = (altura * largura) / 100;
-    const valorCor = area * chapa.taxa;
+    /* Cada clichê arredondado ao centavo antes de somar, como a clicheria
+       cobra: nos orçamentos dela (Desktop/Valor Facas/Clichê, A a H) cada
+       linha vem arredondada e o total é a soma das linhas. Sem isso o total
+       saía 1 centavo abaixo (2 × 76,375 = 152,75; a clicheria cobra 152,76). */
+    const valorCor = Math.round(area * chapa.taxa * 100) / 100;
     const total = valorCor * cores + prova;
     return {
       destaque: { label: "Total", valor: umJogo ? f(total, 2) : "—", unidade: umJogo ? "R$" : "" },
@@ -1376,7 +1382,7 @@ export function CalculadorasV1a({ profile, versao, aoNavegar, onNova, onLogout, 
     /* na faca a saída NÃO é mexer na perda (é padrão da fábrica) e sim mudar
        um pouco a altura da etiqueta — a medida sugerida vai no cartão escuro */
     if (tab && tabLinhas.length === 0 && calc.id === "facas")
-      return "Nenhum cilindro fecha com essa altura. Aumente ou diminua um pouco a altura X da etiqueta — a medida que fecha está no cartão do resultado.";
+      return "Nenhum cilindro fecha com essa altura. Aumente ou diminua um pouco a altura X da etiqueta. A medida que fecha está no cartão do resultado.";
     if (tab && tabLinhas.length === 0) return "Nenhuma combinação atende esses limites. Abra os ajustes técnicos e aumente a perda máxima ou a faixa de dentes.";
     if (calc.id === "substrato" && n(v.larg) * n(v.carr) > 250) return "A largura passa de 250 mm. Confirme se existe bobina desse tamanho no estoque.";
     if (calc.id === "valor" && n(v.margem) >= 100) return "Margem de 100% ou mais não fecha a conta: use um valor abaixo de 100.";

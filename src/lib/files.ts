@@ -1,5 +1,4 @@
 // Utilitários de arquivo no navegador (upload/download em base64 + caminhos de rede).
-import { toast } from "sonner";
 
 export function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -42,12 +41,14 @@ export function toFileUrl(caminho: string): string {
   return barras.startsWith("//") ? "file:" + barras : "file:///" + barras;
 }
 
-export async function copiarTexto(texto: string) {
+/** Copia o texto e diz se deu; quem chama mostra o resultado na própria tela
+    (o balão do sonner, herdado do hub antigo, saiu em 05/10/2026). */
+export async function copiarTexto(texto: string): Promise<boolean> {
   try {
     await navigator.clipboard.writeText(texto);
-    toast.success("Caminho copiado!");
+    return true;
   } catch {
-    toast.error("Não foi possível copiar. Selecione e copie manualmente: " + texto);
+    return false;
   }
 }
 

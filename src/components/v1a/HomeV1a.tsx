@@ -308,7 +308,7 @@ export function HomeV1a({ profile, pedidos = [], versao, aoNavegar, onNova, onLo
       };
     });
   }, [pedidos]);
-  const faixaSemana = `${semana[0].num} – ${semana[4].num} de ${MESES[semana[4].mes]}`;
+  const faixaSemana = `${semana[0].num} a ${semana[4].num} de ${MESES[semana[4].mes]}`;
   const hojeDDMM = ddmmDeHoje();
 
   const recentes = useMemo(() => {
@@ -551,7 +551,7 @@ export function HomeV1a({ profile, pedidos = [], versao, aoNavegar, onNova, onLo
             ))}
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 14 }}>
-            <button onClick={() => setAviso("Anotações — modal em breve.")} className="r2chip" style={{ flex: 1, border: 0, borderRadius: 7, padding: "11px 14px", cursor: "pointer", font: "700 13px/1 Inter,sans-serif", letterSpacing: ".06em", textTransform: "uppercase", background: AMARELO, color: INK }}>Ver todas</button>
+            <button onClick={() => setAviso("Anotações: modal em breve.")} className="r2chip" style={{ flex: 1, border: 0, borderRadius: 7, padding: "11px 14px", cursor: "pointer", font: "700 13px/1 Inter,sans-serif", letterSpacing: ".06em", textTransform: "uppercase", background: AMARELO, color: INK }}>Ver todas</button>
             <span style={{ font: "400 13px/1 Inter,sans-serif", color: "#8d8b8d" }}>clique para concluir</span>
           </div>
         </div>

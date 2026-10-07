@@ -8,6 +8,8 @@ import {
   gravarMiniatura, lerMiniatura, lerPdfFaca, listarMiniaturas, listarPdfsFacas,
 } from "@/server/facas-pdf.server";
 import { lerRelacaoFacas, relacaoAtualizadaEm } from "@/server/facas-catalogo.server";
+import { lerZDasFacas } from "@/server/facas-z.server";
+import { lerFichaDoDesenho } from "@/server/facas-ficha.server";
 import { agora, getDb, uuid } from "@/server/db.server";
 import { requirePerm } from "@/server/auth.server";
 import { audit } from "@/server/audit.server";
@@ -59,7 +61,7 @@ export const enviarFacaAfiacao = createServerFn({ method: "POST" })
       usersWithRoles(["gestor", "admin"]),
       user.id,
       "Faca enviada para afiação",
-      `#${String(numero).padStart(4, "0")} — ${data.medida} (${data.substrato})`,
+      `#${String(numero).padStart(4, "0")} · ${data.medida} (${data.substrato})`,
       "/hub?tela=afiacao",
     );
     audit({ id: user.id, nome: user.nome }, "faca.enviar_afiacao", "faca_afiacoes", id, {
@@ -103,7 +105,7 @@ export const receberFaca = createServerFn({ method: "POST" })
       usersWithRoles(["gestor", "admin"]),
       user.id,
       "Faca voltou da afiação",
-      `#${String(faca.numero as number).padStart(4, "0")} — ${faca.medida} · estado ${rotuloEstado}${valorTxt}${data.solicitarNova ? " · FACA NOVA SOLICITADA" : ""}`,
+      `#${String(faca.numero as number).padStart(4, "0")} · ${faca.medida} · estado ${rotuloEstado}${valorTxt}${data.solicitarNova ? " · FACA NOVA SOLICITADA" : ""}`,
       "/hub?tela=afiacao",
     );
     audit({ id: user.id, nome: user.nome }, "faca.receber", "faca_afiacoes", data.id, {
@@ -139,13 +141,30 @@ export const listPdfsFacas = createServerFn({ method: "POST" })
   .middleware([requireAuth])
   .handler(async () => listarPdfsFacas());
 
-/** Catálogo mantido pela equipe na Relação de Ferramentais (fonte da verdade). */
+/** Catálogo mantido pela equipe na Relação de Ferramentais (fonte da verdade).
+    `faltaram`: as páginas dela que não abriram nesta leitura (share fora do
+    ar, arquivo preso). Com alguma, a lista pode estar incompleta. */
 export const listRelacaoFacas = createServerFn({ method: "POST" })
   .middleware([requireAuth])
-  .handler(async () => ({
-    facas: lerRelacaoFacas(),
-    atualizadaEm: relacaoAtualizadaEm(),
-  }));
+  .handler(async () => {
+    const { itens, faltaram } = lerRelacaoFacas();
+    return { facas: itens, atualizadaEm: relacaoAtualizadaEm(), faltaram };
+  });
+
+/**
+ * Z de cilindro de cada faca, lido das pastas "Facas por Z".
+ *
+ * Devolve objeto e não Map porque o que sai daqui é serializado para o
+ * navegador — Map vira `{}` na volta.
+ */
+export const listZDasFacas = createServerFn({ method: "POST" })
+  .middleware([requireAuth])
+  .handler(async () => {
+    const mapa = lerZDasFacas();
+    const zs: Record<string, { z: number; maquina: string | null; morta: boolean }> = {};
+    for (const [k, v] of mapa) zs[k] = v;
+    return { zs, quantas: mapa.size };
+  });
 
 /** Conteúdo de um desenho, em base64 (o navegador monta o blob e exibe). */
 export const getPdfFaca = createServerFn({ method: "POST" })
@@ -156,6 +175,16 @@ export const getPdfFaca = createServerFn({ method: "POST" })
     if (!buf) throw new Error("Desenho não encontrado no acervo.");
     return { nome: data.arquivo, dataBase64: buf.toString("base64") };
   });
+
+/**
+ * A ficha técnica ESCRITA no desenho: carreiras, repetições, diâmetro,
+ * engrenagem, máquina. Onde ela existe, a tela mostra o que o desenhista
+ * escreveu em vez do que o hub calcularia.
+ */
+export const getFichaDesenho = createServerFn({ method: "POST" })
+  .validator(z.object({ arquivo: z.string().min(5).max(120) }))
+  .middleware([requireAuth])
+  .handler(async ({ data }) => lerFichaDoDesenho(data.arquivo));
 
 /** Miniatura pronta (PNG) de um desenho — `null` quando ainda não foi desenhada. */
 export const getMiniaturaFaca = createServerFn({ method: "POST" })
@@ -209,7 +238,7 @@ export const solicitarFacaNova = createServerFn({ method: "POST" })
       usersWithRoles(["gestor", "admin"]),
       user.id,
       "Faca nova solicitada",
-      `#${String(numero).padStart(4, "0")} — ${data.medida} (${data.substrato})${data.motivo ? " · " + data.motivo : ""}`,
+      `#${String(numero).padStart(4, "0")} · ${data.medida} (${data.substrato})${data.motivo ? " · " + data.motivo : ""}`,
       "/hub?tela=afiacao",
     );
     audit({ id: user.id, nome: user.nome }, "faca.solicitar_nova", "faca_afiacoes", id, {

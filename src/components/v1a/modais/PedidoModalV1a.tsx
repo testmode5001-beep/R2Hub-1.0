@@ -104,7 +104,7 @@ const TEXTO_STATUS: Record<string, string> = {
   revisao: "Revisão solicitada",
   aprovada: "Design aprovado",
   cliche: "Clichê solicitado",
-  concluido: "Clichê recebido — pedido concluído",
+  concluido: "Clichê recebido, pedido concluído",
   cancelado: "Pedido cancelado",
 };
 
@@ -172,7 +172,7 @@ const PROMPTS: Record<string, Prompt> = {
   "Pedir revisão": {
     titulo: () => "O que precisa mudar na arte?",
     placeholder: "Descreva as alterações…",
-    nota: "Obrigatório — o texto vai para o designer, aparece em “Alterações pedidas” e fica no histórico.",
+    nota: "Obrigatório: o texto vai para o designer, aparece em “Alterações pedidas” e fica no histórico.",
     confirmar: "Enviar revisão",
     tema: "amarelo",
     obrigatorio: true,
@@ -189,7 +189,7 @@ const PROMPTS: Record<string, Prompt> = {
   "Observação": {
     titulo: () => "Observação interna",
     placeholder: "Escreva para a equipe…",
-    nota: "Visível apenas para a equipe interna — entra no histórico do pedido.",
+    nota: "Visível apenas para a equipe interna. Entra no histórico do pedido.",
     confirmar: "Publicar observação",
     tema: "escuro",
     obrigatorio: true,
@@ -215,7 +215,7 @@ const PROMPTS: Record<string, Prompt> = {
   },
   "Reposição de clichê": {
     titulo: (c) => `Repor o clichê de ${c}`,
-    placeholder: "Motivo — o que aconteceu com o clichê?",
+    placeholder: "Motivo: o que aconteceu com o clichê?",
     nota: "Abre um pedido novo de reposição e avisa o design.",
     confirmar: "Solicitar reposição",
     tema: "amarelo",
@@ -225,7 +225,7 @@ const PROMPTS: Record<string, Prompt> = {
   },
   "Cancelar pedido": {
     titulo: (c) => `Tirar o pedido de ${c} do fluxo?`,
-    nota: "Ele passa a Cancelado: sai das listas de trabalho, mas continua no sistema — aparece em “Artes canceladas” na Central e pode ser reaberto. Histórico, anexos e o gasto de clichê ficam preservados.",
+    nota: "Ele passa a Cancelado: sai das listas de trabalho, mas continua no sistema. Aparece em “Artes canceladas” na Central e pode ser reaberto. Histórico, anexos e o gasto de clichê ficam preservados.",
     confirmar: "Cancelar o pedido",
     tema: "escuro",
     semTexto: true,
@@ -566,7 +566,7 @@ export function PedidoModalV1a({
   function enviarArquivos(lista: FileList | File[] | null | undefined) {
     const arr = lista ? Array.from(lista) : [];
     if (!arr.length) return;
-    if (!aoAnexar) { avisar(`${arr.length} ${arr.length === 1 ? "arquivo" : "arquivos"} — a modal está sem ligação com o servidor.`); return; }
+    if (!aoAnexar) { avisar(`${arr.length} ${arr.length === 1 ? "arquivo" : "arquivos"}: a modal está sem ligação com o servidor.`); return; }
     setOcupado(true);
     Promise.resolve(aoAnexar(arr))
       .then(() => avisar(arr.length === 1 ? `${arr[0].name} anexado` : `${arr.length} arquivos anexados`))
@@ -613,7 +613,7 @@ export function PedidoModalV1a({
     setOcupado(true);
     setRemovidos((s) => [...s, a.id]);
     Promise.resolve(aoExcluirArquivo(a.id, a.nome))
-      .then(() => avisar(`${a.nome} saiu do pedido — o arquivo continua na pasta do cliente`))
+      .then(() => avisar(`${a.nome} saiu do pedido. O arquivo continua na pasta do cliente`))
       .catch((e: unknown) => {
         setRemovidos((s) => s.filter((id) => id !== a.id));
         avisar(e instanceof Error ? e.message : "Erro ao tirar do pedido.");
@@ -652,7 +652,7 @@ export function PedidoModalV1a({
         .trim();
       out.push({
         id: "h" + (h.id ?? `${h.status}${h.created_at}`),
-        titulo: obs ? `${base} — ${obs}` : base,
+        titulo: obs ? `${base}: ${obs}` : base,
         iso: h.created_at,
         autor: h.user_nome ?? "",
         tipo: h.status === "revisao" || h.status === "pergunta" || h.status === "resposta"
@@ -840,7 +840,7 @@ export function PedidoModalV1a({
       .then((falha) => Promise.resolve(aoStatus(novo, obs.trim() || null)).then(() => {
         fecharPrompt();
         setCarregando(null);
-        avisar(falha ? `${res} — mas atenção: ${falha}` : res);
+        avisar(falha ? `${res}. Mas atenção: ${falha}` : res);
         onAcao?.(`${label} · ${p.cliente || ""}`);
       }))
       .catch(falhou);
@@ -906,9 +906,9 @@ export function PedidoModalV1a({
   const rodapeTexto = p.extra
     ? "Valores do clichê pendentes de conferência."
     : cancelado
-      ? "Pedido cancelado — pode voltar para a fila do design."
+      ? "Pedido cancelado. Pode voltar para a fila do design."
       : tudoFeito
-        ? "Pedido concluído — só reposição de clichê a partir daqui."
+        ? "Pedido concluído. Só reposição de clichê a partir daqui."
         : `Etapa atual: ${FLUXO[passo] ?? "Solicitado"}.`;
 
   const quemPediu = primeiroNome(campos?.vendedor_nome as string) || p.solicitante || "quem abriu o pedido";
@@ -997,7 +997,7 @@ export function PedidoModalV1a({
                   try { await aoPerguntar(d.obs.trim()); } catch { /* a arte já foi; o aviso abaixo não pode sumir */ }
                 }
                 setCarregando(null);
-                avisar(falha ? `${msg} — mas atenção: ${falha}` : d.pergunta ? `${msg} · pergunta em aberto` : msg);
+                avisar(falha ? `${msg}. Mas atenção: ${falha}` : d.pergunta ? `${msg} · pergunta em aberto` : msg);
                 onAcao?.(`${msg} · ${p.cliente || ""}`);
               }))
               .catch((e: unknown) => { setCarregando(null); avisar(e instanceof Error ? e.message : "Não foi possível registrar."); });
@@ -1292,7 +1292,7 @@ export function PedidoModalV1a({
                             ) : acabamentos.length ? acabamentos.map((a) => (
                               <span key={a.campo} style={{ display: "flex", alignItems: "center", borderRadius: 999, padding: "7px 12px", font: "700 12.5px/1 Inter,sans-serif", whiteSpace: "nowrap", background: AMARELO, color: INK }}>{a.rotulo}</span>
                             )) : (
-                              <span style={{ font: "500 13px/1.2 Inter,sans-serif", color: "#7a787a" }}>Nenhum — impressão simples</span>
+                              <span style={{ font: "500 13px/1.2 Inter,sans-serif", color: "#7a787a" }}>Nenhum: impressão simples</span>
                             )}
                           </span>
                         </div>

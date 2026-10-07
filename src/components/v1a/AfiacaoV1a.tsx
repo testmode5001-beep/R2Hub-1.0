@@ -69,7 +69,7 @@ const FACAS_SEMENTE: Registro[] = [
   { n: 38, medida: "38,66 × 60", substrato: "BOPP fosco", envio: 1, quem: "Cleber", status: "enviada" },
   { n: 37, medida: "45 × 30", substrato: "Térmico", envio: 12, retorno: 4, quem: "Danilo", recPor: "Marcos", status: "recebida", estado: "bom", valor: 180, obs: "" },
   { n: 36, medida: "70 × 50", substrato: "BOPP brilho", envio: 15, retorno: 6, quem: "Rafa", recPor: "Danilo", status: "recebida", estado: "regular", valor: 240, obs: "Fio irregular no canto direito." },
-  { n: 35, medida: "110 × 80", substrato: "Polietileno", envio: 19, retorno: 9, quem: "Marcos", recPor: "Rafa", status: "recebida", estado: "ruim", valor: 260, obs: "Faca abriu no vinco — não segura mais registro.", nova: true },
+  { n: 35, medida: "110 × 80", substrato: "Polietileno", envio: 19, retorno: 9, quem: "Marcos", recPor: "Rafa", status: "recebida", estado: "ruim", valor: 260, obs: "Faca abriu no vinco. Não segura mais registro.", nova: true },
   { n: 34, medida: "50 × 40", substrato: "Couché", envio: 22, retorno: 12, quem: "Danilo", recPor: "Cleber", status: "recebida", estado: "bom", valor: 165, obs: "" },
   { n: 33, medida: "90 × 60", substrato: "Cartão couché", envio: 26, retorno: 16, quem: "Cleber", recPor: "Danilo", status: "recebida", estado: "bom", valor: 210, obs: "" },
   { n: 32, medida: "60 × 40", substrato: "Térmico", envio: 30, retorno: 21, quem: "Rafa", recPor: "Marcos", status: "recebida", estado: "regular", valor: 195, obs: "Reafiar em 3 meses." },
@@ -378,7 +378,7 @@ export function AfiacaoV1a({
       if (!aoSolicitarNova) return;
       setOcupado(true);
       aoSolicitarNova({ medida: nnMedida.trim(), substrato: nnSubstrato, motivo: nnMotivo.trim() })
-        .then(() => { limpar(); setAviso("Faca nova solicitada — está na fila de compra."); })
+        .then(() => { limpar(); setAviso("Faca nova solicitada. Está na fila de compra."); })
         .catch((e: unknown) => setAviso(e instanceof Error ? e.message : "Não deu para registrar o pedido."))
         .finally(() => setOcupado(false));
       return;
@@ -386,7 +386,7 @@ export function AfiacaoV1a({
     const n = proximoNumero;
     gravarRegistros([{ n, medida: nnMedida.trim(), substrato: nnSubstrato, envio: 0, quem: recPor || "—", status: "nova", nova: true, obs: nnMotivo.trim() }, ...registros]);
     limpar();
-    setAviso(`Faca nova ${num(n)} solicitada — está na fila de compra.`);
+    setAviso(`Faca nova ${num(n)} solicitada. Está na fila de compra.`);
   }
 
   function enviarFaca() {
@@ -397,7 +397,7 @@ export function AfiacaoV1a({
       aoEnviarFaca(novaMedida.trim(), novoSubstrato)
         .then(() => {
           setNovaMedida(""); setNovoSubstrato(""); setEnvioAberto(false);
-          setAviso("Faca registrada — aguardando retorno da afiação.");
+          setAviso("Faca registrada, aguardando retorno da afiação.");
         })
         .catch((e: unknown) => setAviso(e instanceof Error ? e.message : "Não deu para registrar o envio."))
         .finally(() => setOcupado(false));
@@ -406,7 +406,7 @@ export function AfiacaoV1a({
     const n = proximoNumero;
     gravarRegistros([{ n, medida: novaMedida.trim(), substrato: novoSubstrato, envio: 0, quem: recPor || "—", status: "enviada" }, ...registros]);
     setNovaMedida(""); setNovoSubstrato(""); setEnvioAberto(false);
-    setAviso(`Faca ${num(n)} registrada — aguardando retorno da afiação.`);
+    setAviso(`Faca ${num(n)} registrada, aguardando retorno da afiação.`);
   }
 
   function adicionarSubstrato() {
@@ -431,7 +431,7 @@ export function AfiacaoV1a({
     const valor = valorOuZero(recValor);
     const fechar = (n: number) => {
       setReceberN(null);
-      setAviso(`Faca ${num(n)} recebida${recNova ? " — solicitação de faca nova registrada." : " e registrada."}`);
+      setAviso(`Faca ${num(n)} recebida${recNova ? ". Solicitação de faca nova registrada." : " e registrada."}`);
     };
     if (real) {
       if (!sel?.id || !aoReceberFaca) return;
@@ -735,7 +735,7 @@ export function AfiacaoV1a({
                   </div>
                   {novas.length === 0 && (
                     <div style={{ font: "400 14.5px/1.4 Inter,sans-serif", color: "#8d8b8d" }}>
-                      Nenhuma faca na fila — marque um retorno como <strong style={{ color: "#f1f1f1" }}>ruim</strong>, ou use <strong style={{ color: "#f1f1f1" }}>Solicitar faca nova</strong> quando a faca quebrou, sumiu ou ainda não existe.
+                      Nenhuma faca na fila. Marque um retorno como <strong style={{ color: "#f1f1f1" }}>ruim</strong>, ou use <strong style={{ color: "#f1f1f1" }}>Solicitar faca nova</strong> quando a faca quebrou, sumiu ou ainda não existe.
                     </div>
                   )}
                 </div>
@@ -798,7 +798,7 @@ export function AfiacaoV1a({
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 8px 2px", borderTop: "2px solid #f1f1f1" }}>
                     <span style={{ flex: 1, font: "400 14.5px/1.4 Inter,sans-serif", color: "#8d8b8d" }}>
-                      Mostrando {ordenadas.length === 0 ? 0 : (pag - 1) * PP + 1}–{Math.min(pag * PP, ordenadas.length)} de {ordenadas.length}
+                      Mostrando {ordenadas.length === 0 ? 0 : (pag - 1) * PP + 1} a {Math.min(pag * PP, ordenadas.length)} de {ordenadas.length}
                     </span>
                     <button type="button" className="r2chip" onClick={() => setPagina(Math.max(1, pag - 1))}
                       style={{ width: 34, height: 34, display: "grid", placeItems: "center", border: 0, borderRadius: 6, background: "#f1f1f1", cursor: pag > 1 ? "pointer" : "not-allowed", opacity: pag > 1 ? 1 : 0.4 }}>
@@ -851,7 +851,7 @@ export function AfiacaoV1a({
                   {nnNums.length >= 2
                     ? <>Largura <strong style={{ color: INK }}>{mm(nnNums[0])}</strong> · Altura <strong style={{ color: INK }}>{mm(nnNums[1])}</strong></>
                     : nnMedida.trim()
-                      ? (facaDoCatalogo ? <>Sem largura × altura — clique na faca do catálogo abaixo para preencher.</> : <>Escreva a largura e a altura, separadas por × (ex.: 100 × 140).</>)
+                      ? (facaDoCatalogo ? <>Sem largura × altura. Clique na faca do catálogo abaixo para preencher.</> : <>Escreva a largura e a altura, separadas por × (ex.: 100 × 140).</>)
                       : <>A medida vira desenho aqui do lado enquanto você escreve.</>}
                 </div>
                 {/* facas do catálogo com medida parecida: clicar preenche o campo
@@ -941,7 +941,7 @@ export function AfiacaoV1a({
                     </div>
                   ) : (
                     <div style={{ font: "500 14px/1.45 Inter,sans-serif", color: "#5c5a5c" }}>
-                      {nnChave ? "Medida que ainda não existe no catálogo — é faca nova mesmo." : "Escreva a medida para o hub procurar."}
+                      {nnChave ? "Medida que ainda não existe no catálogo: é faca nova mesmo." : "Escreva a medida para o hub procurar."}
                     </div>
                   )}
                 </div>
@@ -965,7 +965,7 @@ export function AfiacaoV1a({
                       )}
                       {noHub.naFila && (
                         <span style={{ borderRadius: 8, padding: "9px 12px", background: AMARELO, color: INK, font: "600 13.5px/1.35 Inter,sans-serif" }}>
-                          Já existe pedido de faca nova nessa medida ({num(noHub.naFila.n)}) — confira a fila antes de repetir.
+                          Já existe pedido de faca nova nessa medida ({num(noHub.naFila.n)}). Confira a fila antes de repetir.
                         </span>
                       )}
                     </div>

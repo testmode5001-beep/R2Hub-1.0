@@ -4,10 +4,9 @@
 // Ações reais já ligadas: criar pedido (NovaArte → createPedido) e registro
 // de chegada de clichê (Aprovação → registrarCliche). O restante (mensagens,
 // anotações, notificações) segue demo até o back-end correspondente.
-import { useEffect, useRef, useState, type ReactNode } from "react";
-import { toast } from "sonner";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useIsFetching, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { AfiacaoV1a } from "@/components/v1a/AfiacaoV1a";
 import { BASE_COD, PDF_DE } from "@/components/v1a/dados/facas-cilindro";
@@ -16,6 +15,9 @@ import { AprovacaoV1a } from "@/components/v1a/AprovacaoV1a";
 import type { TipoCadastro } from "@/components/v1a/dados/cadastros";
 import { ArquivosV1a } from "@/components/v1a/ArquivosV1a";
 import { CALC_PERM, PERM_GABARITO, CalculadorasV1a } from "@/components/v1a/CalculadorasV1a";
+import { CalculadorasHub10 } from "@/components/hub10/CalculadorasHub10";
+import { PantonesHub10 } from "@/components/hub10/PantonesHub10";
+import { ArquivosHub10 } from "@/components/hub10/ArquivosHub10";
 import { CentralV1a } from "@/components/v1a/CentralV1a";
 import { ClientesV1a } from "@/components/v1a/ClientesV1a";
 import { EquipeV1a, type Cargo as CargoEquipe, type Usuario as UsuarioEquipe } from "@/components/v1a/EquipeV1a";
@@ -23,13 +25,18 @@ import { EstoqueV1a } from "@/components/v1a/EstoqueV1a";
 import { FacasV1a } from "@/components/v1a/FacasV1a";
 import { HubDadosV1aProvider, type HubDadosV1a } from "@/components/v1a/HubDadosV1a";
 import { AvisoV1a, NOVO_PEDIDO_V1A } from "@/components/v1a/HubV1a";
+import { FerramentaisHub10 } from "@/components/hub10/FerramentaisHub10";
+import { EquipeHub10 } from "@/components/hub10/EquipeHub10";
+import { RelatoriosHub10 } from "@/components/hub10/RelatoriosHub10";
+import { ClientesHub10 } from "@/components/hub10/ClientesHub10";
 import { HomeHub10 } from "@/components/hub10/HomeHub10";
-import { NovoPedidoHub10 } from "@/components/hub10/NovoPedidoHub10";
-import { PedidoHub10 } from "@/components/hub10/PedidoHub10";
+import { CarregandoHub10 } from "@/components/hub10/ChromeHub10";
+import { ApresentacaoHub10, ProvedorApresentacao } from "@/components/hub10/ApresentacaoHub10";
+import { NovoPedidoHub10, type DadosNovoPedido } from "@/components/hub10/NovoPedidoHub10";
+import { PedidoHub10, rotuloDoStatus } from "@/components/hub10/PedidoHub10";
 import { enviarSugestao } from "@/lib/api/sugestoes.functions";
 import { LeituraV1a } from "@/components/v1a/LeituraV1a";
 import { MuralV1a } from "@/components/v1a/MuralV1a";
-import type { NovaSolicitacaoDados } from "@/components/v1a/modais/NovaArteModalV1a";
 import { PainelV1a } from "@/components/v1a/PainelV1a";
 import { PantoneV1a } from "@/components/v1a/PantoneV1a";
 import { PedidosV1a } from "@/components/v1a/PedidosV1a";
@@ -38,15 +45,19 @@ import { PedidoModalV1a, type PedidoModal } from "@/components/v1a/modais/Pedido
 import type { RegistroCliche } from "@/components/v1a/modais/ClicheChegouModalV1a";
 import { deleteAnexo, downloadAnexo, uploadAnexo } from "@/lib/api/anexos.functions";
 import { logout } from "@/lib/api/auth.functions";
-import { criarSolicitacaoCliche, getApontamentos } from "@/lib/api/cliches.functions";
+import { separarCores } from "@/lib/cores";
+import { criarSolicitacaoCliche, getApontamentos, listMotivosCliche } from "@/lib/api/cliches.functions";
 import {
-  getHomeConfig, getMeuPapel, getMeusAtalhos, getMinhasPrefs, listPapeis, setMeuPapel, setMeusAtalhos, setMinhasPrefs, uploadPapel,
+  getHomeConfig, getMeuPapel, getMeuRascunhoPedido, getMeusAtalhos, getMinhaApresentacao, getMinhasPrefs, listPapeis, setMeuPapel, setMeuRascunhoPedido, setMeusAtalhos,
+  setMinhaApresentacao, setMinhasPrefs, uploadPapel,
 } from "@/lib/api/config.functions";
+import type { RascunhoPedidoDados } from "@/lib/api/config.functions";
 import {
-  addSubstrato, enviarFacaAfiacao, solicitarFacaNova, getMiniaturaFaca, getPdfFaca, listFacas, listPdfsFacas, listRelacaoFacas, marcarNovaPedida,
+  addSubstrato, enviarFacaAfiacao, solicitarFacaNova, getMiniaturaFaca, getPdfFaca, listFacas, listPdfsFacas, listRelacaoFacas, marcarNovaPedida, salvarFacaExtra,
   listSubstratos, receberFaca, salvarMiniaturaFaca,
 } from "@/lib/api/facas.functions";
 import { pdfPrimeiraPagina } from "@/lib/pdf-preview";
+import { erroLegivel } from "@/lib/erro-legivel";
 import {
   alternarNota, criarNota, excluirNota, limparNotasConcluidas, listNotas,
 } from "@/lib/api/notas.functions";
@@ -57,13 +68,14 @@ import {
 import { listLeituras, marcarLeituraUsadaFn, registrarLeituraOp } from "@/lib/api/leituras.functions";
 import { listNotifications, markNotificationsRead } from "@/lib/api/notifications.functions";
 import {
-  changeStatus, comentarPedido, createPedido, deletePedido, getPedido, listConversas, listPedidos,
+  aguardarCliente, changeStatus, clienteRespondeu, comentarPedido, confirmarPastaCliente, createPedido, deletePedido, getPedido, listConversas, listPedidos,
   baixarNotaCliche, definirFilaPedido, enfileirarPedido, limparFilaPedidos, listCarteira, listDonosPedidos,
   marcarPedidoVisto,
   perguntarNoPedido, registrarCliche, registrarProvaImpressao, resolverRevisao, responderCliente,
-  responderPergunta, solicitarCliche, transferirCarteira, updatePedido, voltarParaClicheria,
+  responderPergunta, solicitarCliche, transferirCarteira, updatePedido, voltarParaClicheria, cadastrarRefazerCliche,
 } from "@/lib/api/pedidos.functions";
 import { TransferirCarteiraModalV1a, type Dono } from "@/components/v1a/modais/TransferirCarteiraModalV1a";
+import { TransferirCarteiraHub10 } from "@/components/hub10/TransferirCarteiraHub10";
 import { notificarNativo, piscarTitulo, tocarBip } from "@/lib/aviso-novidade";
 import { prazoDoPedido } from "@/lib/prazo";
 import { abrirBlob, base64ToBlob, fileToBase64, salvarBlob } from "@/lib/files";
@@ -72,7 +84,7 @@ import {
   listPermissoesEquipe, listRoles, listUsuarios, resetSenha, setUsuarioPermissao, updateRole,
   updateUsuario, deleteRole,
 } from "@/lib/api/usuarios.functions";
-import { clearStoredSession, getStoredSession, hasPerm, type SessionUser } from "@/lib/session";
+import { ROLE_LABELS, clearStoredSession, getStoredSession, hasPerm, type SessionUser } from "@/lib/session";
 
 export const Route = createFileRoute("/_authenticated/hub")({
   /* Sem SSR, de propósito. Quem está logado é lido do localStorage, que só
@@ -118,10 +130,16 @@ const PERM_DA_PAGINA: Record<string, string> = {
 
 /** Label do rail v1a → valor de ?tela=. */
 const LABEL_PARA_TELA: Record<string, string> = {
-  "Home": "home", "Central": "central", "Pedidos": "pedidos10", "Aprovação": "aprovacao",
-  "Fábrica": "fabrica", "OP": "op", "Apontamentos": "apontamentos", "Facas": "facas",
-  "Afiação": "afiacao", "Estoque": "estoque", "Mural": "mural", "Pantone": "pantone",
-  "Calculadoras": "calculadoras", "Arquivos": "arquivos", "Clientes": "clientes", "Equipe": "equipe",
+  /* "Aprovação" abre a tela 1.0, como "Pedidos". A V1a continua acessível em
+     ?tela=aprovacao enquanto o ciclo de clichê dela não for portado.
+     "Facas" virou Ferramentais (1.0); a tela antiga, com desenhos, comparação
+     e marcar morta, segue em ?tela=facas até o 1.0 cobrir isso. */
+  "Home": "home", "Central": "central", "Pedidos": "pedidos10", "Aprovação": "aprovacao10",
+  "Fábrica": "fabrica", "OP": "op", "Apontamentos": "relatorios10", "Facas": "ferramentais10",
+  "Afiação": "afiacao", "Estoque": "estoque", "Mural": "mural", "Pantone": "pantone10",
+  /* "Calculadoras" abre os cards 1.0; a tela antiga, com as contas em si,
+     segue em ?tela=calculadoras até cada card ganhar o seu dentro. */
+  "Calculadoras": "calculadoras10", "Arquivos": "arquivos10", "Clientes": "clientes10", "Equipe": "equipe10",
 };
 
 /* ————— Adaptadores app → modais v1a (mesmos do preview) ————— */
@@ -209,47 +227,24 @@ function HubPage() {
 
   // As server fns do TanStack devolvem `unknown` para o cliente — os tipos das
   // linhas do SQLite não sobrevivem à serialização; por isso os `any` aqui.
-  const { data: pedidos = [] } = useQuery<any[]>({
+  /* dataUpdatedAt fica em 0 até a primeira leitura com sucesso e não volta a
+     zero se uma releitura falhar: é o "já chegou" que a Pantones precisa para
+     não dizer "nenhum aprovado" enquanto a lista carrega. */
+  const { data: pedidos = [], dataUpdatedAt: pedidosEm } = useQuery<any[]>({
     queryKey: ["pedidos"],
     queryFn: () => listPedidos() as Promise<any[]>,
     refetchInterval: 5000,
     enabled: !!profile,
   });
-  /* Aviso de novidade: a lista de pedidos já chega de 5 em 5 segundos, então
-     basta comparar com a de antes. Só avisa a partir da SEGUNDA leitura (a
-     primeira é a tela abrindo, não é novidade) e o bip/título piscando são
-     para quem está com o hub minimizado. */
-  const pedidosAntes = useRef<Map<string, string> | null>(null);
-  useEffect(() => {
-    if (!Array.isArray(pedidos)) return;
-    const agora = new Map<string, string>(pedidos.map((p: any) => [String(p.id), String(p.status ?? "")]));
-    const antes = pedidosAntes.current;
-    pedidosAntes.current = agora;
-    if (!antes) return;
-
-    const novos = [...agora.keys()].filter((id) => !antes.has(id));
-    const mudados = [...agora.entries()].filter(([id, st]) => antes.has(id) && antes.get(id) !== st);
-    if (!novos.length && !mudados.length) return;
-
-    const doId = (id: string) => pedidos.find((p: any) => String(p.id) === id);
-    let aviso = "";
-    if (novos.length) {
-      const p = doId(novos[0]);
-      aviso = novos.length > 1
-        ? `${novos.length} pedidos novos`
-        : `Pedido novo · ${p?.cliente ?? "sem cliente"}`;
-    } else {
-      const [id, st] = mudados[0];
-      const p = doId(id);
-      aviso = mudados.length > 1
-        ? `${mudados.length} pedidos mudaram de etapa`
-        : `#${String(p?.numero ?? "").padStart(2, "0")} ${p?.cliente ?? ""} → ${ST_LABEL[st] ?? st}`;
-    }
-    tocarBip();
-    piscarTitulo(aviso);
-    notificarNativo(aviso);
-    toast(aviso, { duration: 8000 });
-  }, [pedidos]);
+  /* Aqui havia um aviso próprio de "pedido novo" e "pedido mudou de etapa",
+     feito comparando a lista de 5 em 5 segundos. Saiu (Augusto, 25/09/2026):
+     avisava TODO MUNDO de qualquer mudança — inclusive quem acabou de fazê-la
+     ("#19 Cafés Serrano → Clichê solicitado" para quem tinha clicado em
+     solicitar clichê), e com o nome antigo da etapa. O sino já cobre os dois
+     casos, só para quem importa e nunca para o autor: "Pedido atualizado" vai
+     à vendedora, ao designer e à gestão do pedido; "Nova solicitação", ao
+     design e à gestão — e o recado novo do sino toca o bip e mostra o aviso
+     (ver o efeito das notificações, mais abaixo). */
 
   const { data: cfg } = useQuery<any>({ queryKey: ["home-config"], queryFn: () => getHomeConfig() as Promise<any> });
   /* Papel de parede é de cada usuário — sem escolha, a Home fica lisa. */
@@ -271,21 +266,43 @@ function HubPage() {
     enabled: !!profile,
   });
   const prefs: Record<string, boolean | string> | undefined = minhasPrefs?.prefs;
+  /* A apresentação do hub: o que a pessoa já viu (o tour do primeiro acesso e
+     as novidades). Grava na hora, sem esperar o servidor para seguir: se não
+     gravar, a apresentação volta no próximo acesso, que é o lado seguro. */
+  const { data: apresentacao } = useQuery<any>({
+    queryKey: ["minha-apresentacao"],
+    queryFn: () => getMinhaApresentacao() as Promise<any>,
+    enabled: !!profile,
+    staleTime: Infinity,
+  });
+  const [pedidoApresentacao, setPedidoApresentacao] = useState(0);
+  const verApresentacao = useCallback(() => setPedidoApresentacao((n) => n + 1), []);
+  const salvarApresentacao = useCallback((e: { principal: string; novidades: string[] }) => {
+    qc.setQueryData(["minha-apresentacao"], e);
+    void setMinhaApresentacao({ data: e }).catch(() => { /* volta no próximo acesso */ });
+  }, [qc]);
 
-  /* Tela inicial escolhida nas Preferências: só vale quando a pessoa entrou
-     SEM ?tela= na URL (link direto continua mandando). Uma vez por sessão. */
+  /* Tela inicial escolhida nas Preferências. As entradas genéricas (o login,
+     a raiz "/" e a troca de senha) chegam com ?tela=inicio, que vira a tela
+     escolhida (ou a Home, se a pessoa não pode abrir a escolhida); link
+     direto, com outra ?tela=, continua mandando. Sem ?tela= nenhuma, vale uma
+     vez por sessão, como antes. Até 05/10/2026 as entradas mandavam
+     ?tela=home e a escolha nunca valia (simulação 5, os três agentes). */
   const telaInicialAplicada = useRef(false);
   useEffect(() => {
-    if (telaInicialAplicada.current || !prefs) return;
+    if (!prefs) return;
+    if (tela !== "inicio") {
+      if (telaInicialAplicada.current) return;
+      const urlTemTela = typeof window !== "undefined" && new URLSearchParams(window.location.search).has("tela");
+      if (urlTemTela) { telaInicialAplicada.current = true; return; }
+    }
     telaInicialAplicada.current = true;
     const escolhida = String(prefs.telaInicial || "");
-    if (!escolhida || escolhida === "Home") return;
-    const urlTemTela = typeof window !== "undefined" && new URLSearchParams(window.location.search).has("tela");
-    if (urlTemTela) return;
-    const t = LABEL_PARA_TELA[escolhida];
-    if (t && t !== tela) navigate({ to: "/hub", search: { tela: t }, replace: true });
+    const t = escolhida && escolhida !== "Home" ? LABEL_PARA_TELA[escolhida] : undefined;
+    const destino = t && paginasLiberadas.some((label) => LABEL_PARA_TELA[label] === t) ? t : "home";
+    if (destino !== tela) navigate({ to: "/hub", search: { tela: destino }, replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [prefs]);
+  }, [prefs, tela]);
 
   /* Cadastros compartilhados do formulário de solicitação (medidas, matéria-
      prima e cores) — a lista é de todos; criar depende de cadastro.*. */
@@ -324,6 +341,37 @@ function HubPage() {
       }))))
       .catch((e: unknown) => setAvisoGeral(e instanceof Error ? e.message : "Não deu para ler a equipe."));
   const [avisoGeral, setAvisoGeral] = useState("");
+  /* o recado do envio do Novo pedido quando a tela já saiu: fica por cima de
+     qualquer tela (o avisoGeral só aparece nas V1a, dentro de `modais`) */
+  const [recadoDoEnvio, setRecadoDoEnvio] = useState("");
+  /* O carregando entre as telas: aparece quando, logo depois de mudar de
+     tela (ou na primeira carga), alguma consulta ainda não tem dado nenhum
+     por mais de 300 ms; e fica até o dado chegar. Recarga em segundo plano
+     (a lista que já tem dado) e busca digitada não contam. */
+  const semDado = useIsFetching({ predicate: (q) => q.state.status === "pending" });
+  const [acabouDeMudar, setAcabouDeMudar] = useState(true);
+  const [carregando, setCarregando] = useState(false);
+  useEffect(() => {
+    setAcabouDeMudar(true);
+    const t = setTimeout(() => setAcabouDeMudar(false), 6000);
+    return () => clearTimeout(t);
+  }, [tela]);
+  useEffect(() => {
+    if (semDado > 0 && (acabouDeMudar || carregando)) {
+      if (carregando) return;
+      const t = setTimeout(() => setCarregando(true), 300);
+      return () => clearTimeout(t);
+    }
+    if (!carregando) return;
+    const t = setTimeout(() => setCarregando(false), 200);
+    return () => clearTimeout(t);
+  }, [semDado, acabouDeMudar, carregando]);
+  /* consulta que trava não prende a tela: some em 15 s de qualquer jeito */
+  useEffect(() => {
+    if (!carregando) return;
+    const t = setTimeout(() => setCarregando(false), 15000);
+    return () => clearTimeout(t);
+  }, [carregando]);
 
   /* Detalhe do pedido aberto (histórico + anexos reais). */
   const { data: detalhe } = useQuery<any>({
@@ -346,6 +394,9 @@ function HubPage() {
      vistas — é isso que apaga o aviso de resposta nova no card. */
   const abrirDetalhe10 = (id: string) => {
     setPedido10Id(id);
+    /* "Abrir o último pedido" (Preferências): só a lista antiga guardava o
+       pedido aberto, e no 1.0 a opção não fazia nada (revisão de 02/10/2026) */
+    try { localStorage.setItem("r2hub.ultimoPedido", id); } catch { /* modo restrito */ }
     void marcarPedidoVisto({ data: { id } }).then(() => qc.invalidateQueries({ queryKey: ["pedidos"] }));
   };
   /* Vir de fora (busca global, notificação, chat) e cair no pedido: leva para
@@ -354,6 +405,19 @@ function HubPage() {
     navigate({ to: "/hub", search: { tela: "pedidos10" } });
     abrirDetalhe10(id);
   };
+  /* …e quando o pedido vem NA URL. É o caminho de /pedido/<id>, que é para
+     onde apontam todas as notificações guardadas no banco. Sem isto a tela
+     abria a lista e o pedido do link ficava fechado. Uma vez só: depois de
+     abrir, o ?pedido= sai da URL para o voltar do navegador não reabrir. */
+  const pedidoDaUrlAplicado = useRef(false);
+  useEffect(() => {
+    if (pedidoDaUrlAplicado.current || !pedidoDaUrl) return;
+    if (tela !== "pedidos10" && tela !== "aprovacao10") return;
+    pedidoDaUrlAplicado.current = true;
+    abrirDetalhe10(pedidoDaUrl);
+    navigate({ to: "/hub", search: { tela }, replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pedidoDaUrl, tela]);
 
   if (!profile) {
     return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Carregando...</div>;
@@ -363,7 +427,15 @@ function HubPage() {
 
   const aoNavegar = (label: string) => {
     const t = LABEL_PARA_TELA[label];
-    if (t) navigate({ to: "/hub", search: { tela: t } });
+    if (!t) return;
+    /* Trocar de aba fecha o pedido aberto. Sem isto ele ficava pendurado no
+       estado: quem ia à Home e voltava para Pedidos reencontrava o painel de
+       um pedido que não tinha pedido para abrir — e em Aprovações chegava a
+       aparecer um pedido que aquela tela nem lista. */
+    setPedido10Id(null);
+    /* a modal V1a fica hospedada em TODAS as telas, então ela viajava junto */
+    setPedidoId(null);
+    navigate({ to: "/hub", search: { tela: t } });
   };
 
   async function doLogout() {
@@ -371,6 +443,9 @@ function HubPage() {
     qc.clear();
     try { await logout(); } catch { /* sessão pode já ter expirado */ }
     clearStoredSession();
+    /* o rascunho do Novo pedido na aba é de quem saiu: quem entrar depois na
+       mesma aba não pode vê-lo nem continuá-lo (revisão de 02/10/2026) */
+    try { sessionStorage.removeItem("r2-novo-pedido-10"); } catch { /* sem armazenamento */ }
     navigate({ to: "/auth", replace: true });
   }
 
@@ -385,10 +460,11 @@ function HubPage() {
   useEffect(() => {
     if (ultimoAplicado.current || !prefs || prefs.auto !== true || !pedidos.length) return;
     ultimoAplicado.current = true;
-    if (pedidoId || pedidoDaUrl) return;   // já tem pedido aberto por link
+    if (pedidoId || pedido10Id || pedidoDaUrl) return;   // já tem pedido aberto por link
     try {
       const guardado = localStorage.getItem("r2hub.ultimoPedido");
-      if (guardado && pedidos.some((x: any) => x.id === guardado)) setPedidoId(guardado);
+      /* abre no painel do 1.0, em Pedidos (era a ficha antiga, por cima da Home) */
+      if (guardado && pedidos.some((x: any) => x.id === guardado)) irParaPedido10(guardado);
     } catch { /* modo restrito */ }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prefs, pedidos]);
@@ -484,13 +560,16 @@ function HubPage() {
     if (antes === null) return;   // primeira carga da sessão: nada de alarde
     const novas = items.filter((n: any) => !antes.has(String(n.id)) && !n.lida);
     if (!novas.length) return;
+    /* um aviso só: o título e o corpo (o cliente, o motivo); só o título
+       ("Refazer clichê") não dizia de qual pedido (simulação 4) */
     const aviso = novas.length > 1
       ? `${novas.length} avisos novos no sino`
-      : String(novas[0].titulo || "Aviso novo no sino");
+      : [String(novas[0].titulo || "Aviso novo no sino"), novas[0].corpo ? String(novas[0].corpo) : ""].filter(Boolean).join(": ");
     tocarBip();
     piscarTitulo(aviso);
     notificarNativo(aviso);
-    toast(aviso, { duration: 8000 });
+    /* o balão por cima da tela (sonner, herdado do hub antigo) saiu em
+       05/10/2026 a pedido do Augusto: quem está olhando vê o número no sino */
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [notifRaw]);
   const { data: notasRaw } = useQuery<any[]>({
@@ -553,9 +632,13 @@ function HubPage() {
         id: String(p.id),
         numero: Number(p.numero),
         cliente: String(p.cliente ?? ""),
-        status: ST_LABEL[p.status] ?? String(p.status ?? ""),
-        medida: p.medida ? String(p.medida) : undefined,
-        substrato: p.substrato ? String(p.substrato) : undefined,
+        /* Os nomes do 1.0, e a medida e o substrato de verdade: a lista não
+           tem "medida" nem "substrato" (são largura×altura e matéria), e a
+           busca por "41x16" não achava pedido nenhum (simulação de
+           28/09/2026). */
+        status: rotuloDoStatus(String(p.status ?? "")),
+        medida: p.largura && p.altura ? `${p.largura}×${p.altura}` : undefined,
+        substrato: p.materia ? String(p.materia) : undefined,
         tipo: p.tipo ? String(p.tipo) : undefined,
       }))
       : undefined,
@@ -651,7 +734,7 @@ function HubPage() {
       ? {
         aoCriarColega: (d: { nome: string; username: string; senha: string }) =>
           createUsuario({ data: { nome: d.nome, username: d.username, senha: d.senha, role: profile.role } }),
-        meuCargoLabel: profile.role,
+        meuCargoLabel: ROLE_LABELS[profile.role] ?? profile.role,
       }
       : {}),
     aoEnviarPapel: (nome: string, dataBase64: string) =>
@@ -678,7 +761,7 @@ function HubPage() {
   const { data: apontRaw } = useQuery<any>({
     queryKey: ["apontamentos", periodo.de, periodo.ate],
     queryFn: () => getApontamentos({ data: periodo }) as Promise<any>,
-    enabled: tela === "apontamentos" && hasPerm(profile, "apontamentos.ver"),
+    enabled: (tela === "apontamentos" || tela === "relatorios10") && hasPerm(profile, "apontamentos.ver"),
   });
 
   /* ————— Fila de leituras de OP: Fábrica e Leitura compartilham ————— */
@@ -767,7 +850,7 @@ function HubPage() {
   /* ————— Equipe: usuários, cargos, permissões e auditoria reais ————— */
   const podeGerirEquipe = hasPerm(profile, "usuarios.gerenciar");
   const podeGerirPerms = hasPerm(profile, "permissoes.gerenciar");
-  const naEquipe = tela === "equipe";
+  const naEquipe = tela === "equipe" || tela === "equipe10";
 
   const { data: usuariosRaw } = useQuery<any[]>({
     queryKey: ["equipe-usuarios"],
@@ -852,18 +935,25 @@ function HubPage() {
   /* Sobe anexos um a um SEM parar no primeiro erro e devolve a lista do que
      ficou de fora. Serve à modal do pedido E ao formulário de pedido novo. */
   const MAX_ANEXO_MB = 35; // o servidor recusa acima disso (limite do base64)
-  const subirAnexos = async (pid: string, arquivos: File[], tipo: "anexo" | "arte" = "anexo") => {
+  /* `registrar` false: o arquivo já é contado por outra linha do Histórico
+     (o "Pedido criado", ou a "Arte vN enviada"), e não precisa de uma sua. */
+  const subirAnexos = async (pid: string, arquivos: File[], tipo: "anexo" | "arte" = "anexo", registrar = true) => {
     const falhas: string[] = [];
     for (const f of arquivos) {
+      /* arquivo de 0 byte: o servidor recusava com o JSON do validador na tela */
+      if (f.size === 0) {
+        falhas.push(`${f.name} está vazio`);
+        continue;
+      }
       if (f.size > MAX_ANEXO_MB * 1024 * 1024) {
-        falhas.push(`${f.name} tem ${Math.round(f.size / 1048576)} MB — o limite é ${MAX_ANEXO_MB} MB`);
+        falhas.push(`${f.name} tem ${(f.size / 1048576).toFixed(1).replace(".", ",")} MB (o limite é ${MAX_ANEXO_MB} MB)`);
         continue;
       }
       try {
         const dataBase64 = await fileToBase64(f);
-        await uploadAnexo({ data: { pedidoId: pid, tipo, nome: f.name, dataBase64 } });
+        await uploadAnexo({ data: { pedidoId: pid, tipo, nome: f.name, dataBase64, registrar } });
       } catch (e) {
-        falhas.push(`${f.name} não foi (${e instanceof Error ? e.message : "erro ao enviar"})`);
+        falhas.push(`${f.name} não foi (${erroLegivel(e, "erro ao enviar")})`);
       }
     }
     return falhas;
@@ -920,10 +1010,10 @@ function HubPage() {
 
   const aoExcluirPedido = () =>
     deletePedido({ data: { id: pedidoId! } }).then(() => {
-      const alvo = pedidoDet ? `${numDe(pedidoDet)} — ${pedidoDet.cliente}` : "Pedido";
+      const alvo = pedidoDet ? `${numDe(pedidoDet)} · ${pedidoDet.cliente}` : "Pedido";
       setPedidoId(null);
       qc.invalidateQueries({ queryKey: ["pedidos"] });
-      setAvisoGeral(`${alvo} cancelado — aparece em “Artes canceladas” na Central.`);
+      setAvisoGeral(`${alvo} cancelado. Aparece em “Artes canceladas” na Central.`);
     });
 
   /* Só o dono do pedido ou quem edita todos consegue salvar — mesma regra do
@@ -948,9 +1038,9 @@ function HubPage() {
      servidor responder — apagava o rascunho, fechava e, se o create falhasse,
      a pessoa perdia tudo o que tinha digitado e só via um banner de erro. */
   const aoCriar = hasPerm(profile, "pedidos.criar")
-    ? async (d: NovaSolicitacaoDados) => {
+    ? async (d: DadosNovoPedido) => {
         const det = d.detalhes;
-        if (!det) return;
+        if (!det) throw new Error("Faltam os dados do pedido. Nada foi enviado.");
         const r = await createPedido({
           data: {
             cliente: d.cliente,
@@ -968,11 +1058,14 @@ function HubPage() {
             cold_stamp: det.coldStamp ?? "0",
             picote: det.picote ?? "0",
             carreiras: det.carreiras || null,
-            /* A faca escolhida no catálogo entra no briefing: antes ela
-               evaporava — o formulário até prometia "a faca é anexada ao
-               pedido" e o designer não recebia nada. */
-            descricao: (det.descricao || d.obs || "—") + (d.facaCod ? `\nFaca do catálogo: ${d.facaCod}` : ""),
+            descricao: det.descricao || d.obs || "—",
             link_ref: det.linkRef || null,
+            /* A faca em coluna própria. Antes ia no fim do briefing ("Faca do
+               catálogo: X") e não havia como trocar depois do envio. Faca
+               nova: a medida foi digitada e a faca ainda vai ser feita. */
+            faca_cod: d.facaNova ? null : (d.facaCod || null),
+            faca_nova: d.facaNova ? "1" : "0",
+            urgente: d.urgente ? "1" : "0",
           },
         });
         qc.invalidateQueries({ queryKey: ["pedidos"] });
@@ -984,12 +1077,13 @@ function HubPage() {
            pedido existe, mas a pessoa precisa saber o que ficou de fora. */
         const arquivos = d.arquivos ?? [];
         const num = `#${String(r.numero).padStart(2, "0")}`;
-        if (!arquivos.length) return { num };
+        if (!arquivos.length) return { num, id: r.id };
 
-        const falhas = await subirAnexos(r.id, arquivos);
+        const falhas = await subirAnexos(r.id, arquivos, "anexo", false);
         qc.invalidateQueries({ queryKey: ["pedidos"] });
         return {
           num,
+          id: r.id,
           aviso: falhas.length
             ? `Nem tudo foi anexado: ${falhas.join(" · ")}. Abra o pedido e anexe de novo.`
             : undefined,
@@ -1126,17 +1220,36 @@ function HubPage() {
   /* "novo-pedido" não está em LABEL_PARA_TELA (não é item de menu): quem
      manda nela é a permissão de criar, não a lista de páginas. */
   const telaLiberada = paginasLiberadas.some((label) => LABEL_PARA_TELA[label] === tela)
-    || ["home", "leitura"].includes(tela)
+    /* "inicio": a entrada genérica, que vira a tela inicial escolhida */
+    || ["home", "leitura", "inicio"].includes(tela)
     || (tela === "novo-pedido" && hasPerm(profile, "pedidos.criar"))
     /* A lista V1a saiu do menu quando a 1.0 assumiu "Pedidos", mas continua
        alcançável por URL — rede de segurança enquanto a nova roda de verdade.
        Some quando a 1.0 tiver semanas de uso sem reclamação. */
     || (tela === "pedidos-v1a" && paginasLiberadas.includes("Pedidos"))
-    /* Aprovações 1.0 em endereço próprio: NÃO substitui a tela de Aprovação
-       do V1a, que cuida do ciclo do clichê inteiro (e-mail à clicheria,
-       chegada, valores, motivos). A do 1.0 é uma trilha de pedidos com a arte
-       aprovada — cobre só a primeira faixa daquela. */
-    || (tela === "aprovacao10" && paginasLiberadas.includes("Aprovação"));
+    /* A Aprovação V1a saiu do menu quando a 1.0 assumiu o item, e continua
+       alcançável por URL — é ela que cuida do ciclo do clichê inteiro
+       (e-mail à clicheria, chegada, valores, motivos), coisa que a 1.0 ainda
+       não faz. Mesma rede de segurança da lista de pedidos. */
+    || (tela === "aprovacao" && paginasLiberadas.includes("Aprovação"))
+    /* A Facas V1a tinha a mesma rede que as duas de cima — e não tinha. O
+       comentário lá em cima prometia "?tela=facas continua alcançável", mas
+       "Facas" passou a apontar para ferramentais10 e a URL antiga caía na
+       Home. É nela que ainda se marca faca como morta e se compara desenho,
+       coisa que a 1.0 não faz. */
+    || (tela === "facas" && paginasLiberadas.includes("Facas"))
+    /* As contas em si ainda moram na tela V1a; os cards 1.0 mandam para cá. */
+    || (tela === "calculadoras" && paginasLiberadas.includes("Calculadoras"))
+    /* A Pantone V1a segue por URL enquanto a 1.0 roda nas mãos da equipe. */
+    || (tela === "pantone" && paginasLiberadas.includes("Pantone"))
+    /* A Arquivos V1a também, enquanto a 1.0 roda nas mãos da equipe. */
+    || (tela === "arquivos" && paginasLiberadas.includes("Arquivos"))
+    /* A Equipe V1a também, enquanto a do 1.0 roda nas mãos da equipe. */
+    || (tela === "equipe" && paginasLiberadas.includes("Equipe"))
+    /* E os Relatórios V1a. */
+    || (tela === "apontamentos" && paginasLiberadas.includes("Apontamentos"))
+    /* E a Clientes V1a. */
+    || (tela === "clientes" && paginasLiberadas.includes("Clientes"));
 
   const comuns = {
     profile, versao, aoNavegar, onNova: abrirNova, onLogout: doLogout,
@@ -1149,7 +1262,7 @@ function HubPage() {
   /* Home 1.0 — primeira tela da geração nova. Cromo próprio (sem rail). */
   const home = (extra?: ReactNode) => (
     <HomeHub10 {...comuns} pedidos={pedidos}
-      aoEnviarSugestao={(texto) => enviarSugestao({ data: { texto } })}>
+      aoEnviarSugestao={(texto, tela) => enviarSugestao({ data: { texto, tela } })}>
       {extra}
       {modais}
     </HomeHub10>
@@ -1158,112 +1271,69 @@ function HubPage() {
   if (!telaLiberada) {
     return (
       <HubDadosV1aProvider valor={hubDados}>
-        {home(<AvisoV1a texto="Seu acesso não inclui essa página." onFechar={() => navigate({ to: "/hub", search: { tela: "home" } })} />)}
+        {home(<AvisoV1a texto="Seu acesso não inclui essa página." tipo="alerta" onFechar={() => navigate({ to: "/hub", search: { tela: "home" } })} />)}
       </HubDadosV1aProvider>
     );
   }
 
-  return <HubDadosV1aProvider valor={hubDados}>{telaAtual()}</HubDadosV1aProvider>;
+  return (
+    <HubDadosV1aProvider valor={hubDados}>
+      <ProvedorApresentacao verDeNovo={verApresentacao}>
+        {telaAtual()}
+      </ProvedorApresentacao>
+      {recadoDoEnvio && <AvisoV1a texto={recadoDoEnvio} tipo="alerta" onFechar={() => setRecadoDoEnvio("")} />}
+      {carregando && <CarregandoHub10 />}
+      {/* a apresentação do hub, por cima de todas as telas */}
+      {profile && apresentacao && (
+        <ApresentacaoHub10 profile={profile} tela={tela} estado={apresentacao} aoSalvar={salvarApresentacao}
+          irPara={(t) => navigate({ to: "/hub", search: { tela: t } })} pedido={pedidoApresentacao} />
+      )}
+    </HubDadosV1aProvider>
+  );
 
   function telaAtual() {
     switch (tela) {
-    case "pedidos10": {
-      const dono10 = detalhe10?.pedido?.vendedor_id === profile!.id;
-      const recarregar10 = () => {
-        void qc.invalidateQueries({ queryKey: ["pedidos"] });
-        void qc.invalidateQueries({ queryKey: ["pedido", pedido10Id] });
-      };
-      return (
-        <PedidoHub10 profile={profile!} pedidos={pedidos} aoNavegar={aoNavegar}
-          onNova={hasPerm(profile, "pedidos.criar") ? abrirNova : undefined}
-          onLogout={doLogout} disponiveis={comuns.disponiveis}
-          detalheId={pedido10Id} detalhe={detalhe10 ?? null}
-          aoAbrirDetalhe={abrirDetalhe10}
-          aoFecharDetalhe={() => setPedido10Id(null)}
-          podeNoPedido={{
-            iniciar: hasPerm(profile, "design.assumir"),
-            enviarArte: hasPerm(profile, "design.enviar_arte"),
-            aprovar: hasPerm(profile, "pedidos.aprovar"),
-            pedirRevisao: hasPerm(profile, "aprovacao.reprovar"),
-            clicheria: hasPerm(profile, "cliche.solicitar"),
-            finalizar: hasPerm(profile, "design.arquivo_final"),
-            refazerCliche: hasPerm(profile, "cliche.solicitar"),
-            reativar: hasPerm(profile, "pedidos.reabrir"),
-            cancelar: dono10 || hasPerm(profile, "pedidos.editar_todos"),
-            editar: dono10 || hasPerm(profile, "pedidos.editar_todos"),
-            perguntar: true,
-            anexar: dono10 || hasPerm(profile, "pedidos.editar_todos"),
-          }}
-          acoesPedido={{
-            mudarStatus: (status, observacao) =>
-              changeStatus({ data: { id: pedido10Id!, status, observacao: observacao ?? "" } }).then(recarregar10),
-            perguntar: (texto) => perguntarNoPedido({ data: { pedidoId: pedido10Id!, texto } }).then(recarregar10),
-            responder: (perguntaId, texto) => responderPergunta({ data: { perguntaId, texto } }).then(recarregar10),
-            salvarBriefing: (descricao, coresDesc) =>
-              updatePedido({ data: { id: pedido10Id!, descricao, cores_desc: coresDesc } }).then(recarregar10),
-            salvarEspec: (v) => updatePedido({ data: { id: pedido10Id!, ...v } }).then(recarregar10),
-            anexar: async (arquivos) => { await subirAnexos(pedido10Id!, arquivos); recarregar10(); },
-            removerAnexo: (anexoId) => deleteAnexo({ data: { anexoId } }).then(recarregar10),
-            /* quem abre a caixa de devolver arte é o próprio PedidoHub10 */
-            enviarArte: () => {},
-            /* A arte sobe ANTES do status: se um arquivo falhar, o pedido não
-               vai para "Design criado" prometendo algo que não chegou. */
-            enviarArteFinal: async (d) => {
-              if (d.arquivos.length) {
-                const falhas = await subirAnexos(pedido10Id!, d.arquivos, "arte");
-                if (falhas.length) throw new Error(`Nem tudo subiu: ${falhas.join(" · ")}.`);
-              }
-              const cores = d.cores.filter(Boolean).join(", ");
-              const obs = [`Arte ${d.versao} enviada`, cores, d.obs].filter(Boolean).join(" · ");
-              /* `coresDesc` junto: são as cores que o designer CONFIRMA ao
-                 entregar. Sem isso o pedido segue mostrando as que a vendedora
-                 pediu, e quem olha depois (clichê, aprovação, relatório) lê a
-                 intenção em vez do que foi feito. */
-              await changeStatus({ data: { id: pedido10Id!, status: "aguardando", observacao: obs, coresDesc: cores || null } });
-              recarregar10();
-            },
-          }}
-          podeFila={hasPerm(profile, "pedidos.status_design")}
-          aoDefinirFila={(id, posicao) =>
-            definirFilaPedido({ data: { id, posicao } }).then(() => qc.invalidateQueries({ queryKey: ["pedidos"] }))}
-          aoEnfileirar={(id) =>
-            enfileirarPedido({ data: { id } }).then(() => qc.invalidateQueries({ queryKey: ["pedidos"] }))}
-          aoLimparFila={() =>
-            limparFilaPedidos().then(() => qc.invalidateQueries({ queryKey: ["pedidos"] }))}
-          aoTransferir={hasPerm(profile, "pedidos.transferir") ? () => { setTransferindo(true); void carregarDonos(); } : undefined}>
-          {/* só a modal de transferência: o resto de `modais` traz a ficha
-              V1a junto, que não deve abrir por cima da tela 1.0 */}
-          {transferindo && (
-            <TransferirCarteiraModalV1a
-              donos={donos}
-              fechar={() => setTransferindo(false)}
-              aoCarregarCarteira={(vendedorId) =>
-                listCarteira({ data: { vendedorId } }).then((r: any[]) =>
-                  r.map((c) => ({ cliente: String(c.cliente), total: Number(c.total), abertos: Number(c.abertos) })))}
-              aoTransferir={(d) =>
-                transferirCarteira({ data: d }).then((r: any) => {
-                  void qc.invalidateQueries({ queryKey: ["pedidos"] });
-                  void carregarDonos();
-                  return { movidos: Number(r.movidos), para: String(r.para) };
-                })}
-            />
-          )}
-        </PedidoHub10>
-      );
-    }
+    case "pedidos10":
     case "aprovacao10": {
+      const STATUS_APROVACOES = ["aguardando", "aguardando_cliente", "aprovada", "cliche", "refazer_cliche"];
+      /* Aprovações 1.0 é a mesma tela com outro recorte: do design pronto ao
+         clichê, que é o que a faixa dela conta. Antes o recorte era só
+         "aprovada" e a faixa dizia "07 aguardando aprovação" com a lista
+         vazia (simulação de 28/09/2026). */
+      const aprovacoes = tela === "aprovacao10";
       const dono10 = detalhe10?.pedido?.vendedor_id === profile!.id;
       const recarregar10 = () => {
         void qc.invalidateQueries({ queryKey: ["pedidos"] });
         void qc.invalidateQueries({ queryKey: ["pedido", pedido10Id] });
       };
+      /* O que não subiu vira erro, e não silêncio: subirAnexos devolve a
+         lista do que ficou de fora e antes ninguém lia (um arquivo acima de
+         35 MB sumia sem aviso). O que subiu fica no pedido. */
+      const anexar10 = async (arquivos: File[], tipo: "anexo" | "arte" = "anexo") => {
+        const falhas = await subirAnexos(pedido10Id!, arquivos, tipo);
+        recarregar10();
+        if (falhas.length) {
+          const foram = arquivos.length - falhas.length;
+          throw new Error((foram > 0 ? `${foram} de ${arquivos.length} anexados. ` : "") + `Não subiu: ${falhas.join(" · ")}.`);
+        }
+      };
       return (
         <PedidoHub10 profile={profile!} pedidos={pedidos} aoNavegar={aoNavegar}
           onNova={hasPerm(profile, "pedidos.criar") ? abrirNova : undefined}
           onLogout={doLogout} disponiveis={comuns.disponiveis}
-          titulo="Aprovações" tituloTodos="Todos os aprovados"
-          vazioTitulo="Nenhuma aprovação" vazioTexto="Ajuste os filtros para ver mais aprovações."
-          somenteStatus="aprovada" paginaAtiva="Aprovação" faixaResumo="aprovacoes"
+          titulo={aprovacoes ? "Aprovações" : undefined}
+          tituloTodos={aprovacoes ? "Todas as aprovações" : undefined}
+          vazioTitulo={aprovacoes ? "Nenhuma aprovação" : undefined}
+          vazioTexto={aprovacoes ? "Ajuste os filtros para ver mais aprovações." : undefined}
+          somenteStatus={aprovacoes ? STATUS_APROVACOES : undefined}
+          paginaAtiva={aprovacoes ? "Aprovação" : undefined}
+          faixaResumo={aprovacoes ? "aprovacoes" : undefined}
+          /* "Refazer clichê" (Augusto, 02/10/2026): só em Aprovações, só para
+             designers e admin; o cartão novo entra na lista na hora */
+          aoCadastrarRefacao={aprovacoes && (profile?.role === "admin" || (profile?.role === "designer" && profile.permissions.includes("pedidos.status_design")))
+            ? async (d) => { const r = await cadastrarRefazerCliche({ data: d }); await qc.invalidateQueries({ queryKey: ["pedidos"] }); return r; }
+            : undefined}
+          motivosDoCliche={() => listMotivosCliche() as Promise<{ id: string; nome: string }[]>}
           detalheId={pedido10Id} detalhe={detalhe10 ?? null}
           aoAbrirDetalhe={abrirDetalhe10}
           aoFecharDetalhe={() => setPedido10Id(null)}
@@ -1277,27 +1347,91 @@ function HubPage() {
             refazerCliche: hasPerm(profile, "cliche.solicitar"),
             reativar: hasPerm(profile, "pedidos.reabrir"),
             cancelar: dono10 || hasPerm(profile, "pedidos.editar_todos"),
-            editar: dono10 || hasPerm(profile, "pedidos.editar_todos"),
+            /* briefing e matéria-prima: a regra do servidor (updatePedido).
+               Só "dono" deixava o designer abrir o Editar do próprio cartão
+               de refação e o servidor recusava (simulação 5, 05/10/2026). */
+            editar: (dono10 && hasPerm(profile, "pedidos.editar_proprios")) || hasPerm(profile, "pedidos.editar_todos"),
+            /* as Especificações abrem para o dono (acabamento é dele); o que
+               ele não pode mudar fica travado lá dentro */
+            editarEspec: dono10 || hasPerm(profile, "pedidos.editar_todos"),
             perguntar: true,
             anexar: dono10 || hasPerm(profile, "pedidos.editar_todos"),
+            baixar: hasPerm(profile, "anexo.baixar"),
+            subirArquivo: hasPerm(profile, "anexo.upload"),
+            /* as regras do servidor (updatePedido, aguardarCliente),
+               repetidas só para não oferecer botão que vai falhar. Riscar
+               alteração o servidor deixa para quem tem acesso ao pedido; a
+               tela oferece só a quem conduz o design. */
+            urgencia: dono10 || hasPerm(profile, "pedidos.prioridade") || hasPerm(profile, "pedidos.editar_todos"),
+            faca: (dono10 && hasPerm(profile, "pedidos.editar_proprios")) || hasPerm(profile, "design.medidas") || hasPerm(profile, "pedidos.editar_todos"),
+            esperarCliente: dono10 || hasPerm(profile, "pedidos.status_design") || hasPerm(profile, "pedidos.editar_todos"),
+            resolverAlteracao: hasPerm(profile, "pedidos.status_design"),
           }}
           acoesPedido={{
-            mudarStatus: (status, observacao) =>
-              changeStatus({ data: { id: pedido10Id!, status, observacao: observacao ?? "" } }).then(recarregar10),
+            mudarStatus: (status, observacao, de, espessura) =>
+              changeStatus({ data: { id: pedido10Id!, status, observacao: observacao ?? "", de,
+                ...(espessura === "1.14" || espessura === "1.70" ? { espessura } : {}) } }).then(recarregar10),
             perguntar: (texto) => perguntarNoPedido({ data: { pedidoId: pedido10Id!, texto } }).then(recarregar10),
             responder: (perguntaId, texto) => responderPergunta({ data: { perguntaId, texto } }).then(recarregar10),
-            salvarBriefing: (descricao, coresDesc) =>
-              updatePedido({ data: { id: pedido10Id!, descricao, cores_desc: coresDesc } }).then(recarregar10),
+            /* as cores separadas pelos nomes ("Branco roxo" são duas, mesmo
+               sem vírgula), e o número de cores acompanha (02/10/2026) */
+            salvarBriefing: (descricao, coresDesc) => {
+              const lista = separarCores(coresDesc);
+              return updatePedido({ data: { id: pedido10Id!, descricao, cores_desc: lista.length ? lista.join(", ") : coresDesc,
+                ...(lista.length ? { cores: String(lista.length) } : {}) } }).then(recarregar10);
+            },
             salvarEspec: (v) => updatePedido({ data: { id: pedido10Id!, ...v } }).then(recarregar10),
-            anexar: async (arquivos) => { await subirAnexos(pedido10Id!, arquivos); recarregar10(); },
+            anexar: (arquivos) => anexar10(arquivos),
+            /* a arte final depois da aprovação: guarda o arquivo como arte, sem
+               mexer no status (antes o único caminho era "Enviar arte pronta",
+               que devolvia o pedido para Design criado) */
+            anexarArte: (arquivos) => anexar10(arquivos, "arte"),
             removerAnexo: (anexoId) => deleteAnexo({ data: { anexoId } }).then(recarregar10),
-            /* quem abre a caixa de devolver arte é o próprio PedidoHub10 */
+            /* ver e baixar: as mesmas funções da ficha V1a, com o cache dos
+               últimos abertos. Só leitura, na pasta do hub ou na do cliente. */
+            verArquivo: aoVerArquivo,
+            baixarArquivo: aoBaixarArquivo,
+            /* espera do cliente: entra com o motivo, sai quando ele responde
+               e o pedido volta para a etapa de antes (o servidor guarda) */
+            aguardarCliente: (motivo) => aguardarCliente({ data: { id: pedido10Id!, motivo } }).then(recarregar10),
+            clienteRespondeu: (observacao) =>
+              clienteRespondeu({ data: { id: pedido10Id!, observacao: observacao || null } }).then(recarregar10),
+            /* riscar a alteração atendida (a chave é a linha do histórico) */
+            resolverAlteracao: (chave, resolvida) =>
+              resolverRevisao({ data: { pedidoId: pedido10Id!, chave, resolvida } }).then(recarregar10),
+            /* os motivos do "Refazer clichê" (cliche_motivos) */
+            motivosDoCliche: () => listMotivosCliche() as Promise<{ id: string; nome: string }[]>,
+            salvarUrgente: (urgente) =>
+              updatePedido({ data: { id: pedido10Id!, urgente: urgente ? "1" : "0" } }).then(recarregar10),
+            /* a faca do catálogo leva a forma e, sendo de outra medida, a medida */
+            salvarFaca: (f) =>
+              updatePedido({ data: {
+                id: pedido10Id!, faca_cod: f.facaNova ? null : f.facaCod, faca_nova: f.facaNova ? "1" : "0",
+                ...(f.forma ? { forma: f.forma } : {}), ...(f.largura ? { largura: f.largura } : {}), ...(f.altura ? { altura: f.altura } : {}),
+              } }).then(recarregar10),
+            /* a pasta do cliente, escolhida pelo designer no "Iniciar criação" —
+               leva junto os anexos que esperavam no hub. Quem abre a caixa é o
+               PedidoHub10 (pedirPasta), como nas outras caixas com estado. */
+            confirmarPasta: (d) =>
+              confirmarPastaCliente({ data: { pedidoId: pedido10Id!, pasta: d.pasta ?? null, novaPasta: d.novaPasta ?? null } })
+                .then((r) => { recarregar10(); void qc.invalidateQueries({ queryKey: ["pastas-clientes"] }); return r; }),
+            pedirPasta: () => {},
+            /* quem abre as caixas de devolver arte e de clichê é o próprio
+               PedidoHub10 — elas têm estado e vivem na tela, não na rota */
             enviarArte: () => {},
+            finalizar: () => {},
             /* A arte sobe ANTES do status: se um arquivo falhar, o pedido não
                vai para "Design criado" prometendo algo que não chegou. */
             enviarArteFinal: async (d) => {
+              /* Tudo ou nada no tamanho: conferido antes de subir o primeiro.
+                 Antes o PDF subia, o .ai de 80 MB era recusado, a entrega não
+                 acontecia e a vendedora já tinha recebido o arquivo. */
+              const grandes = d.arquivos.filter((f) => f.size > MAX_ANEXO_MB * 1024 * 1024);
+              if (grandes.length) {
+                throw new Error(`${grandes.map((f) => `${f.name} tem ${Math.round(f.size / 1048576)} MB`).join(" · ")}. O limite é ${MAX_ANEXO_MB} MB por arquivo. Nada foi enviado.`);
+              }
               if (d.arquivos.length) {
-                const falhas = await subirAnexos(pedido10Id!, d.arquivos, "arte");
+                const falhas = await subirAnexos(pedido10Id!, d.arquivos, "arte", false);
                 if (falhas.length) throw new Error(`Nem tudo subiu: ${falhas.join(" · ")}.`);
               }
               const cores = d.cores.filter(Boolean).join(", ");
@@ -1309,6 +1443,20 @@ function HubPage() {
               await changeStatus({ data: { id: pedido10Id!, status: "aguardando", observacao: obs, coresDesc: cores || null } });
               recarregar10();
             },
+            /* Finalizar passa por aqui: grava o registro do clichê (com a nota
+               em PDF, quando veio) e só então fecha o pedido — o mesmo par que
+               a tela de Aprovação V1a já fazia num gesto só. */
+            registrarCliche: async (r) => {
+              await registrarCliche({ data: { pedidoId: pedido10Id!, dataChegada: r.data, horaChegada: r.hora, itens: r.itens, nota: notaDoRegistro(r) } });
+              try {
+                await changeStatus({ data: { id: pedido10Id!, status: "concluido", observacao: null } });
+              } catch (e) {
+                recarregar10();
+                throw new Error(`O registro do clichê foi gravado, mas o pedido não foi finalizado: ${e instanceof Error ? e.message : "erro no servidor"}`);
+              }
+              recarregar10();
+              void qc.invalidateQueries({ queryKey: ["pedidos"] });
+            },
           }}
           podeFila={hasPerm(profile, "pedidos.status_design")}
           aoDefinirFila={(id, posicao) =>
@@ -1318,10 +1466,10 @@ function HubPage() {
           aoLimparFila={() =>
             limparFilaPedidos().then(() => qc.invalidateQueries({ queryKey: ["pedidos"] }))}
           aoTransferir={hasPerm(profile, "pedidos.transferir") ? () => { setTransferindo(true); void carregarDonos(); } : undefined}>
-          {/* só a modal de transferência: o resto de `modais` traz a ficha
-              V1a junto, que não deve abrir por cima da tela 1.0 */}
+          {/* só a modal de transferência, na versão 1.0: o resto de `modais`
+              traz a ficha V1a junto, que não deve abrir por cima da tela 1.0 */}
           {transferindo && (
-            <TransferirCarteiraModalV1a
+            <TransferirCarteiraHub10
               donos={donos}
               fechar={() => setTransferindo(false)}
               aoCarregarCarteira={(vendedorId) =>
@@ -1341,11 +1489,19 @@ function HubPage() {
     case "novo-pedido":
       return (
         <NovoPedidoHub10 profile={profile!} aoNavegar={aoNavegar} onLogout={doLogout}
-          disponiveis={comuns.disponiveis} cadastros={cadastros} pedidos={pedidos}
+          disponiveis={comuns.disponiveis} cadastros={cadastros} pedidos={pedidos} pedidosProntos={pedidosEm > 0}
           podeCadastrarMateria={permCadastro.materiais}
           aoCadastrarMateria={(nome) => aoCadastrar("material", nome)}
-          aoCriar={aoCriar} aoCarregarPdfFaca={carregarPdfFaca}
-          aoSair={() => navigate({ to: "/hub", search: { tela: "home" } })} />
+          aoCriar={aoCriar} aoCarregarPdfFaca={carregarPdfFaca} aoAvisoFora={setRecadoDoEnvio}
+          aoVerPedido={irParaPedido10}
+          aoCarregarSalvo={() => getMeuRascunhoPedido().then((r) => {
+            /* texto estragado no banco vale como nada salvo */
+            let rascunho: Record<string, unknown> | null = null;
+            try { const v = r.json ? JSON.parse(r.json) : null; if (v && typeof v === "object") rascunho = v; } catch { /* idem */ }
+            return { rascunho };
+          })}
+          aoSalvar={(rascunho) => setMeuRascunhoPedido({ data: { rascunho: rascunho as RascunhoPedidoDados | null } })}
+          aoCarregarPedido={(id) => getPedido({ data: { id } }) as Promise<{ pedido: Record<string, unknown>; anexos?: unknown[] }>} />
       );
     case "central":
       return (
@@ -1360,7 +1516,7 @@ function HubPage() {
             changeStatus({ data: { id, status: "revisao", observacao: "Voltou para a fila do design" } })
               .then(() => qc.invalidateQueries({ queryKey: ["pedidos"] }))}
           aoAprovarPedido={(id) =>
-            changeStatus({ data: { id, status: "aprovada", observacao: "Arte aprovada — saiu da fila" } })
+            changeStatus({ data: { id, status: "aprovada", observacao: "Arte aprovada e saiu da fila" } })
               .then(() => qc.invalidateQueries({ queryKey: ["pedidos"] }))}
           aoTransferir={hasPerm(profile, "pedidos.transferir")
             ? () => { setTransferindo(true); void carregarDonos(); }
@@ -1411,7 +1567,9 @@ function HubPage() {
             if (num) {
               const alvo = pedidos.find((p: any) => `#${String(p.numero).padStart(4, "0")}` === num || String(p.numero) === num.replace("#", ""));
               if (alvo) {
-                await changeStatus({ data: { id: alvo.id, status: "cliche", observacao: `Solicitação de clichê #${String(r.numero).padStart(4, "0")} enviada.` } });
+                /* a espessura da solicitação vai para o pedido (os relatórios separam 1.14 e 1.70) */
+                await changeStatus({ data: { id: alvo.id, status: "cliche", observacao: `Solicitação de clichê #${String(r.numero).padStart(4, "0")} enviada.`,
+                  ...(dados?.tipo === "1.14" || dados?.tipo === "1.70" ? { espessura: dados.tipo } : {}) } });
               }
             }
             qc.invalidateQueries({ queryKey: ["pedidos"] });
@@ -1461,6 +1619,18 @@ function HubPage() {
           {modais}
         </LeituraV1a>
       );
+    case "relatorios10":
+      return (
+        <RelatoriosHub10 profile={profile!} pedidos={pedidos} aoNavegar={aoNavegar}
+          onNova={hasPerm(profile, "pedidos.criar") ? abrirNova : undefined}
+          onLogout={doLogout} disponiveis={comuns.disponiveis}
+          dados={apontRaw} aoPeriodo={definirPeriodo}
+          podeFinanceiro={hasPerm(profile, "apontamentos.financeiro")}
+          podeExportar={hasPerm(profile, "apontamentos.exportar")}
+        >
+          {modais}
+        </RelatoriosHub10>
+      );
     case "apontamentos":
       return (
         <ApontamentosV1a
@@ -1474,6 +1644,17 @@ function HubPage() {
         >
           {modais}
         </ApontamentosV1a>
+      );
+    case "ferramentais10":
+      return (
+        <FerramentaisHub10 profile={profile!} aoNavegar={aoNavegar}
+          onNova={hasPerm(profile, "pedidos.criar") ? abrirNova : undefined}
+          onLogout={doLogout} disponiveis={comuns.disponiveis}
+          podeCadastrar={hasPerm(profile, "cadastro.medidas")}
+          aoCadastrar={(faca) =>
+            salvarFacaExtra({ data: { cod: faca.cod, dados: JSON.stringify(faca) } })
+              .then(() => qc.invalidateQueries({ queryKey: ["facas-catalogo"] }))}
+        />
       );
     case "facas":
       return (
@@ -1506,18 +1687,81 @@ function HubPage() {
       return <EstoqueV1a {...comuns} pedidos={pedidos}>{modais}</EstoqueV1a>;
     case "mural":
       return <MuralV1a {...comuns} pedidos={pedidos}>{modais}</MuralV1a>;
+    case "pantone10":
+      return (
+        <PantonesHub10 profile={profile!} pedidos={pedidos} pedidosProntos={pedidosEm > 0} aoNavegar={aoNavegar}
+          onNova={hasPerm(profile, "pedidos.criar") ? abrirNova : undefined}
+          onLogout={doLogout} disponiveis={comuns.disponiveis}
+          podeAtualizar={hasPerm(profile, "config.sistema")} />
+      );
     case "pantone":
       return <PantoneV1a {...comuns} pedidos={pedidos} podeAtualizar={hasPerm(profile, "config.sistema")}>{modais}</PantoneV1a>;
+    case "calculadoras10":
+      return (
+        <CalculadorasHub10 profile={profile!} aoNavegar={aoNavegar}
+          onNova={hasPerm(profile, "pedidos.criar") ? abrirNova : undefined}
+          onLogout={doLogout} disponiveis={comuns.disponiveis}
+          permissoes={Object.values(CALC_PERM).filter((p) => hasPerm(profile, p))}
+          podeGabarito={hasPerm(profile, PERM_GABARITO)}
+          /* Facas já abre a aba 1.0; os outros cards ainda abrem a tela
+             antiga, onde as contas continuam funcionando */
+          aoAbrir={() => navigate({ to: "/hub", search: { tela: "calculadoras" } })} />
+      );
     case "calculadoras":
       return (
         <CalculadorasV1a {...comuns} permissoes={[...Object.values(CALC_PERM), PERM_GABARITO].filter((p) => hasPerm(profile, p))}>
           {modais}
         </CalculadorasV1a>
       );
+    case "arquivos10":
+      return (
+        <ArquivosHub10 profile={profile!} aoNavegar={aoNavegar}
+          onNova={hasPerm(profile, "pedidos.criar") ? abrirNova : undefined}
+          onLogout={doLogout} disponiveis={comuns.disponiveis}
+          podeEditar={hasPerm(profile, "cliente.editar")} />
+      );
     case "arquivos":
       return <ArquivosV1a {...comuns}>{modais}</ArquivosV1a>;
+    case "clientes10":
+      return (
+        <ClientesHub10 profile={profile!} aoNavegar={aoNavegar}
+          onNova={hasPerm(profile, "pedidos.criar") ? abrirNova : undefined}
+          onLogout={doLogout} disponiveis={comuns.disponiveis}>
+          {modais}
+        </ClientesHub10>
+      );
     case "clientes":
       return <ClientesV1a {...comuns}>{modais}</ClientesV1a>;
+    case "equipe10":
+      return (
+        <EquipeHub10 profile={profile!} aoNavegar={aoNavegar}
+          onNova={hasPerm(profile, "pedidos.criar") ? abrirNova : undefined}
+          onLogout={doLogout} disponiveis={comuns.disponiveis}
+          usuarios={usuariosEquipe}
+          cargos={cargosEquipe}
+          logs={logsEquipe}
+          permissoesTodas={permsRaw?.permissoes as string[] | undefined}
+          aoTrocarCargo={(id, cargo) => updateUsuario({ data: { id, role: cargo } }).then(recarregarEquipe)}
+          aoTogglePermissao={(id, permissao, ligar) =>
+            setUsuarioPermissao({ data: { id, permission: permissao as any, habilitada: ligar } }).then(recarregarEquipe)}
+          aoAplicarPadrao={(id) => aplicarTemplateCargo({ data: { id } }).then(recarregarEquipe)}
+          aoAtivar={(id, ativo) => updateUsuario({ data: { id, ativo } }).then(recarregarEquipe)}
+          aoExcluirUsuario={(id) => excluirUsuario({ data: { id } }).then(recarregarEquipe)}
+          aoForcarLogout={(id) => forcarLogout({ data: { id } }).then(recarregarEquipe)}
+          aoRenomear={(id, nome) => updateUsuario({ data: { id, nome } }).then(recarregarEquipe)}
+          aoResetarSenha={(id, senha) => resetSenha({ data: { id, novaSenha: senha } }).then(recarregarEquipe)}
+          aoCriarUsuario={(d) =>
+            createUsuario({ data: { nome: d.nome, username: d.username, senha: d.senha, role: d.cargo } }).then(recarregarEquipe)}
+          aoSalvarCargo={(d) =>
+            (d.novo
+              ? createRole({ data: { nome: d.nome, label: d.label, permissoes: d.permissoes as any } })
+              : updateRole({ data: { nome: d.nome, label: d.label, permissoes: d.permissoes as any } })
+            ).then(recarregarEquipe)}
+          aoExcluirCargo={(nome) => deleteRole({ data: { nome } }).then(recarregarEquipe)}
+        >
+          {modais}
+        </EquipeHub10>
+      );
     case "equipe":
       return (
         <EquipeV1a

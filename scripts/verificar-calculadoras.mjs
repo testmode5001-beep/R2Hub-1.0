@@ -126,6 +126,41 @@ const PARQUE = [50, 51, 52, 53, 54, 55, 59, 60, 63, 65, 70, 72, 74, 77, 78, 79, 
   const R = 96 * Math.PI, K = 2 * Math.PI * (1.7 - 0.127);
   ok("distorção · destaque = R − K", Math.abs(Number(r.destaque.valor.replace(".", "").replace(",", ".")) - (R - K)) < 0.001);
 }
+/* ── valor do clichê contra os orçamentos da clicheria ──
+   Desktop/Valor Facas/Clichê (A a H): cada orçamento traz o diâmetro, a chapa,
+   a largura da chapa de cada cor e o valor de cada uma. A conta tem de dar a
+   mesma altura, a mesma área e o mesmo valor, e o total é a soma das linhas
+   arredondadas ao centavo, como a clicheria cobra. Onde as cores têm larguras
+   diferentes (D, E, F), confere cor por cor. O D diz "1,70" no nome do
+   arquivo, mas a altura (255) e o preço (0,235/cm²) só fecham com 1,14. */
+{
+  const casos = [
+    // nome, Ø, chapa, largura, carreiras, cores, altura, área, valor por cor, total
+    ["A (Ø72, 1,14, 2 cores)", "72", "1,14 mm", "125", "1", "2", "260 mm", "325,00 cm²", "R$ 76,38", "152,76"],
+    ["B (Ø63, 1,70)", "63", "1,70 mm", "135", "1", "1", "230 mm", "310,50 cm²", "R$ 68,31", "68,31"],
+    ["C (Ø53, 1,70)", "53", "1,70 mm", "135", "1", "1", "195 mm", "263,25 cm²", "R$ 57,92", "57,92"],
+    ["D, cor de 110 (Ø70, 1,14)", "70", "1,14 mm", "110", "1", "1", "255 mm", "280,50 cm²", "R$ 65,92", "65,92"],
+    ["D, cor de 115 (Ø70, 1,14)", "70", "1,14 mm", "115", "1", "1", "255 mm", "293,25 cm²", "R$ 68,91", "68,91"],
+    ["E, cor de 125 (Ø41, 1,70)", "41", "1,70 mm", "125", "1", "1", "160 mm", "200,00 cm²", "R$ 44,00", "44,00"],
+    ["E, cor de 120 (Ø41, 1,70)", "41", "1,70 mm", "120", "1", "1", "160 mm", "192,00 cm²", "R$ 42,24", "42,24"],
+    ["F, cor de 145 (Ø65, 1,14)", "65", "1,14 mm", "145", "1", "1", "240 mm", "348,00 cm²", "R$ 81,78", "81,78"],
+    ["F, cor de 115 (Ø65, 1,14)", "65", "1,14 mm", "115", "1", "1", "240 mm", "276,00 cm²", "R$ 64,86", "64,86"],
+    ["F, cor de 95 (Ø65, 1,14)", "65", "1,14 mm", "95", "1", "1", "240 mm", "228,00 cm²", "R$ 53,58", "53,58"],
+    ["G (Ø52, 1,14, 2 cores)", "52", "1,14 mm", "150", "1", "2", "195 mm", "292,50 cm²", "R$ 68,74", "137,48"],
+    ["H (Ø52, 1,14, 4 cores)", "52", "1,14 mm", "150", "1", "4", "195 mm", "292,50 cm²", "R$ 68,74", "274,96"],
+    // o PDF que a calculadora antiga gerou em 13/08/2026 (Downloads): ela
+    // dizia 639,25 porque somava sem arredondar cada cor (4 × 159,81175);
+    // como a clicheria cobra, são 4 × 159,81 = 639,24
+    ["PDF da calculadora (Ø96, 100 mm, 2 carreiras, 4 cores)", "96", "1,14 mm", "100", "2", "4", "335 mm", "680,05 cm²", "R$ 159,81", "639,24"],
+  ];
+  for (const [nome, dia, chapa, largEtq, carreiras, cores, altura, area, cor, total] of casos) {
+    const r = calcular("valorcliche", { ...PADROES.valorcliche, dia, chapa, largEtq, carreiras, cores, jogos: "1", prova: "0" });
+    const val = (rot) => r.linhas.find((l) => l.label === rot)?.valor;
+    const visto = [val("Altura da chapa"), val("Área"), val("Valor por cor"), r.destaque.valor];
+    const certo = [altura, area, cor, total];
+    ok(`clichê · orçamento ${nome}`, visto.every((x, i) => x === certo[i]), visto.join(" · "));
+  }
+}
 {
   const r = calcular("substrato", PADROES.substrato);      // 6 carreiras de 38,66, camerom entre
   ok("substrato · 6 × (38,66 + 3) = 249,96 mm", r.destaque.valor === "249,96", r.destaque.valor);

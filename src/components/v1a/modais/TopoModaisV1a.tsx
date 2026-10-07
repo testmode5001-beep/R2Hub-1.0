@@ -271,7 +271,7 @@ export function MensagensModalV1a({ fechar }: { fechar: () => void }) {
 type Nota = { id?: string; texto: string; quando: string; feito: boolean };
 const NOTAS_BASE: Nota[] = [
   { texto: "Confirmar cor Pantone 485 com o cliente Bom Preço", quando: "hoje 09:12", feito: false },
-  { texto: "Faca nova do Vale Verde chega quinta — separar prova", quando: "hoje 08:40", feito: false },
+  { texto: "Faca nova do Vale Verde chega quinta, separar prova", quando: "hoje 08:40", feito: false },
   { texto: "Rossi pediu 2 mm a mais de sangria no próximo lote", quando: "ontem", feito: false },
   { texto: "Cobrar clichê do Pão Nosso na fornecedora", quando: "ontem", feito: true },
   { texto: "Revisar tabela nutricional das Conservas Dona Ivone", quando: "24/07", feito: false },
@@ -348,7 +348,7 @@ export function AnotacoesModalV1a({ fechar }: { fechar: () => void }) {
 
         <div style={{ display: "flex", gap: 10 }}>
           <input value={nova} onChange={(e) => setNova(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") add(); }}
-            placeholder="Nova anotação — ex.: cobrar clichê do Pão Nosso"
+            placeholder="Nova anotação, ex.: cobrar clichê do Pão Nosso"
             style={{ flex: 1, background: "#fff", border: "2px solid #fff", borderRadius: 9, padding: "15px 17px", font: "500 15px/1 Inter,sans-serif", color: INK, outline: "none" }} />
           <button onClick={add} className="r2chip"
             style={{ flex: "none", display: "flex", alignItems: "center", gap: 9, border: 0, borderRadius: 9, padding: "0 22px", cursor: "pointer", font: "700 15px/1 Inter,sans-serif", background: AMARELO, color: INK }}>
@@ -518,7 +518,7 @@ export function NotificacoesModalV1a({ fechar }: { fechar: () => void }) {
 /* ── Preferências (Config) ───────────────────────────────────────── */
 /* Cada opção aqui tem efeito REAL — a de "avisos por e-mail" do protótipo
    saiu porque os usuários não têm e-mail cadastrado (não tinha como valer). */
-const OPCOES = [
+export const OPCOES = [
   /* "Alerta de atraso no topo" saiu junto com a faixa/pílula da Central: o
      atraso já aparece no cabeçalho de Em aberto e em cada card. Interruptor
      que não muda nada na tela é pior que interruptor nenhum. */
@@ -774,7 +774,7 @@ export function ConfigModalV1a({ nome, fechar }: { nome: string; fechar: () => v
                 </button>
                 <span style={{ flex: 1, font: "400 13.5px/1.45 Inter,sans-serif", color: "#8d8b8d" }}>
                   {permNativa === "denied"
-                    ? "O navegador bloqueou — libere as notificações deste site no cadeado da barra de endereço."
+                    ? "O navegador bloqueou. Libere as notificações deste site no cadeado da barra de endereço."
                     : "Mostra o aviso na bandeja do Windows mesmo com o navegador minimizado."}
                 </span>
               </>
@@ -793,7 +793,7 @@ export function ConfigModalV1a({ nome, fechar }: { nome: string; fechar: () => v
               </span>
             </div>
             <p style={{ font: "400 13px/1.45 Inter,sans-serif", color: "#8d8b8d", margin: "0 0 4px" }}>
-              Quem você cadastrar <strong style={{ color: INK }}>não recebe este poder de cadastrar</strong> — só o gestor multiplica acessos.
+              Quem você cadastrar <strong style={{ color: INK }}>não recebe este poder de cadastrar</strong>. Só o gestor multiplica acessos.
             </p>
             <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr 1fr auto", gap: 8, marginTop: 12 }}>
               <input value={colegaNome} onChange={(e) => setColegaNome(e.target.value)} placeholder="Nome completo"
@@ -809,7 +809,7 @@ export function ConfigModalV1a({ nome, fechar }: { nome: string; fechar: () => v
                   setColegaOcupado(true);
                   setColegaAviso("");
                   dados.aoCriarColega!({ nome: colegaNome.trim(), username: colegaLogin.trim(), senha: colegaSenha })
-                    .then(() => { setColegaAviso(`Conta de ${colegaNome.trim().split(" ")[0]} criada — repasse o login e a senha provisória.`); setColegaNome(""); setColegaLogin(""); setColegaSenha(""); })
+                    .then(() => { setColegaAviso(`Conta de ${colegaNome.trim().split(" ")[0]} criada. Repasse o login e a senha provisória.`); setColegaNome(""); setColegaLogin(""); setColegaSenha(""); })
                     .catch((e: unknown) => setColegaAviso(e instanceof Error ? e.message : "Não deu para criar a conta."))
                     .finally(() => setColegaOcupado(false));
                 }}
@@ -834,7 +834,7 @@ export function ConfigModalV1a({ nome, fechar }: { nome: string; fechar: () => v
             <span style={{ flex: 1, font: "400 13.5px/1.4 Inter,sans-serif", color: ilustErro ? "#c0392b" : "#b3b1b3" }}>
               {ilustErro || (papelAtual
                 ? "escolher uma tira o papel de parede"
-                : "o desenho grande da tela inicial — vale só para você")}
+                : "o desenho grande da tela inicial (vale só para você)")}
             </span>
           </div>
           <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
@@ -882,7 +882,7 @@ export function ConfigModalV1a({ nome, fechar }: { nome: string; fechar: () => v
               {papeis === null && <span style={{ font: "400 14.5px/1 Inter,sans-serif", color: "#b3b1b3", padding: "11px 4px" }}>lendo o acervo…</span>}
               {papeis?.length === 0 && !papelErro && (
                 <span style={{ font: "400 14.5px/1.4 Inter,sans-serif", color: "#b3b1b3", padding: "11px 4px" }}>
-                  Nenhuma mídia no acervo ainda — envie a primeira aqui embaixo.
+                  Nenhuma mídia no acervo ainda. Envie a primeira aqui embaixo.
                 </span>
               )}
             </div>

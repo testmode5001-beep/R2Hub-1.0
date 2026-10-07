@@ -409,7 +409,7 @@ export function CentralV1a({ profile, pedidos, versao, onOpen, onVerTodos, aoNav
               </div>
               <div style={{ height: 8 }} />
               <div style={{ flex: 1, minHeight: 0, overflow: "auto", display: "flex", flexDirection: "column" }}>
-                {notas.length === 0 && <div style={{ font: "400 14.5px/1.4 Inter, sans-serif", color: "#b3b1b3", paddingTop: 6 }}>Sem anotações — use o campo do calendário para criar a primeira.</div>}
+                {notas.length === 0 && <div style={{ font: "400 14.5px/1.4 Inter, sans-serif", color: "#b3b1b3", paddingTop: 6 }}>Sem anotações. Use o campo do calendário para criar a primeira.</div>}
                 {notas.map((a, i) => (
                   <button
                     key={a.id ?? `${a.texto}-${i}`}
@@ -438,7 +438,7 @@ export function CentralV1a({ profile, pedidos, versao, onOpen, onVerTodos, aoNav
                 </div>
               </div>
               {podio.length === 0 && (
-                <div style={{ font: "400 14.5px/1.4 Inter, sans-serif", color: "#b3b1b3", textWrap: "pretty" as any }}>Sem registros neste perfil ainda — os melhores dias aparecem aqui.</div>
+                <div style={{ font: "400 14.5px/1.4 Inter, sans-serif", color: "#b3b1b3", textWrap: "pretty" as any }}>Sem registros neste perfil ainda. Os melhores dias aparecem aqui.</div>
               )}
               <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", gap: 6 }}>
                 {podio.map(([diaK, qtd], i) => (

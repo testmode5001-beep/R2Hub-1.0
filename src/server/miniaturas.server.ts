@@ -1,10 +1,11 @@
 // Miniaturas dos arquivos das pastas de cliente (grade da tela Clientes).
 //
 // Mesma ideia das facas: quem desenha é o navegador (pdf.js), aqui só guardamos
-// o PNG. A diferença é ONDE. A miniatura das facas mora ao lado do desenho, no
-// acervo; a de cliente NÃO pode morar na pasta do cliente — seriam 5 mil pastas
+// o PNG. A de cliente NÃO pode morar na pasta do cliente: seriam 5 mil pastas
 // `.miniaturas` no meio das artes originais, e aquele acervo não é nosso para
-// encher de arquivo de sistema. Fica aqui do lado do banco, em data/.
+// encher de arquivo de sistema. Fica aqui do lado do banco, em data/. Desde
+// 02/10/2026 a das facas também (data/miniaturas-facas): antes morava ao lado
+// do desenho, na Relação de Ferramentais, que é só leitura.
 //
 // Consequência boa: apagar essa pasta inteira não perde nada. É cache; na pior
 // das hipóteses a tela desenha tudo de novo.

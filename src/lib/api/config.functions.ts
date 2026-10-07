@@ -297,3 +297,95 @@ export const setMinhasPrefs = createServerFn({ method: "POST" })
     setUserConfig(user.id, "prefs", JSON.stringify(data.prefs));
     return { ok: true };
   });
+
+/* ————— Apresentação do hub (o tour do primeiro acesso e as novidades) —————
+   O que cada pessoa já viu, no servidor (user_config, chave "apresentacao"),
+   para não repetir noutro computador (Augusto, 06/10/2026). `principal`
+   vazio = nunca viu; senão "vista", "pulada" ou "adiada" com a data.
+   `novidades`: os tours curtos de mudança já vistos. */
+const CHAVE_APRESENTACAO = "apresentacao";
+
+export const getMinhaApresentacao = createServerFn({ method: "POST" })
+  .middleware([requireAuth])
+  .handler(async ({ context }) => {
+    const { user } = context as AuthContext;
+    const cru = getUserConfig(user.id, CHAVE_APRESENTACAO);
+    let principal = "";
+    let novidades: string[] = [];
+    try {
+      const j = cru ? JSON.parse(cru) : null;
+      if (j && typeof j.principal === "string") principal = j.principal.slice(0, 40);
+      if (j && Array.isArray(j.novidades)) novidades = j.novidades.filter((x: unknown) => typeof x === "string").slice(0, 200);
+    } catch { /* o guardado estragou: a apresentação volta, que é o lado seguro */ }
+    return { principal, novidades };
+  });
+
+export const setMinhaApresentacao = createServerFn({ method: "POST" })
+  .validator(z.object({ principal: z.string().max(40), novidades: z.array(z.string().max(60)).max(200) }))
+  .middleware([requireAuth])
+  .handler(async ({ data, context }) => {
+    const { user } = context as AuthContext;
+    setUserConfig(user.id, CHAVE_APRESENTACAO, JSON.stringify({ principal: data.principal, novidades: data.novidades }));
+    return { ok: true };
+  });
+
+/* ————— Rascunho da Solicitação (o "Salvar" do pé do Novo pedido) —————
+   "O salvar salva o que já foi preenchido" (Augusto, 01/10/2026): fica aqui,
+   e não no navegador, para valer depois de fechar a aba ou trocar de
+   computador. Um por pessoa. Arquivo não entra (só quantos eram). */
+const CHAVE_RASCUNHO_PEDIDO = "novo-pedido.rascunho";
+/** o formulário inteiro cabe com folga; o limite só barra lixo */
+const RASCUNHO_MAX = 60_000;
+
+/** O salvo como texto JSON ("" = nada salvo): objeto livre não passa pela
+    serialização das server functions; quem chama converte. */
+export const getMeuRascunhoPedido = createServerFn({ method: "POST" })
+  .middleware([requireAuth])
+  .handler(async ({ context }) => {
+    const { user } = context as AuthContext;
+    return { json: getUserConfig(user.id, CHAVE_RASCUNHO_PEDIDO) };
+  });
+
+/* O formato do rascunho, campo a campo e com teto em cada um (o do
+   formulario() da tela). Com objeto livre, um corpo pequeno com referências
+   repetidas virava milhões de itens no JSON.stringify antes do teto de
+   tamanho (revisão de segurança, 02/10/2026). */
+const RascunhoPedido = z.object({
+  nome: z.string().max(300),
+  briefing: z.string().max(20_000),
+  facaCod: z.string().max(80),
+  facaNova: z.boolean(),
+  largFaca: z.string().max(20),
+  altFaca: z.string().max(20),
+  formaFaca: z.string().max(60),
+  materia: z.string().max(120),
+  largura: z.string().max(20),
+  carreiras: z.string().max(10),
+  qtdCores: z.string().max(4),
+  coresTexto: z.string().max(1_000),
+  pantSel: z.array(z.string().max(40)).max(40),
+  acab: z.record(z.string().max(40), z.boolean()).refine((o) => Object.keys(o).length <= 20, "Acabamentos demais."),
+  urgente: z.boolean(),
+  larguraExtra: z.string().max(20),
+  anexos: z.number().int().min(0).max(1_000),
+}).strict();
+export type RascunhoPedidoDados = z.infer<typeof RascunhoPedido>;
+
+/** null apaga o rascunho (pedido enviado, ou "começar do zero"). Só quem
+    cria pedido salva rascunho de pedido. */
+export const setMeuRascunhoPedido = createServerFn({ method: "POST" })
+  .validator(z.object({ rascunho: RascunhoPedido.nullable() }))
+  .middleware([requireAuth])
+  .handler(async ({ data, context }) => {
+    const { user } = context as AuthContext;
+    requirePerm(user, "pedidos.criar");
+    if (!data.rascunho) {
+      setUserConfig(user.id, CHAVE_RASCUNHO_PEDIDO, "");
+      return { ok: true, salvoEm: null as string | null };
+    }
+    const salvoEm = new Date().toISOString();
+    const valor = JSON.stringify({ ...data.rascunho, salvoEm });
+    if (valor.length > RASCUNHO_MAX) throw new Error("O pedido ficou grande demais para salvar. Encurte o briefing e tente de novo.");
+    setUserConfig(user.id, CHAVE_RASCUNHO_PEDIDO, valor);
+    return { ok: true, salvoEm };
+  });

@@ -43,7 +43,7 @@ export function ZoomControleV1a({ compacto = false }: { compacto?: boolean }) {
   } as const;
 
   return (
-    <div title="Zoom do Hub — vale para este computador"
+    <div title="Zoom do Hub: vale para este computador"
       style={{
         flex: "none", alignSelf: "center", display: "flex", alignItems: "center", gap: 2, height: alt,
         background: compacto ? "#f1f1f1" : "#fff", borderRadius: 10, padding: 2,

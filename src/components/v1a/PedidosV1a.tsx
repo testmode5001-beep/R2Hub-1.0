@@ -527,7 +527,7 @@ export function PedidosV1a({ profile, pedidos, versao, onOpen, aoNavegar, onNova
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={INK} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ flex: "none" }}><path d="M12 5v14" /><path d="M5 12h14" /></svg>
                 <span style={{ lineHeight: "16px" }}>Novo pedido</span>
               </button>
-              <button onClick={() => setAviso("Exportar — em breve.")} className="r2chip" style={{ display: "flex", alignItems: "center", gap: 9, background: INK, border: 0, borderRadius: 999, padding: "10px 16px", cursor: "pointer", font: "600 15px/1 Inter, sans-serif", color: AMARELO }}>
+              <button onClick={() => setAviso("Exportar: em breve.")} className="r2chip" style={{ display: "flex", alignItems: "center", gap: 9, background: INK, border: 0, borderRadius: 999, padding: "10px 16px", cursor: "pointer", font: "600 15px/1 Inter, sans-serif", color: AMARELO }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={AMARELO} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ flex: "none" }}><path d="M12 3.5v11" /><path d="m7.5 10.5 4.5 4.5 4.5-4.5" /><path d="M4.5 20.5h15" /></svg>
                 <span style={{ lineHeight: "16px" }}>Exportar</span>
               </button>
@@ -665,7 +665,7 @@ export function PedidosV1a({ profile, pedidos, versao, onOpen, aoNavegar, onNova
               setSobreTabela(false); setArrastandoCard(null);
               if (id && aoAprovarPedido) {
                 void Promise.resolve(aoAprovarPedido(id))
-                  .then(() => setAviso("Arte aprovada — o pedido saiu da fila."))
+                  .then(() => setAviso("Arte aprovada. O pedido saiu da fila."))
                   .catch((err: unknown) => setAviso(err instanceof Error ? err.message : "Não deu para aprovar."));
               }
             }}
@@ -802,7 +802,7 @@ export function PedidosV1a({ profile, pedidos, versao, onOpen, aoNavegar, onNova
 
             <div style={{ flex: 1 }} />
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: 14, borderTop: `1px solid ${FUNDO}` }}>
-              <span style={{ font: "400 15px/1 Inter, sans-serif", color: "#8d8b8d" }}>Mostrando 1–{vis.length} de {todos.length}</span>
+              <span style={{ font: "400 15px/1 Inter, sans-serif", color: "#8d8b8d" }}>Mostrando 1 a {vis.length} de {todos.length}</span>
               <div style={{ display: "flex", gap: 6 }}>
                 <span style={{ width: 30, height: 30, display: "grid", placeItems: "center", background: FUNDO, borderRadius: 5, font: "600 15px/1 Inter, sans-serif", color: INK }}>‹</span>
                 <span style={{ width: 30, height: 30, display: "grid", placeItems: "center", background: INK, borderRadius: 5, font: "700 15px/1 Inter, sans-serif", color: AMARELO }}>1</span>

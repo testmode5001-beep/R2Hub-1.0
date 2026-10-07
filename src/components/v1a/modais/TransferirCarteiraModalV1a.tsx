@@ -111,7 +111,7 @@ export function TransferirCarteiraModalV1a({ donos, fechar, aoCarregarCarteira, 
               <option value="">Escolher…</option>
               {origens.map((d) => (
                 <option key={d.id} value={d.id}>
-                  {d.nome} — {d.clientes} {d.clientes === 1 ? "cliente" : "clientes"}, {d.pedidos} {d.pedidos === 1 ? "pedido" : "pedidos"}
+                  {d.nome} ({d.clientes} {d.clientes === 1 ? "cliente" : "clientes"}, {d.pedidos} {d.pedidos === 1 ? "pedido" : "pedidos"})
                 </option>
               ))}
             </select>
@@ -170,7 +170,7 @@ export function TransferirCarteiraModalV1a({ donos, fechar, aoCarregarCarteira, 
             <input type="checkbox" checked={somenteAbertos} onChange={(e) => setSomenteAbertos(e.target.checked)}
               style={{ width: 17, height: 17, accentColor: INK, cursor: "pointer" }} />
             <span style={{ font: "500 13.5px/1.4 Inter,sans-serif", color: "#5c5a5c" }}>
-              Levar só os pedidos em aberto — o que já foi entregue fica com quem atendeu
+              Levar só os pedidos em aberto: o que já foi entregue fica com quem atendeu
             </span>
           </label>
         </div>

@@ -8,11 +8,12 @@
 import { existsSync, mkdirSync, readdirSync, statSync, writeFileSync, readFileSync } from "node:fs";
 import path from "node:path";
 import process from "node:process";
+import { padronizarCaixa } from "@/lib/caixa-da-pasta";
 
 /** Subpastas que o hub CONHECE — usadas para ler o que já existe no share.
  *  A lista continua inteira de propósito: pasta antiga com arquivo em "Artes"
  *  ou "Logos" tem de seguir aparecendo. */
-export const SUBPASTAS = ["Logos", "Referências", "Artes", "Aprovações", "Impressão"] as const;
+export const SUBPASTAS = ["Logos", "Referências", "Artes", "Design", "Aprovações", "Impressão"] as const;
 
 /** Subpastas criadas junto com a pasta do cliente. Só "Referências": as outras
  *  nasciam vazias em todo cliente novo e enchiam o share de pasta sem uso —
@@ -39,6 +40,15 @@ export function clientesBaseDir(): string {
   return path.join(process.cwd(), "dev-data", "Clientes");
 }
 
+/** A pasta de clientes em uso NÃO é a do servidor (hub de teste ou
+    desenvolvimento)? As caixas avisam, para ninguém procurar um cliente de
+    verdade entre as pastas de teste (Augusto, 30/09/2026: "pesquisei super e
+    nenhum"). Só lê o caminho; não toca em nada. */
+export function pastaDeClientesDeTeste(): boolean {
+  const base = path.resolve(clientesBaseDir()).replace(/[\\/]+$/, "").toLowerCase();
+  return base !== "\\\\server\\arte\\clientes" && base !== "z:\\clientes";
+}
+
 /** Nome de pasta válido no Windows: remove caracteres proibidos e espaços/pontos nas bordas. */
 export function sanitizeFolderName(nome: string): string {
   const limpo = nome
@@ -50,31 +60,10 @@ export function sanitizeFolderName(nome: string): string {
   return padronizarCaixa(limpo);
 }
 
-/** Conectivos que ficam em minúscula no meio do nome ("Casa de Carnes"). */
-const MINUSCULAS = new Set(["de", "da", "do", "das", "dos", "e", "em", "na", "no", "nas", "nos", "a", "o", "as", "os", "com", "para", "por", "ao", "aos", "à", "às"]);
-
-/**
- * Caixa padrão da pasta: "CASA DE CARNES ALEXANDRE" vira "Casa de Carnes
- * Alexandre". A vendedora digita como quiser (quase sempre tudo em maiúscula) e
- * o share fica com um padrão só. Vale apenas para pasta NOVA — pasta existente
- * é usada com o nome que já tem, o hub não renomeia nada no share.
- * Palavras com número ou sem vogal ("R2", "JBS", "MEI") ficam como vieram: são
- * siglas, e "Jbs" estaria errado.
- */
-export function padronizarCaixa(nome: string): string {
-  return nome
-    .split(" ")
-    .map((palavra, i) => {
-      if (!palavra) return palavra;
-      const so = palavra.replace(/[^A-Za-zÀ-ÿ]/g, "");
-      const sigla = /\d/.test(palavra) || (so.length <= 4 && !/[aeiouàáâãéêíóôõúAEIOUÀÁÂÃÉÊÍÓÔÕÚ]/.test(so));
-      if (sigla) return palavra;
-      const baixa = palavra.toLocaleLowerCase("pt-BR");
-      if (i > 0 && MINUSCULAS.has(baixa)) return baixa;
-      return baixa.charAt(0).toLocaleUpperCase("pt-BR") + baixa.slice(1);
-    })
-    .join(" ");
-}
+/* A caixa padrão da pasta nova (padronizarCaixa) mora em
+   src/lib/caixa-da-pasta.ts, para a caixa "Pasta do cliente" mostrar o mesmo
+   nome que o servidor vai criar (simulação 5, 05/10/2026). */
+export { padronizarCaixa };
 
 /** Chave de deduplicação: minúsculas, sem acentos, espaços colapsados. */
 export function normalizeClienteKey(nome: string): string {
@@ -84,9 +73,17 @@ export function normalizeClienteKey(nome: string): string {
     .toLowerCase();
 }
 
+/* Nome comprido demais estoura o limite de caminho do Windows na pasta do
+   cliente, e o erro saía na tela com o caminho do servidor (simulação de
+   28/09/2026, nome de 300 letras). O miolo do nome é cortado; a extensão fica. */
+const MAX_NOME_ARQUIVO = 100;
+
 export function sanitizeFileName(nome: string): string {
   const base = nome.replace(CHARS_INVALIDOS, "_").replace(/^\.+/, "").trim();
-  return base || "arquivo";
+  if (!base) return "arquivo";
+  if (base.length <= MAX_NOME_ARQUIVO) return base;
+  const ext = path.extname(base).slice(0, 12);
+  return base.slice(0, MAX_NOME_ARQUIVO - ext.length).trimEnd() + ext;
 }
 
 /**
@@ -131,7 +128,13 @@ export function saveClienteFile(
   nomeArquivo: string,
   conteudo: Buffer,
 ): { fullPath: string; nomeSalvo: string } {
-  const sub = SUBPASTA_POR_TIPO[tipo] ?? "Referências";
+  /* A arte vai para "Design" — a pasta que o hub cria quando o designer
+     anexa o primeiro design. Cliente antigo que JÁ tem "Artes" continua
+     recebendo lá, para a arte dele não se dividir em duas pastas (Augusto,
+     25/09/2026). */
+  const sub = tipo === "arte"
+    ? (existsSync(path.join(pastaCliente, "Artes")) ? "Artes" : "Design")
+    : (SUBPASTA_POR_TIPO[tipo] ?? "Referências");
   const dir = path.join(pastaCliente, sub);
   mkdirSync(dir, { recursive: true });
 
@@ -297,13 +300,30 @@ export function esquecerCachePastas() {
  * real. Devolve o nome como está gravado no disco (o Windows não diferencia
  * maiúsculas, mas nós queremos gravar do jeito certo) ou null.
  */
+/* Sem acento e sem diferença de caixa: "Cervejaria Lupulo & Cia" é a pasta
+   "Cervejaria Lúpulo & Cia", e não uma nova (simulação de 28/09/2026: o
+   aviso "já existe" ignorava só as maiúsculas). */
+const chavePasta = (n: string) =>
+  String(n ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ").trim().toLowerCase();
+
 export function acharPastaExata(nome: string): string | null {
-  const alvo = String(nome ?? "").trim().toLowerCase();
-  if (!alvo) return null;
-  const achada = listarPastasClientes().find((n) => n.toLowerCase() === alvo);
-  if (achada) return achada;
+  const bruto = String(nome ?? "").trim();
+  if (!bruto) return null;
+  /* O nome idêntico primeiro, depois sem diferença de caixa, e a comparação
+     sem acento só quando ela aponta UMA pasta. Com "Padaria Sao Jose" e
+     "Padaria São José" lado a lado, escolher a segunda caía na primeira
+     (revisão de 28/09/2026): o pedido e os anexos iam para o cliente errado. */
+  const procurar = (lista: string[]) => {
+    const exata = lista.find((n) => n === bruto);
+    if (exata) return exata;
+    const semCaixa = lista.filter((n) => n.toLowerCase() === bruto.toLowerCase());
+    if (semCaixa.length === 1) return semCaixa[0];
+    const alvo = chavePasta(bruto);
+    const semAcento = lista.filter((n) => chavePasta(n) === alvo);
+    return semAcento.length === 1 ? semAcento[0] : null;
+  };
   // pode ter sido criada agora por outra pessoa: relê antes de desistir
-  return listarPastasClientes(true).find((n) => n.toLowerCase() === alvo) ?? null;
+  return procurar(listarPastasClientes()) ?? procurar(listarPastasClientes(true));
 }
 
 export type ArquivoInfo = { nome: string; subpasta: string; tamanho: number; modificado: string };

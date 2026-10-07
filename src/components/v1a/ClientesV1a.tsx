@@ -13,7 +13,6 @@
 // SÓ LEITURA: nada nesta tela grava, renomeia ou apaga no share.
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { toast } from "sonner";
 
 import {
   AMARELO, EstagioV1a, INK, MONO, RailV1a, SOMBRA_CARD, TopbarV1a, fr,
@@ -27,31 +26,31 @@ import {
   abrirPastaCliente, baixarArquivoCliente, miniaturaArquivoCliente, salvarMiniaturaArquivoCliente,
 } from "@/lib/api/pasta-cliente.functions";
 
-type Arquivo = { nome: string; subpasta: string; tamanho: number; modificado: string };
-type Conteudo = { pasta: string; caminho: string; raiz: string; pastas: string[]; arquivos: Arquivo[] };
+export type Arquivo = { nome: string; subpasta: string; tamanho: number; modificado: string };
+export type Conteudo = { pasta: string; caminho: string; raiz: string; pastas: string[]; arquivos: Arquivo[] };
 
 /* A lista da esquerda tem 5 mil nomes. Desenhar todos trava a rolagem sem
    ajudar ninguém: quem procura digita. Mostra os primeiros e diz quantos
    ficaram de fora. */
-const TETO_LISTA = 300;
+export const TETO_LISTA = 300;
 
-const dataBR = (iso: string) => {
+export const dataBR = (iso: string) => {
   const d = new Date(iso);
   return Number.isNaN(d.getTime())
     ? "—"
     : `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getFullYear()).slice(2)}`;
 };
 
-const ext = (nome: string) => (nome.split(".").pop() ?? "").toLowerCase();
-const ehImagem = (nome: string) => /^(png|jpe?g|gif|webp|bmp|svg)$/.test(ext(nome));
+export const ext = (nome: string) => (nome.split(".").pop() ?? "").toLowerCase();
+export const ehImagem = (nome: string) => /^(png|jpe?g|gif|webp|bmp|svg)$/.test(ext(nome));
 /** Desenhado por pdf.js. O .ai entra porque o Illustrator salva com página PDF
     dentro — é a mesma leitura, e é a arte-mestra que o pessoal quer conferir. */
-const ehDesenho = (nome: string) => /^(pdf|ai|eps)$/.test(ext(nome));
+export const ehDesenho = (nome: string) => /^(pdf|ai|eps)$/.test(ext(nome));
 /** O que abre na tela sem precisar baixar. */
-const daParaVer = (nome: string) => ehImagem(nome) || ehDesenho(nome);
+export const daParaVer = (nome: string) => ehImagem(nome) || ehDesenho(nome);
 
 /** Cor da etiquetinha de tipo — o olho acha o PDF no meio dos .ai. */
-function corDaExtensao(e: string): { fundo: string; texto: string } {
+export function corDaExtensao(e: string): { fundo: string; texto: string } {
   if (e === "pdf") return { fundo: "#fdecea", texto: "#b53225" };
   if (/^(png|jpe?g|gif|webp|bmp|svg)$/.test(e)) return { fundo: "#eaf4ec", texto: "#2f7a44" };
   if (/^(ai|eps|cdr|psd|indd)$/.test(e)) return { fundo: "#f0edfb", texto: "#5b4bb5" };
@@ -60,13 +59,13 @@ function corDaExtensao(e: string): { fundo: string; texto: string } {
 
 /** O que dá para desenhar. O .ai entra porque o Illustrator salva com página
     PDF dentro: pdf.js abre e desenha a arte-mestra igual a um PDF comum. */
-const daParaMiniatura = (nome: string) => ehImagem(nome) || ehDesenho(nome);
+export const daParaMiniatura = (nome: string) => ehImagem(nome) || ehDesenho(nome);
 
 /* Uma pasta pode ter 50 arquivos de 3 MB. Desenhar todos de uma vez derruba a
    aba e entope a rede; a fila deixa dois em curso e o resto espera a vez. */
 let emCurso = 0;
 const esperando: (() => void)[] = [];
-async function naFila<T>(tarefa: () => Promise<T>): Promise<T> {
+export async function naFila<T>(tarefa: () => Promise<T>): Promise<T> {
   if (emCurso >= 2) await new Promise<void>((libera) => esperando.push(libera));
   emCurso++;
   try {
@@ -83,7 +82,7 @@ async function naFila<T>(tarefa: () => Promise<T>): Promise<T> {
  * Só a PRIMEIRA visita paga o download do arquivo inteiro. O PNG de 320px
  * volta para o servidor e, dali em diante, a grade custa ~20 KB por cartão.
  */
-async function miniaturaDe(pasta: string, caminho: string, nome: string): Promise<string> {
+export async function miniaturaDe(pasta: string, caminho: string, nome: string): Promise<string> {
   const guardada = await miniaturaArquivoCliente({ data: { pasta, caminho, nome } });
   if (guardada.dataBase64) return `data:image/png;base64,${guardada.dataBase64}`;
 
@@ -122,17 +121,18 @@ function imagemReduzida(url: string, largura: number): Promise<string> {
 }
 
 /**
- * Copia o caminho de rede e diz o que fazer com ele.
+ * Copia o caminho de rede e diz se deu: quem chama mostra o resultado na
+ * própria tela (era um balão do sonner, herdado do hub antigo, que saiu em
+ * 05/10/2026).
  *
  * É o caminho para o Explorador, não uma URL: `\\server\Arte\...` cru, do
  * jeito que a barra de endereço do Windows entende. Quem precisa abrir o .ai
  * no Illustrator passa por aqui.
  */
-async function copiarCaminho(caminho: string) {
+export async function copiarCaminho(caminho: string): Promise<boolean> {
   try {
     await navigator.clipboard.writeText(caminho);
-    toast.success("Caminho copiado", { description: "No Explorador: Ctrl+L, Ctrl+V, Enter." });
-    return;
+    return true;
   } catch { /* sem permissão de área de transferência: tenta pelo jeito antigo */ }
 
   /* O caminho da rede é a única saída para abrir o .ai no Illustrator — se a
@@ -147,13 +147,9 @@ async function copiarCaminho(caminho: string) {
     campo.select();
     const deu = document.execCommand("copy");
     document.body.removeChild(campo);
-    if (deu) {
-      toast.success("Caminho copiado", { description: "No Explorador: Ctrl+L, Ctrl+V, Enter." });
-      return;
-    }
-  } catch { /* nem esse: mostra o caminho para copiar à mão */ }
-
-  toast.error("Não consegui copiar sozinho", { description: caminho, duration: 15000 });
+    if (deu) return true;
+  } catch { /* nem esse: quem chama mostra o caminho para copiar à mão */ }
+  return false;
 }
 
 const INP = {
@@ -272,6 +268,7 @@ export function ClientesV1a({ profile, versao, aoNavegar, onNova, onLogout, disp
      em quando, e um PDF preto é indistinguível de arquivo corrompido. */
   const [paginas, setPaginas] = useState<{ imagens: string[]; total: number } | "falhou" | null>(null);
   const [ocupado, setOcupado] = useState("");
+  const [copiado, setCopiado] = useState<"" | "ok" | "falhou">("");
   const pedido = useRef(0);
 
   useEffect(() => {
@@ -431,12 +428,12 @@ export function ClientesV1a({ profile, versao, aoNavegar, onNova, onLogout, disp
                 ))}
                 {!carregandoLista && achadas.length === 0 && (
                   <div style={{ font: "400 14px/1.5 Inter,sans-serif", color: "#b3b1b3", padding: "10px 10px" }}>
-                    Nenhuma pasta com esse nome. A busca ignora acento e maiúscula — tente só um pedaço do nome.
+                    Nenhuma pasta com esse nome. A busca ignora acento e maiúscula. Tente só um pedaço do nome.
                   </div>
                 )}
                 {achadas.length > TETO_LISTA && (
                   <div style={{ font: "400 13px/1.5 Inter,sans-serif", color: "#b3b1b3", padding: "10px 10px" }}>
-                    mostrando {TETO_LISTA} de {achadas.length.toLocaleString("pt-BR")} — escreva mais um pedaço do nome
+                    mostrando {TETO_LISTA} de {achadas.length.toLocaleString("pt-BR")}. Escreva mais um pedaço do nome
                   </div>
                 )}
               </div>
@@ -476,8 +473,9 @@ export function ClientesV1a({ profile, versao, aoNavegar, onNova, onLogout, disp
                         ("Not allowed to load local resource"), com ou sem
                         política de intranet. Botão que não faz nada é pior que
                         botão nenhum — ficou só o caminho, que resolve de fato. */}
-                    <button onClick={() => void copiarCaminho(caminhoRede)} className="r2chip" style={CHIP} title={caminhoRede}>
-                      Copiar caminho da pasta
+                    <button onClick={() => void copiarCaminho(caminhoRede).then((ok) => { setCopiado(ok ? "ok" : "falhou"); window.setTimeout(() => setCopiado(""), ok ? 2000 : 6000); })}
+                      className="r2chip" style={CHIP} title={caminhoRede}>
+                      {copiado === "ok" ? "Caminho copiado" : copiado === "falhou" ? "Não copiou: pare o mouse aqui para ver o caminho" : "Copiar caminho da pasta"}
                     </button>
                   </div>
 
@@ -601,12 +599,12 @@ export function ClientesV1a({ profile, versao, aoNavegar, onNova, onLogout, disp
             ) : (
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
                 {paginas.imagens.map((img, i) => (
-                  <img key={i} src={img} alt={`${vendo.nome} — página ${i + 1}`}
+                  <img key={i} src={img} alt={`${vendo.nome} (página ${i + 1})`}
                     style={{ maxWidth: "100%", boxShadow: "0 1px 0 rgba(0,0,0,.06), 0 10px 30px -20px rgba(0,0,0,.5)" }} />
                 ))}
                 {paginas.total > paginas.imagens.length && (
                   <div style={{ font: "500 13.5px/1.4 Inter,sans-serif", color: "#8d8b8d", padding: "6px 0 2px" }}>
-                    mostrando {paginas.imagens.length} de {paginas.total} páginas — baixe o arquivo para ver o resto
+                    mostrando {paginas.imagens.length} de {paginas.total} páginas. Baixe o arquivo para ver o resto
                   </div>
                 )}
               </div>

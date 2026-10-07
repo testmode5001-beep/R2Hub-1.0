@@ -70,7 +70,7 @@ export function LeituraV1a({ profile, versao, aoNavegar, onNova, onLogout, dispo
         videoRef.current.play?.().catch(() => { /* autoplay bloqueado */ });
       }
       setCam("on");
-      setAviso("Câmera ligada — aponte para a etiqueta do rolo.");
+      setAviso("Câmera ligada: aponte para a etiqueta do rolo.");
     } catch {
       setCam("erro");
       setAviso("Permissão de câmera negada.");
@@ -99,7 +99,7 @@ export function LeituraV1a({ profile, versao, aoNavegar, onNova, onLogout, dispo
       rolos: lido.rolos || c.rolos,
       entrega: lido.entrega || c.entrega,
     }));
-    setAviso(`OP ${lido.op || "sem número"} lida — confira os campos destacados.`);
+    setAviso(`OP ${lido.op || "sem número"} lida. Confira os campos destacados.`);
   }
 
   /* Antes havia aqui um OP_EXEMPLO: câmera ligada + descrição vazia preenchia
@@ -125,12 +125,12 @@ export function LeituraV1a({ profile, versao, aoNavegar, onNova, onLogout, dispo
       if (!quadro) throw new Error("não deu para capturar o quadro da câmera");
       const bruto = (await lerImagemOP(quadro, (pct) => setAviso(`Lendo o quadro da câmera… ${pct}%`))).trim();
       if (!bruto) {
-        setAviso("A câmera não trouxe texto legível — aproxime da linha da OP ou cole a descrição no campo.");
+        setAviso("A câmera não trouxe texto legível. Aproxime da linha da OP ou cole a descrição no campo.");
         return;
       }
       aplicarTexto(bruto);
     } catch (e) {
-      setAviso(e instanceof Error ? e.message : "Não deu para ler a câmera — cole a descrição da OP no campo.");
+      setAviso(e instanceof Error ? e.message : "Não deu para ler a câmera. Cole a descrição da OP no campo.");
     } finally {
       setLendo(false);
     }
@@ -222,7 +222,7 @@ export function LeituraV1a({ profile, versao, aoNavegar, onNova, onLogout, dispo
                     <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12 }}>
                       <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#8d8b8d" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 8.5h3l1.5-2.5h7L17 8.5h3v11H4z" /><circle cx="12" cy="13.5" r="3.4" /></svg>
                       <span style={{ font: "400 14.5px/1.4 Inter,sans-serif", color: "#8d8b8d", textAlign: "center", maxWidth: 250 }}>
-                        {cam === "erro" ? "Sem acesso à câmera — use os campos ao lado para digitar." : cam === "abrindo" ? "Pedindo permissão…" : "Toque em ligar a câmera para ler a etiqueta do rolo."}
+                        {cam === "erro" ? "Sem acesso à câmera. Use os campos ao lado para digitar." : cam === "abrindo" ? "Pedindo permissão…" : "Toque em ligar a câmera para ler a etiqueta do rolo."}
                       </span>
                     </div>
                   )}
@@ -249,7 +249,7 @@ export function LeituraV1a({ profile, versao, aoNavegar, onNova, onLogout, dispo
                 {[
                   "Ligue a câmera e aponte para a etiqueta do rolo, dentro da moldura amarela.",
                   "Toque em capturar: número, medida, substrato e metragem são preenchidos.",
-                  "Corrija o que estiver diferente do rolo físico — a leitura é assistida.",
+                  "Corrija o que estiver diferente do rolo físico. A leitura é assistida.",
                   "Envie: a leitura entra na fila do Painel e atualiza o pedido no cadastro.",
                 ].map((texto, i) => (
                   <div key={i} style={{ display: "flex", gap: 12, padding: "11px 0", borderBottom: "1px solid #f1f1f1" }}>
@@ -313,7 +313,7 @@ export function LeituraV1a({ profile, versao, aoNavegar, onNova, onLogout, dispo
                   {leituras.length === 0 && (
                     <div style={{ flex: 1, display: "grid", placeItems: "center", alignContent: "center", gap: 10, padding: "24px 0", textAlign: "center" }}>
                       <span style={{ font: "400 15px/1.4 Inter,sans-serif", color: "#b3b1b3", maxWidth: 420 }}>
-                        Nenhuma leitura enviada ainda. Capture a etiqueta do rolo e envie — a leitura entra na fila do Painel.
+                        Nenhuma leitura enviada ainda. Capture a etiqueta do rolo e envie: a leitura entra na fila do Painel.
                       </span>
                       <button type="button" onClick={capturar} className="r2chip" style={{ border: 0, borderRadius: 999, padding: "13px 20px", cursor: "pointer", font: "700 14px/1 Inter,sans-serif", letterSpacing: ".04em", textTransform: "uppercase", background: AMARELO, color: INK }}>
                         Capturar leitura

@@ -211,7 +211,7 @@ function rotuloServico(l: LinhaCobranca): string {
   const prod = String(l.produto || "").trim();
   if (!desc) return prod;
   if (!prod || chave(desc).includes(chave(prod))) return desc;
-  return `${prod} — ${desc}`;
+  return `${prod}: ${desc}`;
 }
 
 /* ————— nota inteira ————— */
@@ -325,7 +325,7 @@ export async function lerNotaClichePdf(arquivo: Blob): Promise<NotaCliche> {
       }
     }
     if (!brutos.some((b) => b.s.trim())) {
-      throw new Error("Este PDF não tem texto — parece uma nota escaneada. Preencha à mão.");
+      throw new Error("Este PDF não tem texto: parece uma nota escaneada. Preencha à mão.");
     }
     const nota = interpretarNota(agruparEmLinhas(brutos));
     if (!nota.itens.length) {

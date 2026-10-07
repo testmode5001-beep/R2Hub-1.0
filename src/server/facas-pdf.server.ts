@@ -24,6 +24,11 @@ export function facasPdfDir(): string {
 const PASTA_MORTAS = "Mortas";
 /** Nome de arquivo puro: sem barra, sem "..", sem caminho — path traversal fica de fora. */
 const NOME_OK = /^[A-Za-z0-9._ -]+\.pdf$/i;
+/* Nome reservado do Windows (CON, PRN, AUX, NUL, COM1..9, LPT1..9), mesmo com
+   extensão, aponta para um dispositivo em disco local: "CON.pdf" leria o
+   console e prenderia o servidor. Nenhum desenho do acervo tem esse nome. */
+const RESERVADO = /^(con|prn|aux|nul|com\d|lpt\d)(\.|$)/i;
+const nomeOk = (arquivo: string) => NOME_OK.test(arquivo) && !RESERVADO.test(arquivo);
 /** Teto por arquivo: os desenhos do acervo têm ~700 KB; 30 MB é folga de sobra. */
 const MAX_MB = 30;
 
@@ -59,17 +64,25 @@ export function listarPdfsFacas(): { todos: string[]; mortas: string[] } {
 
 /* ————— Miniaturas (PNG da 1ª página) —————
    Quem desenha é o navegador (pdf.js); aqui só guardamos o resultado, para os
-   próximos acessos custarem ~20 KB em vez de baixar o PDF inteiro de novo. */
-const PASTA_MINI = ".miniaturas";
+   próximos acessos custarem ~20 KB em vez de baixar o PDF inteiro de novo.
+   Moram na pasta do hub, NUNCA na Relação de Ferramentais, que é só leitura
+   (regra 2 da casa). Até 02/10/2026 moravam em `Relação de Ferramentais\
+   facas\.miniaturas`; os 352 PNGs gravados lá ficaram, e o hub não lê, não
+   grava e não apaga mais nada ali. Apagar esta pasta não perde nada: é
+   cache, e o navegador desenha de novo. */
 /** PNG de 320px do acervo dá ~20 KB; 2 MB é teto de segurança. */
 const MAX_MINI_MB = 2;
 
+function pastaMiniaturas(): string {
+  return process.env.MINIATURAS_FACAS_DIR ?? path.join(process.cwd(), "data", "miniaturas-facas");
+}
+
 const miniaturaPath = (arquivo: string) =>
-  path.join(facasPdfDir(), PASTA_MINI, `${arquivo}.png`);
+  path.join(pastaMiniaturas(), `${arquivo}.png`);
 
 /** Nomes dos desenhos que já têm miniatura pronta (guardadas como <arquivo>.pdf.png). */
 export function listarMiniaturas(): string[] {
-  const dir = path.join(facasPdfDir(), PASTA_MINI);
+  const dir = pastaMiniaturas();
   try {
     if (!existsSync(dir)) return [];
     return readdirSync(dir)
@@ -101,7 +114,7 @@ function caminhoDoPdf(arquivo: string): string | null {
  * sozinho, sem ninguém pedir.
  */
 export function lerMiniatura(arquivo: string): Buffer | null {
-  if (!NOME_OK.test(arquivo)) return null;
+  if (!nomeOk(arquivo)) return null;
   const alvo = miniaturaPath(arquivo);
   if (!existsSync(alvo)) return null;
   try {
@@ -115,7 +128,7 @@ export function lerMiniatura(arquivo: string): Buffer | null {
 
 /** Guarda a miniatura desenhada pelo navegador. Só aceita PNG de verdade. */
 export function gravarMiniatura(arquivo: string, png: Buffer): boolean {
-  if (!NOME_OK.test(arquivo)) return false;
+  if (!nomeOk(arquivo)) return false;
   if (png.length > MAX_MINI_MB * 1024 * 1024) return false;
   // assinatura PNG: 89 50 4E 47
   if (png.length < 8 || png[0] !== 0x89 || png[1] !== 0x50 || png[2] !== 0x4e || png[3] !== 0x47) return false;
@@ -124,17 +137,20 @@ export function gravarMiniatura(arquivo: string, png: Buffer): boolean {
     return false;
   }
   try {
-    mkdirSync(path.join(facasPdfDir(), PASTA_MINI), { recursive: true });
+    mkdirSync(pastaMiniaturas(), { recursive: true });
     writeFileSync(miniaturaPath(arquivo), png);
     return true;
-  } catch {
-    return false; // share só-leitura: segue desenhando no navegador
+  } catch (e) {
+    /* sem acesso à pasta do hub: segue desenhando no navegador, mas fica no
+       log (sem o cache, toda visita baixa o PDF inteiro e ninguém saberia) */
+    console.error(`[miniaturas] não gravou ${miniaturaPath(arquivo)}: ${(e as NodeJS.ErrnoException).code ?? String(e)}`);
+    return false;
   }
 }
 
 /** Lê um desenho pelo nome do arquivo. `null` = não existe ou nome inválido. */
 export function lerPdfFaca(arquivo: string): Buffer | null {
-  if (!NOME_OK.test(arquivo)) return null;
+  if (!nomeOk(arquivo)) return null;
   const alvo = caminhoDoPdf(arquivo);
   if (!alvo) return null;
   if (statSync(alvo).size > MAX_MB * 1024 * 1024) return null;

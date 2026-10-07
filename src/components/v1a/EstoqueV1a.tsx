@@ -283,7 +283,7 @@ export function EstoqueV1a({ profile, pedidos, versao, aoNavegar, onNova, onLogo
                     {Object.keys(porSub).length === 0 && <div style={{ font: "400 14.5px/1.45 Inter,sans-serif", color: "#b3b1b3" }}>Nada em falta agora.</div>}
                   </div>
                   <div style={{ font: "400 14.5px/1.45 Inter,sans-serif", color: "#b3b1b3", marginTop: 18 }}>
-                    O saldo de bobinas ainda é controlado fora do sistema — esta tela já está pronta para receber o estoque quando ele entrar aqui.
+                    O saldo de bobinas ainda é controlado fora do sistema. Esta tela já está pronta para receber o estoque quando ele entrar aqui.
                   </div>
                 </div>
               </div>
@@ -649,7 +649,7 @@ export function EstoqueV1a({ profile, pedidos, versao, aoNavegar, onNova, onLogo
                   setFaltas(await registrarFaltaMP({ num: apPedido.num, motivo: apMotivo, obs: apObs.trim(), previsao: apPrevisao.trim(), quem: apQuem.trim() || primeiroNome }));
                   setApNum(null);
                   setBuscaOS("");
-                  setAviso(`Falta apontada em ${apPedido.num} — ${apPedido.vendedora} e gestor avisados.`);
+                  setAviso(`Falta apontada em ${apPedido.num}. ${apPedido.vendedora} e gestor avisados.`);
                 }); }}
                 style={{ display: "flex", alignItems: "center", gap: 9, whiteSpace: "nowrap", border: 0, borderRadius: 7, padding: "15px 22px", font: "700 15px/1 Inter,sans-serif", color: INK, background: AMARELO, cursor: apMotivo ? "pointer" : "not-allowed", opacity: apMotivo ? 1 : 0.45 }}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={INK} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ flex: "none" }}><path d="M12 4v10" /><path d="M12 18.5h.01" /></svg>
@@ -677,7 +677,7 @@ export function EstoqueV1a({ profile, pedidos, versao, aoNavegar, onNova, onLogo
               <div style={{ font: "600 12px/1 Inter,sans-serif", letterSpacing: ".14em", textTransform: "uppercase", color: "#b3b1b3" }}>Pedido pede</div>
               <div style={{ font: "700 19px/1.2 Inter,sans-serif", color: INK, marginTop: 8 }}>{trPedido ? `${trPedido.substrato} · ${trPedido.medida}` : "—"}</div>
               <label style={{ ...rotulo, margin: "20px 0 4px" }}>Vai usar <span style={{ color: INK }}>*</span></label>
-              <div style={{ font: "400 13.5px/1.4 Inter,sans-serif", color: "#b3b1b3", marginBottom: 10 }}>substratos já usados em pedidos do R2 Hub — ou cadastre um novo abaixo</div>
+              <div style={{ font: "400 13.5px/1.4 Inter,sans-serif", color: "#b3b1b3", marginBottom: 10 }}>substratos já usados em pedidos do R2 Hub, ou cadastre um novo abaixo</div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                 {(() => {
                   const usados: string[] = [];
@@ -725,7 +725,7 @@ export function EstoqueV1a({ profile, pedidos, versao, aoNavegar, onNova, onLogo
                   if (!trValor) return;
                   setFaltas(await substituirMP(trFalta.id, trValor));
                   setTrId(null);
-                  setAviso(`Troca registrada em ${trFalta.num} — ${trValor} · vendedora e gestor avisados.`);
+                  setAviso(`Troca registrada em ${trFalta.num}: ${trValor} · vendedora e gestor avisados.`);
                 }); }}
                 style={{ display: "flex", alignItems: "center", gap: 9, whiteSpace: "nowrap", border: 0, borderRadius: 7, padding: "15px 22px", font: "700 15px/1 Inter,sans-serif", color: INK, background: AMARELO, cursor: trValor ? "pointer" : "not-allowed", opacity: trValor ? 1 : 0.45 }}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={INK} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ flex: "none" }}><path d="M4 12.5 9 17.5 20 6.5" /></svg>
@@ -752,7 +752,7 @@ export function EstoqueV1a({ profile, pedidos, versao, aoNavegar, onNova, onLogo
             <div style={{ background: "#fff", borderRadius: 12, padding: "22px 24px 20px", boxShadow: SOMBRA_CARD }}>
               <div style={{ font: "600 12px/1 Inter,sans-serif", letterSpacing: ".14em", textTransform: "uppercase", color: "#b3b1b3" }}>Matéria-prima que faltava</div>
               <div style={{ font: "700 19px/1.25 Inter,sans-serif", color: INK, marginTop: 8 }}>{chPedido ? `${chPedido.substrato} · ${chPedido.medida}` : "—"}</div>
-              <div style={{ font: "400 15px/1.4 Inter,sans-serif", color: "#8d8b8d", marginTop: 6 }}>{chFalta.motivo}{chFalta.obs ? ` — ${chFalta.obs}` : ""}</div>
+              <div style={{ font: "400 15px/1.4 Inter,sans-serif", color: "#8d8b8d", marginTop: 6 }}>{chFalta.motivo}{chFalta.obs ? `: ${chFalta.obs}` : ""}</div>
               <label style={{ ...rotulo, margin: "20px 0 8px" }}>Quem recebeu</label>
               <input value={chQuem} onChange={(e) => setChQuem(e.target.value)} placeholder="Cleber" style={inp} />
               <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 20, background: "#f1f1f1", borderRadius: 8, padding: "14px 16px" }}>
@@ -767,7 +767,7 @@ export function EstoqueV1a({ profile, pedidos, versao, aoNavegar, onNova, onLogo
                 onClick={() => { void comErro(async () => {
                   setFaltas(await resolverFaltaMP(chFalta.id, chQuem.trim()));
                   setChegouId(null);
-                  setAviso(`MP de ${chFalta.num} recebida — pedido liberado para produção.`);
+                  setAviso(`MP de ${chFalta.num} recebida. Pedido liberado para produção.`);
                 }); }}
                 style={{ display: "flex", alignItems: "center", gap: 9, whiteSpace: "nowrap", border: 0, borderRadius: 7, padding: "15px 22px", font: "700 15px/1 Inter,sans-serif", color: INK, background: AMARELO, cursor: "pointer" }}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={INK} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ flex: "none" }}><path d="M4 12.5 9 17.5 20 6.5" /></svg>

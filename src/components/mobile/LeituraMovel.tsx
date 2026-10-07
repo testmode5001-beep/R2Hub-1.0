@@ -86,7 +86,7 @@ export function LeituraMovel({ nome, fila, aoRegistrar, aoSair, aoAbrirHub }: {
     });
     setFase("conferir");
     const achados = [lido.op, lido.medida, lido.substrato, lido.metragem].filter(Boolean).length;
-    avisar(achados >= 3 ? "Leitura boa — confira os campos e envie." : "Leitura parcial — complete o que faltou.");
+    avisar(achados >= 3 ? "Leitura boa. Confira os campos e envie." : "Leitura parcial. Complete o que faltou.");
   }
 
   const pronto = !!(campos.op && campos.medida && campos.substrato && campos.metragem);
@@ -102,7 +102,7 @@ export function LeituraMovel({ nome, fila, aoRegistrar, aoSair, aoAbrirHub }: {
       })
       .catch((e: unknown) => {
         setFase("conferir");
-        avisar(e instanceof Error ? e.message : "Não deu para enviar — tente de novo.");
+        avisar(e instanceof Error ? e.message : "Não deu para enviar. Tente de novo.");
       });
   }
 
@@ -164,7 +164,7 @@ export function LeituraMovel({ nome, fila, aoRegistrar, aoSair, aoAbrirHub }: {
                 <div style={{ font: `400 12.5px/1.5 ${MONO}`, color: "#5c5a5c", marginTop: 8, wordBreak: "break-word" }}>{detalhe}</div>
               </div>
             )}
-            <button onClick={() => { setCampos({ ...VAZIO }); setFase("conferir"); avisar("Preenchimento manual — digite os campos da OP."); }}
+            <button onClick={() => { setCampos({ ...VAZIO }); setFase("conferir"); avisar("Preenchimento manual: digite os campos da OP."); }}
               style={{ background: "transparent", border: 0, cursor: "pointer", font: "600 14.5px/1 Inter,sans-serif", color: "#5c5a5c", padding: 10 }}>
               ou digitar sem foto
             </button>

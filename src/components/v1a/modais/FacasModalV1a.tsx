@@ -74,7 +74,7 @@ export function FacasModalV1a({ valor, fechar, onEscolher, aoVer }: {
         </div>
 
         <input value={busca} onChange={(e) => setBusca(e.target.value)} autoFocus
-          placeholder="Buscar por código ou medida — ex.: FAC0270, 100x140"
+          placeholder="Buscar por código ou medida, ex.: FAC0270, 100x140"
           style={{ flex: "none", width: "100%", boxSizing: "border-box", background: "#fff", border: "2px solid #fff", borderRadius: 9, padding: "12px 14px", font: "600 15px/1.2 Inter,sans-serif", color: INK, outline: "none" }} />
 
         <div className="r2scroll-x" style={{ flex: "none", display: "flex", gap: 6 }}>
@@ -125,7 +125,7 @@ export function FacasModalV1a({ valor, fechar, onEscolher, aoVer }: {
         <div style={{ flex: "none", display: "flex", alignItems: "center", gap: 12 }}>
           <span style={{ flex: 1, minWidth: 0, font: "500 12.5px/1.4 Inter,sans-serif", color: "#7a787a" }}>
             {achadas.length >= LIMITE
-              ? `Mostrando as ${LIMITE} primeiras — refine a busca para ver o resto.`
+              ? `Mostrando as ${LIMITE} primeiras. Refine a busca para ver o resto.`
               : "Escolher a faca preenche a largura e a altura do pedido."}
           </span>
           <button onClick={fechar} className="pv-chip"

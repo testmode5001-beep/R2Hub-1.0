@@ -59,7 +59,7 @@ function daBase(r: any): Pasta {
     codigo: r.num || 0,
     gaveta: r.gaveta,
     pasta: `${g}-${String(r.num || 0).padStart(2, "0")}`,
-    obs: r.vaga ? "Pasta vaga — baixada no sistema antigo" : (r.cadastro ? `Cadastro de ${dataBR(r.cadastro)}${r.user ? " · " + String(r.user).toLowerCase() : ""}` : ""),
+    obs: r.vaga ? "Pasta vaga, baixada no sistema antigo" : (r.cadastro ? `Cadastro de ${dataBR(r.cadastro)}${r.user ? " · " + String(r.user).toLowerCase() : ""}` : ""),
     vaga: !!r.vaga,
     consultas: r.cadastro ? [r.cadastro + "T09:00"] : [],
   };
@@ -298,7 +298,7 @@ export function ArquivosV1a({ profile, versao, aoNavegar, onNova, onLogout, disp
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#8d8b8d" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round" style={{ flex: "none", transition: "transform .15s", transform: `rotate(${antigasAberto ? 90 : 0}deg)` }}><path d="m9 5 7 7-7 7" /></svg>
                   <span style={{ font: `600 12px/1 ${MONO}`, letterSpacing: ".14em", textTransform: "uppercase", color: "#b3b1b3", whiteSpace: "nowrap" }}>Registros antigos</span>
                   <span style={{ flex: 1, height: 1, background: "#ececec" }} />
-                  <span style={{ font: "500 12.5px/1 Inter,sans-serif", color: "#b3b1b3", whiteSpace: "nowrap" }}>{lista.filter((c) => ehAntiga(c.gaveta)).length} pastas · 2003–2008</span>
+                  <span style={{ font: "500 12.5px/1 Inter,sans-serif", color: "#b3b1b3", whiteSpace: "nowrap" }}>{lista.filter((c) => ehAntiga(c.gaveta)).length} pastas · 2003 a 2008</span>
                 </button>
                 {antigasAberto && (
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>

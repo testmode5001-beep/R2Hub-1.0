@@ -139,7 +139,7 @@ export function MuralV1a({ profile, pedidos, versao, aoNavegar, onNova, onLogout
         tag: hms(ms),
         sub: [st.pedido.medida, st.pedido.substrato, st.pedido.qtdCores ? `${st.pedido.qtdCores} cores` : "", st.pedido.prazo ? `entrega ${st.pedido.prazo}` : ""].filter(Boolean).join(" · "),
       }] : [],
-      vazioTexto: "Máquina livre — carregue uma OP na Fábrica.",
+      vazioTexto: "Máquina livre. Carregue uma OP na Fábrica.",
     };
   };
 
@@ -390,7 +390,7 @@ export function MuralV1a({ profile, pedidos, versao, aoNavegar, onNova, onLogout
               <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "flex-end", background: INK, borderRadius: 12, padding: "20px 22px 18px" }}>
                 <div style={{ font: "600 12.5px/1 Inter,sans-serif", letterSpacing: ".12em", textTransform: "uppercase", color: "#8d8b8d" }}>Como usar</div>
                 <div style={{ font: "400 15px/1.5 Inter,sans-serif", color: "#b3b1b3", marginTop: 10 }}>
-                  Marque os painéis, confira a prévia ao lado e clique em <strong style={{ color: AMARELO }}>abrir mural em nova aba</strong> — a aba mostra só os painéis escolhidos, para deixar num monitor da fábrica.
+                  Marque os painéis, confira a prévia ao lado e clique em <strong style={{ color: AMARELO }}>abrir mural em nova aba</strong>. A aba mostra só os painéis escolhidos, para deixar num monitor da fábrica.
                 </div>
                 <div style={{ font: `500 13.5px/1.4 ${MONO}`, color: "#8d8b8d", marginTop: 14, overflowWrap: "anywhere" }}>{url}</div>
               </div>

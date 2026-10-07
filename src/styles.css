@@ -253,12 +253,37 @@
    gerações convivem: a Home ja e 1.0, as demais telas ainda sao V1a. */
 .h10-navi { position: relative; transition: opacity .15s ease; }
 .h10-navi:hover { opacity: .55; }
-.h10-navi.on::after { content: ""; position: absolute; left: 0; right: 0; bottom: -8px; height: 3px; background: #000; }
+.h10-navi.on::after { content: ""; position: absolute; left: 0; right: 0; bottom: -8px; height: 3px; background: currentColor; }
+/* "PESQUISA" no cinza do desenho; sem a regra, o Tailwind pinta a metade do preto */
+.h10-pesquisa::placeholder { color: #b3b3b3; opacity: 1; }
 .h10-dot { transition: transform .15s ease; }
 .h10-dot:hover { transform: scale(1.12); }
 .h10-spark { position: absolute; z-index: 46; pointer-events: none; transform-origin: center; animation: h10brilho 2.6s ease-in-out infinite; }
 @keyframes h10badge { 0%, 100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-4px) scale(1.08); } }
 @keyframes h10brilho { 0%, 100% { opacity: 0; transform: scale(.4) rotate(0deg); } 45% { opacity: 1; transform: scale(1) rotate(20deg); } 70% { opacity: .5; transform: scale(.8) rotate(35deg); } }
+/* Ferramentais: o x que tira a faca da comparacao so aparece com o ponteiro
+   em cima do modulo dela. Em repouso a tela tinha QUATRO x — um por
+   ferramenta mais o que fecha o painel — e nenhum dizia o que fechava. */
+.fer10-tirar { opacity: 0; transition: opacity .15s ease; }
+.fer10-modulo:hover .fer10-tirar,
+.fer10-tirar:focus-visible { opacity: 1; }
+/* Facas por dentro, na diagramacao do Eminente (Obys): a lista sem barra a
+   vista; entre as linhas um filete, e embaixo da medida ativa a linha preta,
+   que corre da esquerda para a direita quando o mouse passa. */
+.fer10-lista { scrollbar-width: none; -ms-overflow-style: none; overscroll-behavior-y: contain; }
+.fer10-lista::-webkit-scrollbar { display: none; width: 0; height: 0; }
+.fer10-item { transition: color .2s ease; }
+.fer10-item::before, .fer10-item::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 1px; pointer-events: none; }
+.fer10-item::before { background: rgba(0,0,0,.12); }
+.fer10-item::after { background: #000; transform: scaleX(0); transform-origin: left center; transition: transform .45s cubic-bezier(.22,.61,.36,1); }
+.fer10-item:hover { color: #000 !important; }
+.fer10-item:hover::after, .fer10-item.on::after { transform: scaleX(1); }
+.fer10-item:focus-visible { outline: 2px solid #000; outline-offset: -3px; }
+/* Fila que rola para o lado sem barra a vista: filtros da tabela Pantone. Nao
+   usa .p10-trilha porque aquela tem `scroll-snap-type: x mandatory`, que e dos
+   cartoes — numa fila de pilulas o snap puxava o filtro de volta. */
+.h10-rolo-x { scrollbar-width: none; -ms-overflow-style: none; overscroll-behavior-x: contain; }
+.h10-rolo-x::-webkit-scrollbar { display: none; height: 0; width: 0; }
 /* Pedidos 1.0 — trilha de cartoes com snap horizontal. */
 .p10-trilha { scrollbar-width: none; -ms-overflow-style: none; scroll-snap-type: x mandatory; }
 .p10-trilha::-webkit-scrollbar { display: none; height: 0; width: 0; }
@@ -269,6 +294,72 @@
 .p10-card:hover { z-index: 5; transform: scale(1.015); box-shadow: 0 22px 40px -20px rgba(0,0,0,.42); }
 .p10-plus { transition: transform .2s ease; }
 .p10-card:hover .p10-plus { transform: rotate(90deg); }
+/* Pedidos no rework v4 (01/10/2026): o cartão solto, com a sombra do
+   desenho. Classe própria: o .p10-card é também de Facas e Calculadoras, e o
+   hover dele trocaria a sombra. Ao passar o mouse o cartão vem para a frente
+   dos outros (Augusto, 01/10/2026: "no hover, o card fica à frente dos
+   demais"): sobe, cresce 3,5% (as bordas passam por cima dos vizinhos, que
+   estão colados) e a sombra fica mais funda; o z-index o põe por cima de
+   todos (parado, cada um fica por cima do seguinte, como no desenho). */
+.pd4-cartao { transition: transform .32s cubic-bezier(.22,.61,.36,1), box-shadow .32s ease, opacity .25s ease; scroll-snap-align: start; transform-origin: center center; }
+/* parado, o z-index de cada cartão é a quantidade de pedidos menos a posição
+   (180 e tantos no teste): o do hover tem de passar de qualquer quantidade */
+.pd4-cartao:hover { z-index: 100000 !important; transform: translateY(-8px) scale(1.035); box-shadow: 10px 20px 56px rgba(0,0,0,.3) !important; }
+.pd4-cartao:hover .p10-plus { transform: rotate(90deg); }
+/* rework v4: a seta das faixas também gira dentro do cartão (capas de Arquivos
+   e Pantones, 02/10/2026), e o foco do teclado aparece no cartão */
+.pd4-cartao:hover .pn10-seta, .pd4-cartao:focus-visible .pn10-seta { background: var(--tinta); color: var(--faixa); transform: rotate(45deg); }
+.pd4-cartao:focus-visible { outline: 2px solid #000; outline-offset: -6px; }
+/* A lista que rola por dentro do painel do pedido aberto, com mais embaixo
+   (classe "tem-mais", ligada por vigiarRolagem): a borda de baixo esmaece na
+   cor do painel e uma seta pequena aponta para baixo (Augusto, 02/10/2026). */
+.p10-rola.tem-mais::after {
+  content: ""; position: sticky; bottom: 0; display: block; flex: none; height: 56px; margin-top: -56px; pointer-events: none;
+  background:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237b797b' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>") no-repeat center bottom 4px / 20px 20px,
+    linear-gradient(to bottom, color-mix(in srgb, var(--fundo, #fff) 0%, transparent), var(--fundo, #fff) 72%);
+  animation: p10-tem-mais 1.6s ease-in-out infinite;
+}
+/* o carregando entre as telas: as faixas correm, a tela de trás esmaece */
+.h10-carregando { animation: h10-carregando 2.4s linear infinite; }
+/* a tela inteira abaixo da barra (05/10/2026): as mesmas faixas, mais devagar,
+   porque numa area grande o passo do cartao corria demais */
+.h10-carregando-tela { animation: h10-carregando 6s linear infinite; }
+@keyframes h10-carregando { from { background-position: 0% 0; } to { background-position: 100% 0; } }
+@keyframes h10-carregando-entra { from { opacity: 0; } to { opacity: 1; } }
+/* a estrela do "Obrigado!" das Sugestões: entra girando e fica brilhando */
+.h10-estrela { display: inline-block; transform-origin: 50% 55%; animation: h10-estrela-entra .7s cubic-bezier(.34,1.56,.64,1) both, h10-estrela-brilha 2.2s ease-in-out .7s infinite; }
+@keyframes h10-estrela-entra { from { transform: scale(0) rotate(-180deg); opacity: 0; } to { transform: scale(1) rotate(0); opacity: 1; } }
+@keyframes h10-estrela-brilha {
+  0%, 100% { transform: scale(1) rotate(0); filter: drop-shadow(0 0 0 rgba(255, 232, 21, 0)); }
+  50% { transform: scale(1.3) rotate(45deg); filter: drop-shadow(0 0 6px rgba(255, 210, 0, .9)); }
+}
+@keyframes p10-tem-mais {
+  0%, 100% { background-position: center bottom 4px, 0 0; }
+  50% { background-position: center bottom 0, 0 0; }
+}
+/* o cartão fixo do pedido aberto: clicado, fica como no hover (Augusto, 02/10/2026:
+   "clicar no card após o hover fixa ele maior") */
+/* um degrau acima do hover: passar o mouse no vizinho não cobre o fixo (ele:
+   "passando o mouse em outro card, o hover fixado sai") */
+.pd4-fixo { z-index: 100001 !important; transform: translateY(-8px) scale(1.035); box-shadow: 10px 20px 56px rgba(0,0,0,.3) !important; }
+/* Solicitação v4 (Novo pedido, 01/10/2026): os cartões da capa sobem no hover
+   como os de Pedidos; a dica dos campos no cinza do desenho; as pílulas e as
+   opções escurecem um pouco no hover (a acesa fica amarela pelo estilo dela) */
+.np4-cartao { transition: transform .32s cubic-bezier(.22,.61,.36,1), box-shadow .32s ease; transform-origin: center center; }
+.np4-cartao:hover { z-index: 100000 !important; transform: translateY(-8px) scale(1.035); box-shadow: 10px 20px 56px rgba(0,0,0,.3) !important; }
+.np4-campo::placeholder, .np4-texto::placeholder { color: #c7c7c7; opacity: 1; }
+.np4-pilula { background-color: transparent; transition: background-color .15s ease; }
+.np4-pilula:hover:not(:disabled) { background-color: rgba(0,0,0,.06); }
+.np4-opcao { transition: opacity .15s ease; }
+.np4-opcao:hover { opacity: .6; }
+/* o × de tirar a pílula (anexo, Pantone) sempre à vista: escondido até o
+   hover, ninguém achava como apagar o anexo (Augusto, 02/10/2026) */
+.np4-chip .np4-chip-x { opacity: 1; transition: background-color .15s ease; }
+.np4-chip .np4-chip-x:hover { background-color: #d9d6d7 !important; }
+.np4-linha:hover { background: #f4f4f2; }
+.np4-rolagem { scrollbar-width: thin; scrollbar-color: #c4c4c4 transparent; }
+.np4-aviso > div { pointer-events: auto; }
 .p10-flat { transition: opacity .15s ease; }
 .p10-flat:hover { opacity: .6; }
 .p10-dot { transition: transform .15s ease; }
@@ -277,6 +368,93 @@
 .p10-linha:hover { background: rgba(37,36,37,.05); }
 @keyframes p10dica { from { opacity: 0; } to { opacity: 1; } }
 .p10-dica { animation: p10dica .4s ease both; }
+/* Urgencia do pedido: o "!" pulsa sem parar (Augusto, 28/09/2026). Um anel
+   preto sai do circulo e some, como um sonar, e o "!" da um toque a cada
+   ciclo. O anel e um ::after atras do circulo, em transform e opacity: nao
+   mexe no layout nem na pilula ao lado, e nao repinta o card. */
+.p10-urgente { position: relative; isolation: isolate; }
+.p10-urgente::after { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: 999px; background: #000; animation: p10urgenteAnel 1.8s cubic-bezier(.2,.6,.35,1) infinite; }
+.p10-urgente > span { display: inline-block; animation: p10urgenteToque 1.8s ease-in-out infinite; }
+@keyframes p10urgenteAnel { 0% { transform: scale(1); opacity: .45; } 80%, 100% { transform: scale(1.75); opacity: 0; } }
+@keyframes p10urgenteToque { 0%, 55%, 100% { transform: none; } 64% { transform: rotate(-14deg) scale(1.12); } 74% { transform: rotate(10deg) scale(1.08); } 84% { transform: rotate(-4deg); } }
+/* Fim do mes (Augusto, 30/09/2026): no ultimo dia do mes, o pedido que ainda
+   nao foi finalizado ganha o circulo do calendario, no mesmo pulso do urgente
+   (o anel de sonar e o toque no desenho). */
+.p10-fimdomes { position: relative; isolation: isolate; }
+.p10-fimdomes::after { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: 999px; background: #000; animation: p10urgenteAnel 1.8s cubic-bezier(.2,.6,.35,1) infinite; }
+.p10-fimdomes > svg { animation: p10urgenteToque 1.8s ease-in-out infinite; }
+/* Facas por dentro: "3 cores" e "4 cores" derramam um degrade no fundo da
+   lista, como cafe caindo no leite. O derrame de verdade e o DerrameHub10
+   (WebGL); esta e a reserva dele, sem WebGL ou com "reduzir movimento": nasce
+   no canto de cima a esquerda (onde fica o botao) e se espalha em diagonal,
+   devagar. Tres manchas com tempos diferentes deixam a borda irregular. Cheio,
+   o degrade continua mexendo bem devagar (Augusto, 30/09/2026). A mascara
+   anima pela posicao das paradas (percentual do raio ate o canto mais longe):
+   em 105% a area esta cheia. */
+@property --fer10-r1 { syntax: "<percentage>"; inherits: false; initial-value: 0%; }
+@property --fer10-r2 { syntax: "<percentage>"; inherits: false; initial-value: 0%; }
+@property --fer10-r3 { syntax: "<percentage>"; inherits: false; initial-value: 0%; }
+.fer10-derrame {
+  position: absolute; overflow: hidden; pointer-events: none;
+  -webkit-mask-image:
+    radial-gradient(circle at 0% 0%, #000 var(--fer10-r1), transparent calc(var(--fer10-r1) + 16%)),
+    radial-gradient(circle at 24% 3%, #000 var(--fer10-r2), transparent calc(var(--fer10-r2) + 20%)),
+    radial-gradient(circle at 3% 22%, #000 var(--fer10-r3), transparent calc(var(--fer10-r3) + 20%));
+  mask-image:
+    radial-gradient(circle at 0% 0%, #000 var(--fer10-r1), transparent calc(var(--fer10-r1) + 16%)),
+    radial-gradient(circle at 24% 3%, #000 var(--fer10-r2), transparent calc(var(--fer10-r2) + 20%)),
+    radial-gradient(circle at 3% 22%, #000 var(--fer10-r3), transparent calc(var(--fer10-r3) + 20%));
+  /* devagar (Augusto: "lenta e fluida"), mas andando desde o primeiro quadro.
+     Antes cada mancha partia do raio 0 com a borda suave ja aberta (10% da
+     area pintada no clique) e a curva comecava parada: o canto ficava um
+     segundo imovel e depois corria ("comeca travada", 30/09/2026). Agora cada
+     uma parte de menos a largura da borda (invisivel), com "both" para seguir
+     invisivel durante o atraso, e a curva ja sai andando. A area fica cheia
+     perto de 5 s; a mais lenta assenta em 12 s. */
+  animation: fer10derrama1 9s cubic-bezier(.25,.35,.4,1) both, fer10derrama2 10s cubic-bezier(.25,.35,.4,1) .5s both, fer10derrama3 11s cubic-bezier(.25,.35,.4,1) 1s both;
+}
+@keyframes fer10derrama1 { from { --fer10-r1: -16%; } to { --fer10-r1: 105%; } }
+@keyframes fer10derrama2 { from { --fer10-r2: -20%; } to { --fer10-r2: 105%; } }
+@keyframes fer10derrama3 { from { --fer10-r3: -20%; } to { --fer10-r3: 105%; } }
+/* a camada da cor e maior que a area: mexe sem mostrar a borda */
+.fer10-derrame > i { position: absolute; inset: -14%; background-size: cover; background-position: center; will-change: transform; animation: fer10mexe 28s ease-in-out infinite alternate; }
+@keyframes fer10mexe { 0% { transform: translate(0, 0) rotate(0deg) scale(1); } 50% { transform: translate(-3%, 2%) rotate(3deg) scale(1.06); } 100% { transform: translate(2%, -2%) rotate(-2deg) scale(1.03); } }
+/* desligando o recorte, o degrade sai num esmaecer curto (a mascara fica cheia) */
+.fer10-derrame.sai { --fer10-r1: 105%; --fer10-r2: 105%; --fer10-r3: 105%; animation: fer10sai .6s ease forwards; }
+@keyframes fer10sai { to { opacity: 0; } }
+
+/* Pantones 1.0 — as faixas da capa (os valores do .p10-card, em classe propria:
+   mexer no .p10-card mudaria Ferramentais, Pedidos e Calculadoras). A amostra
+   de cor NUNCA muda nem ganha transparencia no hover: quem escurece e o rotulo. */
+.pn10-faixa { transition: transform .32s cubic-bezier(.22,.61,.36,1), box-shadow .32s ease; will-change: transform; transform-origin: bottom center; backface-visibility: hidden; }
+.pn10-faixa:hover, .pn10-faixa:focus-visible { z-index: 5; transform: scale(1.015); box-shadow: 0 22px 40px -20px rgba(0,0,0,.42); }
+.pn10-faixa:focus-visible { outline: 2px solid var(--tinta); outline-offset: -6px; }
+/* a cor da seta vem daqui, e nao do style do span: com `color` no style, o
+   passar do mouse nao trocava a cor e a seta sumia no circulo (30/09/2026) */
+.pn10-seta { color: var(--tinta); transition: transform .2s ease, background-color .2s ease, color .2s ease; }
+.pn10-faixa:hover .pn10-seta, .pn10-faixa:focus-visible .pn10-seta { background: var(--tinta); color: var(--faixa); transform: rotate(45deg); }
+/* a mesma seta no pé dos cartões das Facas (30/09/2026) */
+.fer10-seta { transition: transform .2s ease, background-color .2s ease, color .2s ease; }
+.p10-card:hover .fer10-seta, .p10-card:focus-visible .fer10-seta { background: #000; color: var(--cartao, #fff); transform: rotate(45deg); }
+.pn10-cel .pn10-cod { color: #5b595b; }
+.pn10-cel:hover .pn10-cod, .pn10-cel[aria-selected="true"] .pn10-cod { color: #000; }
+.pn10-cel[aria-selected="true"] .pn10-cod { font-weight: 700; }
+.pn10-cel:focus-visible { outline: 2px solid #000; outline-offset: -2px; }
+.pn10-frag { box-shadow: inset 0 0 0 1px rgba(0,0,0,.08); }
+.pn10-frag:hover, .pn10-frag:focus-visible { box-shadow: inset 0 0 0 2px #000, inset 0 0 0 4px #fff; outline: none; }
+.pn10-link, .pn10-valor { text-decoration: none; text-underline-offset: 4px; text-decoration-thickness: 1px; }
+.pn10-link:hover, .pn10-link:focus-visible, .pn10-valor:hover, .pn10-valor:focus-visible { text-decoration: underline; outline: none; }
+.pn10-stat:focus-visible { outline: 1.5px solid #f1f1f1; outline-offset: 6px; }
+.pn10-info { transition: border-color .12s ease, color .12s ease; }
+.pn10-info:hover, .pn10-info:focus-visible { border-color: #000 !important; color: #000 !important; outline: none; }
+/* Arquivos 1.0: a lista que entra no lugar das faixas. Tinta, e a barra preta
+   na escolhida; a capa usa as faixas de Pantones (.pn10-faixa). */
+.ar10-linha .ar10-nome { color: #5b595b; }
+.ar10-linha:hover .ar10-nome, .ar10-linha[aria-selected="true"] .ar10-nome { color: #000; }
+.ar10-linha[aria-selected="true"]::before { content: ""; position: absolute; left: 0; top: 14px; bottom: 14px; width: 4px; background: #000; }
+.ar10-linha:focus-visible { outline: 2px solid #000; outline-offset: -2px; }
+/* as linhas do "Ver todas" */
+.ar10-vt:focus-visible { outline: 2px solid #000; outline-offset: -2px; }
 
 /* Novo pedido 1.0 — os quatro cartoes de etapa. */
 .np10-card { transition: transform .32s cubic-bezier(.22,.61,.36,1), box-shadow .32s ease; will-change: transform; transform-origin: bottom center; backface-visibility: hidden; }
@@ -285,22 +463,73 @@
 .np10-seta { transition: transform .22s ease; }
 .np10-flat { transition: opacity .15s ease; }
 .np10-flat:hover { opacity: .6; }
+/* O botão da etapa do Novo pedido (Próximo, Concluir): pílula preta no cartão
+   amarelo. Era um texto igual ao "Editar" e passava despercebido (Augusto,
+   30/09/2026: "o usuário menos atento pode não perceber o concluir ou o
+   próximo"). */
+.np10-botao { transition: background-color .15s ease, transform .12s ease; }
+.np10-botao:hover { background-color: #2e2e2e !important; }
+.np10-botao:active { transform: scale(.97); }
+.np10-botao:focus-visible { outline: 3px solid #000; outline-offset: 3px; }
+.np10-botao:hover .np10-seta { transform: translateX(4px); }
+/* O que falta no Novo pedido, depois de tentar concluir: marca-texto no
+   título do campo e no "Falta" da revisão, no amarelo do hub. Era letra
+   vermelha e ficou ruim (Augusto, 30/09/2026); a letra continua preta. A
+   ponta passa um pouco da letra dos dois lados sem mover a tinta (recuo e
+   margem iguais). */
+.np10-falta, .np10-falta-valor {
+  background: linear-gradient(transparent 46%, var(--amarelo-marca, #ffe815) 46%, var(--amarelo-marca, #ffe815) 90%, transparent 90%);
+  padding: 0 .14em; margin: 0 -.14em;
+  -webkit-box-decoration-break: clone; box-decoration-break: clone;
+}
+/* os números da medida na calculadora de facas 1.0: vazio, um "0"
+   fantasma, como o valor */
+.calc10-numero::placeholder { color: #d6d6d6; opacity: 1; }
+/* com o foco, o traço engrossa para cima (o pé fica na linha 23): o cursor
+   sozinho num número grande era o único sinal de onde o foco estava. O traço
+   grosso corre da esquerda para a direita ao entrar e volta ao sair
+   (animação sutil que o Augusto escolheu, 29/09/2026) */
+.calc10-traco::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2.5px; background: #000; transform: scaleX(0); transform-origin: left center; transition: transform .25s cubic-bezier(.22,.61,.36,1); }
+.calc10-campo:focus-within .calc10-traco::after { transform: scaleX(1); }
+/* os menus das configurações aparecem com um fade curto */
+@keyframes calc10-aparece { from { opacity: 0; } to { opacity: 1; } }
+.calc10-menu { animation: calc10-aparece .15s ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .calc10-traco::after { transition: none; }
+  .calc10-menu { animation: none; }
+}
+/* nas caixas tracejadas do menu da perda (a mínima e a máxima), o
+   tracejado fica cheio com o foco */
+.calc10-caixa:focus-within { border-style: solid !important; border-width: 2px !important; }
 .np10-chips { scrollbar-width: none; -ms-overflow-style: none; }
 .np10-chips::-webkit-scrollbar { display: none; height: 0; }
 
-/* Hero da Home 1.0. A saudacao entra letra a letra segurando uma cor CMYK e
-   so entao assenta; depois sai e entra o titulo fixo, que fica.
+/* Hero da Home 1.0. A saudacao segue o estilo do "mobiconf" (25/09/2026):
+   "Ola," se MONTA -- tres tracos CMY correm pelo contorno de cada letra e ela
+   assenta chapada -- e o nome CAI letra a letra, girando, chega so no contorno
+   e enche ao encaixar. Depois sai e entra o titulo fixo, que fica.
    A cor de chegada e var(--fim), nao o preto do projeto, porque um papel de
    parede escuro troca o texto para branco: se o keyframe assentasse num preto
-   fixo ele desfaria essa escolha no ultimo quadro. */
-@keyframes h10ola {
-  0%   { opacity: 0; transform: translateY(50px) scale(.66) rotate(9deg); color: var(--acc); }
-  18%  { opacity: 1; }
-  34%  { transform: translateY(-11px) scale(1.07) rotate(-2.5deg); color: var(--acc); }
-  50%  { transform: translateY(4px) scale(.99) rotate(.5deg); color: var(--acc); }
-  66%  { transform: translateY(0) scale(1) rotate(0); color: var(--acc); }
-  100% { opacity: 1; transform: translateY(0) scale(1) rotate(0); color: var(--fim); }
+   fixo ele desfaria essa escolha no ultimo quadro.
+   Os atrasos vem do componente, que e quem sabe o tamanho do nome. */
+@keyframes h10traco {
+  0%   { stroke-dashoffset: 400; opacity: 1; }
+  62%  { stroke-dashoffset: 0; opacity: 1; }
+  100% { stroke-dashoffset: 0; opacity: 0; }
 }
+@keyframes h10assenta { from { fill-opacity: 0; } to { fill-opacity: 1; } }
+@keyframes h10cai {
+  0%   { opacity: 0; transform: translateY(-150px) rotate(-190deg) scale(.55); fill-opacity: 0; stroke-width: 2.4px; }
+  32%  { opacity: 1; }
+  68%  { transform: translateY(9px) rotate(7deg) scale(1.04); fill-opacity: 0; stroke-width: 2.4px; }
+  84%  { transform: translateY(-3px) rotate(-2deg) scale(.99); }
+  100% { opacity: 1; transform: none; fill-opacity: 1; stroke-width: 0; }
+}
+/* 400 de tracejado cobre o maior contorno de uma letra em 92px (o "O" de
+   fora tem uns 240): o traco desenha a volta inteira de uma vez. */
+.h10-traco { fill: none; stroke-width: 5px; stroke-linejoin: round; stroke-dasharray: 400; stroke-dashoffset: 400; opacity: 0; animation: h10traco .8s cubic-bezier(.45, 0, .2, 1) both; }
+.h10-assenta { fill: var(--fim); fill-opacity: 0; animation: h10assenta .35s ease-out both; }
+.h10-cai { fill: var(--fim); stroke: var(--fim); stroke-linejoin: round; opacity: 0; transform-box: fill-box; transform-origin: 50% 60%; animation: h10cai .78s cubic-bezier(.2, .75, .25, 1) both; }
 @keyframes h10olaOut { to { opacity: 0; transform: translateY(-22px); } }
 @keyframes h10letra {
   0%   { opacity: 0; transform: translateY(46px) scale(.7) rotate(7deg); }
@@ -314,13 +543,50 @@
    aria-hidden e o texto de verdade vai neste span invisivel. */
 .h10-so-leitor { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
 .h10-saud { animation: h10olaOut .5s cubic-bezier(.5, 0, .75, 0) 2.05s forwards; }
-.h10-ll { display: inline-block; opacity: 0; animation: h10ola .92s cubic-bezier(.2, .8, .25, 1) both; }
 .h10-fl { display: inline-block; opacity: 0; transition: color .1s ease; animation: h10letra .8s cubic-bezier(.2, .8, .25, 1) both; }
 @media (prefers-reduced-motion: reduce) {
+  /* Facas por dentro: a linha da medida aparece inteira, sem correr */
+  .fer10-item, .fer10-item::after { transition: none !important; }
   .h10-spark, .h10-badge { animation: none !important; }
-  .np10-card, .np10-seta { transition: none !important; }
+  /* urgencia: o circulo fica preto e parado, sem anel */
+  .p10-urgente::after { display: none; }
+  /* fim do mes e degrade das Facas: parados */
+  .p10-fimdomes::after { display: none; }
+  .p10-fimdomes > svg { animation: none !important; }
+  .fer10-derrame { animation: none !important; --fer10-r1: 105%; --fer10-r2: 105%; --fer10-r3: 105%; }
+  .fer10-derrame > i { animation: none !important; }
+  .p10-urgente > span { animation: none !important; }
+  .np10-card, .np10-seta, .np10-botao { transition: none !important; }
+  .pd4-cartao { transition: none !important; }
+  .pd4-cartao:hover { transform: none; }
+  .pd4-fixo { transform: none; }
+  .p10-rola.tem-mais::after { animation: none; }
+  .h10-estrela { animation: none; }
+  .h10-carregando { animation-duration: 8s; }
+  .h10-carregando-tela { animation-duration: 20s; }
+  .pd4-cartao:hover .pn10-seta, .pd4-cartao:focus-visible .pn10-seta { transform: none; }
+  .np4-cartao { transition: none !important; }
+  .np4-cartao:hover { transform: none; }
+  .np10-botao:active { transform: none; }
   .np10-card:hover { transform: none; }
+  /* Pantones: a faixa nao sobe e a seta so preenche, sem girar */
+  .pn10-faixa, .pn10-seta { transition: none !important; }
+  .pn10-faixa:hover, .pn10-faixa:focus-visible { transform: none; }
+  .pn10-faixa:hover .pn10-seta, .pn10-faixa:focus-visible .pn10-seta { transform: none; }
+  .fer10-seta { transition: none !important; }
+  .p10-card:hover .fer10-seta, .p10-card:focus-visible .fer10-seta { transform: none; }
   /* as letras nascem em opacity 0 e so a animacao as revela — sem ela o texto
      sumiria por completo, entao aqui elas nascem prontas. */
-  .h10-saud, .h10-ll, .h10-fl { animation: none !important; opacity: 1; }
+  .h10-saud, .h10-fl { animation: none !important; opacity: 1; }
+  /* a saudacao nasce pronta: sem tracos, letras cheias no lugar */
+  .h10-traco { display: none; }
+  .h10-assenta, .h10-cai { animation: none !important; opacity: 1; fill-opacity: 1; stroke-width: 0; transform: none; }
 }
+
+/* Data e hora do "Clichê chegou": o navegador desenha um indicador proprio a
+   DIREITA de cada campo, e o calendario acabava entre a data e a hora, como se
+   pertencesse ao relogio. Os icones passaram a vir na frente de cada campo,
+   entao o nativo sai — o campo continua clicavel e abre o seletor. */
+.h10-datahora input::-webkit-calendar-picker-indicator { display: none; }
+.h10-datahora input::-webkit-inner-spin-button,
+.h10-datahora input::-webkit-clear-button { display: none; }

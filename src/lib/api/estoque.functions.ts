@@ -67,7 +67,7 @@ export const registrarFalta = createServerFn({ method: "POST" })
       [...usersWithRoles(["gestor", "admin", "producao", "estoque"]), ...(dono?.vendedor_id ? [dono.vendedor_id] : [])],
       user.id,
       `Falta de MP na OS ${data.pedidoNum}`,
-      `${data.motivo}${data.obs ? " — " + data.obs : ""}`,
+      `${data.motivo}${data.obs ? ": " + data.obs : ""}`,
       "/hub?tela=estoque",
     );
     audit({ id: user.id, nome: user.nome }, "estoque.falta_apontar", "estoque_faltas", id, {
@@ -114,7 +114,7 @@ export const mudarFalta = createServerFn({ method: "POST" })
         user.id,
         data.status === "substituida"
           ? `MP substituída na OS ${falta.pedido_num}`
-          : `MP chegou — OS ${falta.pedido_num}`,
+          : `MP chegou · OS ${falta.pedido_num}`,
         `${falta.motivo}${data.substituto ? " → " + data.substituto : ""}`,
         "/hub?tela=estoque",
       );

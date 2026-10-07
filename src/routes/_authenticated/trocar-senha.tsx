@@ -9,7 +9,7 @@ import { getStoredSession, setStoredSession } from "@/lib/session";
 
 export const Route = createFileRoute("/_authenticated/trocar-senha")({
   ssr: false,
-  head: () => ({ meta: [{ title: "Crie sua senha — R2 Hub" }] }),
+  head: () => ({ meta: [{ title: "Crie sua senha · R2 Hub" }] }),
   component: TrocarSenhaPage,
 });
 
@@ -36,7 +36,7 @@ function TrocarSenhaPage() {
     try {
       await definirPrimeiraSenha({ data: { novaSenha: nova } });
       if (sessao) setStoredSession(sessao.token, { ...sessao.user, precisaTrocarSenha: false });
-      navigate({ to: "/hub", search: { tela: "home" } });
+      navigate({ to: "/hub", search: { tela: "inicio" } });
     } catch (err: unknown) {
       setErro(err instanceof Error ? err.message : "Não deu para gravar a senha.");
       setSalvando(false);
@@ -61,7 +61,7 @@ function TrocarSenhaPage() {
           <p style={{ font: "400 14.5px/1.5 Inter,sans-serif", color: "#5c5a5c", margin: "10px 0 20px" }}>
             {sessao?.user?.nome ? `${sessao.user.nome.split(" ")[0]}, a ` : "A "}
             senha que você usou para entrar foi criada pelo gestor e serve só desta vez.
-            Defina uma que só você saiba — ela vale a partir de agora.
+            Defina uma que só você saiba. Ela vale a partir de agora.
           </p>
 
           <label style={rotulo}>Nova senha</label>

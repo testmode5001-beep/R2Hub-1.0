@@ -14,8 +14,8 @@ import {
   AMARELO, AvisoV1a, EstagioV1a, INK, MONO, RailV1a, SOMBRA_CARD, TopbarV1a, fr,
 } from "./HubV1a";
 
-const GRUPOS: { titulo: string; permissoes: [string, string][] }[] = [
-  { titulo: "Pedidos", permissoes: [["pedidos.criar", "Criar solicitações"], ["pedidos.ver_proprios", "Ver as próprias solicitações"], ["pedidos.ver_todos", "Ver todas as solicitações"], ["pedidos.editar_proprios", "Editar as próprias solicitações"], ["pedidos.editar_todos", "Editar qualquer solicitação"], ["pedidos.prioridade", "Definir urgência e prioridade"], ["pedidos.reabrir", "Reabrir pedido concluído"], ["pedidos.transferir", "Transferir carteira de clientes"], ["pedidos.excluir", "Excluir solicitações"]] },
+export const GRUPOS: { titulo: string; permissoes: [string, string][] }[] = [
+  { titulo: "Pedidos", permissoes: [["pedidos.criar", "Criar solicitações"], ["pedidos.ver_proprios", "Ver as próprias solicitações"], ["pedidos.ver_todos", "Ver todas as solicitações"], ["pedidos.editar_proprios", "Editar as próprias solicitações"], ["pedidos.editar_todos", "Editar qualquer solicitação"], ["pedidos.prioridade", "Definir urgência e prioridade"], ["pedidos.reabrir", "Reativar pedido cancelado ou reabrir concluído"], ["pedidos.transferir", "Transferir carteira de clientes"], ["pedidos.excluir", "Excluir solicitações"]] },
   { titulo: "Arte e design", permissoes: [["pedidos.status_design", "Executar etapas de design"], ["design.assumir", "Assumir pedido na fila"], ["design.enviar_arte", "Enviar arte para aprovação"], ["design.revisar", "Registrar revisão pedida"], ["design.arquivo_final", "Liberar arquivo final"], ["design.medidas", "Alterar medidas e faca do pedido"]] },
   { titulo: "Aprovação do cliente", permissoes: [["tab.cliches", "Aba Aprovação"], ["pedidos.aprovar", "Aprovar / pedir revisão"], ["aprovacao.reprovar", "Reprovar e devolver ao design"]] },
   { titulo: "Clichês", permissoes: [["tab.solicitar_cliche", "Aba Solicitar Clichê"], ["cliche.solicitar", "Solicitar clichê ao fornecedor"], ["cliche.registrar", "Registrar chegada de clichê"], ["cliche.reposicao", "Pedir reposição de clichê"], ["cliche.motivo_criar", "Criar motivo de solicitação"], ["cliche.valor_ver", "Ver valores de clichê"], ["cliche.valor_editar", "Lançar / editar valores"]] },
@@ -303,7 +303,7 @@ export function EquipeV1a({
                             <button key={c.nome} type="button" className="r2chip"
                               onClick={() => {
                                 if (u.eu || c.nome === cg.nome) return;
-                                if (real && (c.nome === "admin" || cg.nome === "admin")) { setAviso("O cargo Administrador é do sistema — troque pelo painel de usuários."); return; }
+                                if (real && (c.nome === "admin" || cg.nome === "admin")) { setAviso("O cargo Administrador é do sistema. Troque pelo painel de usuários."); return; }
                                 setCargos((s) => ({ ...s, [u.id]: c.nome }));
                                 setPerms((s) => ({ ...s, [u.id]: c.perms.slice() }));
                                 setSel(u.id);
@@ -613,7 +613,7 @@ function FormEquipe({ form, cargos, grupos, fechar, aoConfirmar }: {
               <span style={ROT}>{form.tipo === "senha" ? "Nova senha" : "Senha inicial"}</span>
               <input type="password" value={senha} onChange={(e) => setSenha(e.target.value)} placeholder="mínimo 6 caracteres" style={INP} />
               <div style={{ font: "400 13px/1.4 Inter,sans-serif", color: "#b3b1b3", marginTop: 8 }}>
-                A senha é guardada com hash — ninguém consegue vê-la depois, só redefinir.
+                A senha é guardada com hash: ninguém consegue vê-la depois, só redefinir.
               </div>
             </div>
           )}

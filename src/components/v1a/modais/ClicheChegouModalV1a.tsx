@@ -286,7 +286,7 @@ export function ClicheChegouModalV1a({ num, cliente, cores, registro, fechar, on
           {nota?.despacho && nota.despacho !== data && (
             <button onClick={() => { setData(nota.despacho); setAviso(""); }} className="r2chip"
               style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 10, border: "2px dashed #d6d5d6", background: "transparent", borderRadius: 999, padding: "8px 13px", cursor: "pointer", font: "600 13px/1 Inter,sans-serif", color: "#5c5a5c" }}>
-              Despachada em {diaBR(nota.despacho)} — usar como dia
+              Despachada em {diaBR(nota.despacho)}: usar como dia
             </button>
           )}
 
@@ -299,7 +299,7 @@ export function ClicheChegouModalV1a({ num, cliente, cores, registro, fechar, on
           {notaSemValores && (
             <div style={LINHA_AVISO}>
               <span style={PONTO("#d6d5d6")} />
-              <span>A nota não trazia tabela de cobrança — vieram só os nomes das cores. Os valores ficam por sua conta.</span>
+              <span>A nota não trazia tabela de cobrança: vieram só os nomes das cores. Os valores ficam por sua conta.</span>
             </div>
           )}
           {notaDiverge && (

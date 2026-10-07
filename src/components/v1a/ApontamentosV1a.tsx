@@ -37,6 +37,8 @@ const APP_PARA_V1A: Record<string, string> = {
   aguardando: "Aguardando aprovação", revisao: "Alteração pedida",
   aprovada: "Design aprovado", cliche: "Clichê solicitado",
   concluido: "Finalizado", cancelado: "Finalizado",
+  /* os status do 1.0 que não existiam aqui saíam crus ("refazer_cliche") */
+  refazer_cliche: "Refazer clichê", aguardando_cliente: "Aguardando cliente",
 };
 
 const fmtData = (isoStr?: string) => {
@@ -50,6 +52,9 @@ export type ApontamentosDados = {
   pedidos: { qtde: number };
   cliches: { qtde: number; total: number };
   solicitacoesPorMotivo: { motivo: string; qtde: number }[];
+  /** refações de clichê por motivo: as de dentro do pedido e as do "Refazer
+      clichê" de Aprovações (clientes antigos), juntas (02/10/2026) */
+  refacoesPorMotivo?: { motivo: string; qtde: number }[];
   facas: { enviadas: number; em_afiacao: number; novas_solicitadas: number };
   facasGasto: number;
   /** compras de faca do catálogo (facas_extras com valor) no período */
@@ -71,6 +76,12 @@ type Secao = {
   linhas: Celula[][];
   destaquesTitulo: string;
   destaques: [string, number, string?][];
+  /** uma segunda lista no mesmo painel (as refações, na seção de clichês) */
+  destaques2Titulo?: string;
+  destaques2?: [string, number, string?][];
+  destaques2Vazio?: string;
+  /** o que a primeira lista diz quando não tem nada */
+  destaquesVazio?: string;
   nota: string;
   vazioTexto?: string;
 };
@@ -146,12 +157,13 @@ export function ApontamentosV1a({
 
   /* — adaptação dos pedidos reais do app à forma do protótipo — */
   const peds = pedidos.map((p) => ({
-    num: "#" + String(p.numero).padStart(4, "0"),
+    /* como no resto do hub (#233), não #0233 */
+    num: "#" + String(p.numero).padStart(2, "0"),
     cliente: p.cliente,
     origem: p.origem ?? (p.tipo === "cliche" ? "interno" : "vendas"),
     vendedora: p.vendedora ?? "—",
     designer: p.designer ?? "—",
-    medida: `${p.largura}×${p.altura}`,
+    medida: p.largura && p.largura !== "—" && p.altura && p.altura !== "—" ? `${p.largura}×${p.altura}` : "—",
     prazo: fmtData(p.prazo ?? p.created_at),
     status: APP_PARA_V1A[p.status] ?? p.status,
     motivo: p.motivo ?? (p.tipo === "cliche" ? "Reposição" : "Arte nova"),
@@ -196,9 +208,11 @@ export function ApontamentosV1a({
     : semResposta ? [] : BASE.estados.map(([l, v]) => [l, esc(v)]);
   const metros = producao.reduce((t, p) => t + (Number(p.metros) || 0), 0);
 
-  const eventos = peds
-    .map((p) => ({ quando: fmtData(p.criado), num: p.num, cliente: p.cliente, texto: `Pedido registrado — ${p.status}`, autor: "—" }))
-    .sort((a, b) => String(b.quando).localeCompare(String(a.quando)));
+  /* ordenado pela data de verdade: pela data já escrita ("dd/mm/aa") o
+     30/09 vinha antes do 02/10, e a lista parecia parada em 30/09 */
+  const eventos = [...peds]
+    .sort((a, b) => String(b.criado ?? "").localeCompare(String(a.criado ?? "")))
+    .map((p) => ({ quando: fmtData(p.criado), num: p.num, cliente: p.cliente, texto: `Pedido registrado: ${p.status}`, autor: "—" }));
 
   const pantones: Record<string, { n: number; clientes: string[] }> = {};
   peds.forEach((p) => {
@@ -264,6 +278,7 @@ export function ApontamentosV1a({
       cols: [["Pedido", "84px"], ["Cliente", "1.4fr"], ["Motivo", "1.1fr"], ["Espessura", "92px"], ["Cores", "1.4fr"], ["Substrato", "1fr"], ["Status", "1.1fr"]],
       linhas: peds.map((p) => [cel(p.num, true), cel(p.cliente, false, true), cel(p.motivo), cel(p.tipoEsp + " mm", true), cel(p.cores), cel(p.substrato), cel(p.status)]),
       destaquesTitulo: real ? "Solicitações por motivo" : "Gasto por tipo de solicitação",
+      destaquesVazio: "Nenhuma solicitação de clichê no período.",
       destaques: real
         // sem rateio inventado: o sistema guarda o motivo da solicitação, não o custo dela
         ? dados.solicitacoesPorMotivo.map((m) => [m.motivo, m.qtde] as [string, number])
@@ -275,7 +290,12 @@ export function ApontamentosV1a({
               return [`${motivo} · ${qtd} ${qtd === 1 ? "pedido" : "pedidos"}`, valor, brl(valor)] as [string, number, string];
             });
           })(),
-      nota: "Valores de clichê e conferência vêm dos lançamentos da Aprovação.",
+      ...(real ? {
+        destaques2Titulo: "Refações por motivo",
+        destaques2: (dados.refacoesPorMotivo ?? []).map((m) => [m.motivo, m.qtde] as [string, number]),
+        destaques2Vazio: "Nenhuma refação de clichê no período.",
+      } : {}),
+      nota: "Valores de clichê e conferência vêm dos lançamentos da Aprovação. Refações: as marcadas no pedido e as do Refazer clichê de Aprovações.",
     },
     facas: {
       label: "Facas & afiação",
@@ -352,6 +372,7 @@ export function ApontamentosV1a({
   const d = defs[secao] ?? defs.geral;
   const grid: CSSProperties = { display: "grid", gridTemplateColumns: d.cols.map((c) => c[1]).join(" "), alignItems: "center", gap: 14 };
   const maxD = Math.max(1, ...d.destaques.map((x) => Number(x[1]) || 0));
+  const maxD2 = Math.max(1, ...(d.destaques2 ?? []).map((x) => Number(x[1]) || 0));
 
   const subtitulo = semResposta
     ? `${diaBR(new Date(de + "T00:00:00"))} a ${diaBR(new Date(ate + "T00:00:00"))} · carregando os números do período…`
@@ -483,6 +504,28 @@ export function ApontamentosV1a({
                         </span>
                       </div>
                     ))}
+                    {d.destaques.length === 0 && d.destaquesVazio && (
+                      <span style={{ font: "400 14px/1.4 Inter,sans-serif", color: "#8d8b8d" }}>{d.destaquesVazio}</span>
+                    )}
+                    {d.destaques2Titulo && (
+                      <>
+                        <div style={{ font: "700 12.5px/1 Inter,sans-serif", letterSpacing: ".12em", textTransform: "uppercase", color: AMARELO, margin: "12px 0 4px", whiteSpace: "nowrap" }}>{d.destaques2Titulo}</div>
+                        {(d.destaques2 ?? []).length === 0 && (
+                          <span style={{ font: "400 14px/1.4 Inter,sans-serif", color: "#8d8b8d" }}>{d.destaques2Vazio}</span>
+                        )}
+                        {(d.destaques2 ?? []).map(([label, valor, texto]) => (
+                          <div key={`r-${label}`} style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+                            <div style={{ display: "flex", alignItems: "baseline", gap: 10, minWidth: 0 }}>
+                              <span style={{ flex: 1, minWidth: 0, font: "500 14.5px/1.25 Inter,sans-serif", color: "#c9c8c9", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
+                              <span style={{ flex: "none", font: "800 15px/1 Inter,sans-serif", color: AMARELO, whiteSpace: "nowrap" }}>{texto || f(Number(valor) || 0)}</span>
+                            </div>
+                            <span style={{ display: "block", height: 8, borderRadius: 999, background: "#3a383a", overflow: "hidden" }}>
+                              <span style={{ display: "block", height: "100%", width: `${Math.max(6, Math.round(((Number(valor) || 0) / maxD2) * 100))}%`, borderRadius: 999, background: AMARELO }} />
+                            </span>
+                          </div>
+                        ))}
+                      </>
+                    )}
                   </div>
                   <div style={{ font: "400 13px/1.45 Inter,sans-serif", color: "#8d8b8d", marginTop: 14, paddingTop: 14, borderTop: "1px solid #3a383a" }}>{d.nota}</div>
                 </div>

@@ -239,7 +239,10 @@ export const SEED_ROLES: {
   },
 ];
 
-function dbPath() {
+/* Exportado: a pasta de anexos que esperam o design (anexos-pendentes.server)
+   mora ao lado do banco — assim o hub de testes, que usa outro banco, também
+   usa outra pasta, e um teste nunca mistura arquivo com a produção. */
+export function dbPath() {
   return process.env.DESIGNHUB_DB ?? path.join(process.cwd(), "data", "designhub.db");
 }
 
@@ -1234,6 +1237,84 @@ function migrate(db: DatabaseSync) {
        uma posição de antes da regra existir. */
     db.exec("UPDATE pedidos SET fila = NULL WHERE status = 'cancelado' AND fila IS NOT NULL");
     db.exec("PRAGMA user_version = 44");
+  }
+
+  if (user_version < 45) {
+    /* Urgência do pedido (Augusto, 28/09/2026: "a urgência podemos
+       implementar"). 1 = urgente: o card e a lista marcam, e a trilha põe os
+       urgentes na frente dos que não estão na fila. */
+    db.exec("ALTER TABLE pedidos ADD COLUMN urgente INTEGER NOT NULL DEFAULT 0");
+    db.exec("PRAGMA user_version = 45");
+  }
+
+  if (user_version < 46) {
+    /* A faca do pedido em coluna própria. Antes o código ia só no fim do
+       briefing ("Faca do catálogo: X") e não havia como trocar depois do
+       envio (Augusto: "precisamos poder editar depois"). NULL = sem faca do
+       catálogo. Os pedidos que já têm a linha no briefing ganham a coluna
+       preenchida com ela; o texto do briefing fica como está. */
+    db.exec("ALTER TABLE pedidos ADD COLUMN faca_cod TEXT");
+    const comFaca = db
+      .prepare("SELECT id, descricao FROM pedidos WHERE descricao LIKE '%Faca do catálogo:%'")
+      .all() as { id: string; descricao: string }[];
+    const gravar = db.prepare("UPDATE pedidos SET faca_cod = ? WHERE id = ?");
+    for (const p of comFaca) {
+      const m = /Faca do catálogo:\s*([^\n]+)/.exec(String(p.descricao ?? ""));
+      if (m && m[1].trim()) gravar.run(m[1].trim(), p.id);
+    }
+    db.exec("PRAGMA user_version = 46");
+  }
+
+  if (user_version < 47) {
+    /* Faca nova: a medida não está no catálogo e a faca ainda vai ser feita.
+       A medida digitada vai em largura/altura/forma, como sempre. */
+    db.exec("ALTER TABLE pedidos ADD COLUMN faca_nova INTEGER NOT NULL DEFAULT 0");
+    db.exec("PRAGMA user_version = 47");
+  }
+
+  if (user_version < 48) {
+    /* Status "aguardando_cliente": o pedido espera algo do cliente (texto
+       legal, prova física, INCI) e, quando o cliente responde, volta para
+       onde estava. Onde ele estava fica aqui: tirar do histórico não é
+       seguro (há linhas que repetem o status e linhas fora do fluxo). */
+    db.exec("ALTER TABLE pedidos ADD COLUMN status_anterior TEXT");
+    db.exec("PRAGMA user_version = 48");
+  }
+
+  if (user_version < 49) {
+    /* A fila é do "Aguardando design": pedido que já começou sai dela. Esta
+       linha tira os que andaram antes da regra e seguiam segurando posição
+       (simulação de 28/09/2026: pedidos na clicheria em 04 e 05). */
+    db.exec("UPDATE pedidos SET fila = NULL WHERE status <> 'nova' AND fila IS NOT NULL");
+    db.exec("PRAGMA user_version = 49");
+  }
+
+  if (user_version < 50) {
+    /* A 49 tirou da fila quem já tinha andado, mas deixou os buracos ("02,
+       03" sem o 01). A fila é renumerada na mesma ordem, sem buraco, com o
+       teto de 10 posições de sempre. */
+    const fila = db
+      .prepare("SELECT id FROM pedidos WHERE fila IS NOT NULL ORDER BY fila ASC, updated_at ASC")
+      .all() as { id: string }[];
+    const gravar = db.prepare("UPDATE pedidos SET fila = ? WHERE id = ?");
+    fila.forEach((p, i) => gravar.run(i < 10 ? i + 1 : null, p.id));
+    db.exec("PRAGMA user_version = 50");
+  }
+
+  if (user_version < 51) {
+    /* A sugestão diz de qual tela ela é (Augusto: "dar mais opções de qual
+       tela é a sugestão"); a lista fica em lib/telas-do-hub. NULL = sugestão
+       de antes da escolha existir. */
+    db.exec("ALTER TABLE sugestoes ADD COLUMN tela TEXT");
+    db.exec("PRAGMA user_version = 51");
+  }
+
+  if (user_version < 52) {
+    /* A espessura do clichê, escolhida no Enviar p/ clicheria (Augusto,
+       07/10/2026: os relatórios separam quantidade e valor de 1.14 e 1.70).
+       A chegada herda do pedido. NULL = sem espessura (o que foi antes). */
+    db.exec("ALTER TABLE pedidos ADD COLUMN cliche_espessura TEXT");
+    db.exec("PRAGMA user_version = 52");
   }
 }
 

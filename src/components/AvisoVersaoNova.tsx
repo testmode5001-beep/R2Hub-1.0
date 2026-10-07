@@ -88,7 +88,7 @@ export function AvisoVersaoNova() {
 
         <p style={{ font: "400 15.5px/1.5 Inter,sans-serif", color: "#5c5a5c", margin: "18px 0 0" }}>
           Foram publicadas correções enquanto você estava com o hub aberto. Atualize para
-          usar a versão nova — sem isso, algumas telas podem dar erro ou seguir com
+          usar a versão nova. Sem isso, algumas telas podem dar erro ou seguir com
           problemas já resolvidos.
         </p>
         <p style={{ font: "400 13.5px/1.45 Inter,sans-serif", color: "#8d8b8d", margin: "10px 0 0" }}>

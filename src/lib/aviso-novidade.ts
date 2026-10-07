@@ -65,7 +65,7 @@ export function pedirPermissaoNativa(): Promise<NotificationPermission> {
 export function notificarNativo(aviso: string) {
   if (!notificacaoNativaDisponivel()) return;
   if (Notification.permission !== "granted") return;
-  if (!document.hidden && document.hasFocus()) return; // olhando: o toast basta
+  if (!document.hidden && document.hasFocus()) return; // olhando: o número no sino basta
   try {
     const n = new Notification("R2 Hub", { body: aviso, tag: "r2hub-pedidos" });
     n.onclick = () => { window.focus(); n.close(); };
@@ -139,7 +139,7 @@ let ouvindoFoco = false;
 /** Faz o título da aba alternar com o aviso até a pessoa voltar para a aba. */
 export function piscarTitulo(aviso: string) {
   if (typeof document === "undefined") return;
-  if (!document.hidden) return;          // está olhando: o toast já resolve
+  if (!document.hidden) return;          // está olhando: o sino já mostra
   piscarIcone();
   if (!timer) tituloOriginal = document.title;
   pararTitulo(false);

@@ -1,5 +1,5 @@
 // Notificações internas (Etapa 3): gravadas no banco e entregues ao navegador
-// por polling curto (sino + toast), sem depender de serviços externos.
+// por polling curto (sino), sem depender de serviços externos.
 import { agora, getDb, uuid } from "./db.server";
 
 /** Cria uma notificação para cada usuário da lista (exceto o próprio autor da ação). */

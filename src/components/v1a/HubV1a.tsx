@@ -516,10 +516,16 @@ export function RailV1a({ ativo, disponiveis = PAGINAS_PRONTAS_V1A, permitidas, 
 }
 
 /* ————— Aviso (pílula preta no rodapé, dispensável) ————— */
-export function AvisoV1a({ texto, onFechar }: { texto: string; onFechar: () => void }) {
+/** `tipo="alerta"` troca o ✓ por "!": o aviso de erro saía com o sinal de
+    feito (simulação de 28/09/2026). */
+export function AvisoV1a({ texto, onFechar, tipo = "ok" }: { texto: string; onFechar: () => void; tipo?: "ok" | "alerta" }) {
   return (
-    <div style={{ position: "absolute", left: "50%", bottom: 34, transform: "translateX(-50%)", zIndex: 70, display: "flex", alignItems: "center", gap: 12, background: INK, borderRadius: 999, padding: "14px 16px 14px 22px", boxShadow: "0 30px 60px -20px rgba(0,0,0,.6)" }}>
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={AMARELO} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" style={{ flex: "none" }}><circle cx="12" cy="12" r="8.6" /><path d="m8.5 12 2.5 2.5 4.5-5" /></svg>
+    <div role={tipo === "alerta" ? "alert" : "status"} style={{ position: "absolute", left: "50%", bottom: 34, transform: "translateX(-50%)", zIndex: 70, display: "flex", alignItems: "center", gap: 12, background: INK, borderRadius: 999, padding: "14px 16px 14px 22px", boxShadow: "0 30px 60px -20px rgba(0,0,0,.6)" }}>
+      {tipo === "alerta" ? (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={AMARELO} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" style={{ flex: "none" }}><circle cx="12" cy="12" r="8.6" /><path d="M12 7.6v5.2" /><path d="M12 16.4h.01" /></svg>
+      ) : (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={AMARELO} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" style={{ flex: "none" }}><circle cx="12" cy="12" r="8.6" /><path d="m8.5 12 2.5 2.5 4.5-5" /></svg>
+      )}
       <span style={{ font: "500 15px/1 Inter, sans-serif", color: "#f1f1f1" }}>{texto}</span>
       <button onClick={onFechar} className="r2ic" style={{ width: 30, height: 30, display: "grid", placeItems: "center", background: "#3a383a", border: 0, borderRadius: 999, cursor: "pointer" }}>
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#f1f1f1" strokeWidth="2.8" strokeLinecap="round"><path d="M6 6l12 12" /><path d="M18 6L6 18" /></svg>

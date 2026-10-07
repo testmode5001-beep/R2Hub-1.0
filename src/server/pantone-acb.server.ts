@@ -3,8 +3,10 @@
    "Procurar cores novas" da tela Pantone conferir sem ninguém rodar nada no
    terminal. O livro vem com o Illustrator/Photoshop — quando a Adobe atualiza
    o app, a leva nova de cores chega junto. */
-import { existsSync, readFileSync, readdirSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+
+import { dbPath } from "./db.server";
 
 export type CorPantone = { c: string; h: string; l: [number, number, number] };
 export type LivroPantone = { arquivo: string; titulo: string; cores: CorPantone[] };
@@ -17,10 +19,19 @@ const MEIOS = [
   "Presets\\Swatch Libraries",
 ];
 
+/** A pasta do próprio hub onde ficam os livros que o administrador enviou
+    pela tela (ao lado do banco, fora do share de clientes). */
+export function pastaLivrosPantone(): string {
+  return join(dirname(dbPath()), "pantone");
+}
+
 function candidatos(): string[] {
   const fora = process.env.PANTONE_ACB;
   if (fora && existsSync(fora)) return [fora];
   const achados: string[] = [];
+  /* primeiro os livros enviados pela tela; depois os que vêm com a Adobe */
+  const enviados = pastaLivrosPantone();
+  if (existsSync(enviados)) for (const arq of readdirSync(enviados)) if (/\.acb$/i.test(arq)) achados.push(join(enviados, arq));
   for (const raiz of RAIZES) {
     if (!existsSync(raiz)) continue;
     for (const app of readdirSync(raiz)) {
@@ -61,8 +72,11 @@ function labParaHex([L, a, bStar]: [number, number, number]): string {
 
 /** Formato 8BCB da Adobe. Lança se o arquivo não for um livro em Lab. */
 function lerAcb(arq: string): LivroPantone {
-  const b = readFileSync(arq);
-  if (b.toString("latin1", 0, 4) !== "8BCB") throw new Error("não é um color book .acb");
+  return lerAcbBuffer(readFileSync(arq), arq);
+}
+
+function lerAcbBuffer(b: Buffer, arq: string): LivroPantone {
+  if (b.length < 32 || b.toString("latin1", 0, 4) !== "8BCB") throw new Error("não é um color book .acb");
   let p = 4;
   const u16 = () => { const v = b.readUInt16BE(p); p += 2; return v; };
   const u32 = () => { const v = b.readUInt32BE(p); p += 4; return v; };
@@ -92,14 +106,58 @@ function lerAcb(arq: string): LivroPantone {
   return { arquivo: arq, titulo, cores };
 }
 
+/**
+ * Livro enviado pela tela. Confere que é o leque da casa (Solid Coated, não
+ * Uncoated) antes de qualquer coisa: misturar o Uncoated trocaria as cores
+ * de metade da tabela sem ninguém perceber.
+ */
+export function lerLivroEnviado(nome: string, conteudo: Buffer): LivroPantone {
+  let livro: LivroPantone;
+  try {
+    livro = lerAcbBuffer(conteudo, nome);
+  } catch (e) {
+    const m = e instanceof Error ? e.message : String(e);
+    throw new Error(m === "o livro não está em Lab"
+      ? "Esse livro não está em Lab. Use o color book Pantone que vem com o Illustrator (arquivo .acb)."
+      : "Esse arquivo não é um color book da Adobe (.acb). Use o Pantone Solid Coated que vem com o Illustrator.");
+  }
+  const quem = `${livro.titulo} ${nome}`;
+  if (!/pantone/i.test(quem) || !/solid\s*coated/i.test(quem) || /uncoated/i.test(quem)) {
+    throw new Error(`Esse livro é "${livro.titulo}". O hub usa o Pantone Solid Coated.`);
+  }
+  if (livro.cores.length < 100) throw new Error(`Esse livro tem só ${livro.cores.length} cores. O Pantone Solid Coated tem mais de 2.000.`);
+  return livro;
+}
+
+/** Guarda o livro enviado na pasta do hub, sem apagar nem sobrescrever os anteriores. */
+export function guardarLivroEnviado(nome: string, conteudo: Buffer): string {
+  const pasta = pastaLivrosPantone();
+  mkdirSync(pasta, { recursive: true });
+  const base = (nome.replace(/[^\w.\- ]+/g, "_").replace(/\.acb$/i, "").trim() || "pantone").slice(0, 80);
+  const dia = new Date().toISOString().slice(0, 10);
+  let destino = join(pasta, `${base} ${dia}.acb`);
+  for (let i = 2; existsSync(destino); i++) destino = join(pasta, `${base} ${dia} (${i}).acb`);
+  writeFileSync(destino, conteudo);
+  return destino;
+}
+
 /** O livro instalado com MAIS cores — sempre o mais novo. Null se não achar. */
 export function lerLivroPantone(): LivroPantone | null {
   let melhor: LivroPantone | null = null;
+  const falhas: string[] = [];
   for (const arq of candidatos()) {
     try {
       const livro = lerAcb(arq);
       if (!melhor || livro.cores.length > melhor.cores.length) melhor = livro;
-    } catch { /* livro em CMYK/RGB ou corrompido: ignora */ }
+    } catch (e) {
+      /* livro em CMYK/RGB ou corrompido: pula, mas guarda o motivo */
+      falhas.push(`${arq}: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }
+  /* Achou livro e nenhum abriu: dizer "não achei" mandaria o admin procurar
+     o problema no lugar errado. */
+  if (!melhor && falhas.length) {
+    throw new Error(`Achei ${falhas.length} ${falhas.length === 1 ? "color book" : "color books"} Pantone, mas nenhum pôde ser lido. ${falhas[0]}`);
   }
   return melhor;
 }

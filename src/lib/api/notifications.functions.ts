@@ -1,4 +1,4 @@
-// Notificações internas (Etapa 3): sino com contador + toasts, via polling curto.
+// Notificações internas (Etapa 3): sino com contador, via polling curto.
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 

@@ -6,7 +6,7 @@
 // busca: não faz sentido carregar 3.223 cores para quem só abre a Home.
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { criarBusca } from "@/lib/busca";
+import { criarBusca, normalizarBusca } from "@/lib/busca";
 import { semearBusca } from "@/lib/busca-semente";
 
 const INK = "#252425";
@@ -32,8 +32,11 @@ type Achado =
 
 const LIMITE_GRUPO = 5;
 
-export function BuscaGlobalV1a({ consulta, pedidos, paginas, aoAbrirPedido, aoNavegar, aoFechar }: {
+export function BuscaGlobalV1a({ consulta, pedidos, paginas, aoAbrirPedido, aoNavegar, aoFechar, alinhar = "esquerda" }: {
   consulta: string;
+  /** "direita": a caixa cresce para a esquerda do campo (no 1.0 o campo fica
+      perto da borda e a caixa saía da tela) */
+  alinhar?: "esquerda" | "direita";
   pedidos?: PedidoBusca[];
   /** páginas que esta pessoa pode abrir (o rail já filtra por permissão) */
   paginas?: string[];
@@ -90,11 +93,14 @@ export function BuscaGlobalV1a({ consulta, pedidos, paginas, aoAbrirPedido, aoNa
     return () => { vivo = false; };
   }, [facas, cores, clientes, podeClientes, arquivo, podeArquivo]);
 
-  /* Esc fecha; Enter abre o primeiro; clique fora fecha */
+  /* Esc fecha; Enter abre o primeiro; clique fora fecha.
+     O Esc é marcado como usado: sem isso ele seguia para a pilha de ESC das
+     telas 1.0 e fechava também o painel aberto atrás da busca (simulação de
+     28/09/2026). */
   const primeiro = useRef<(() => void) | null>(null);
   useEffect(() => {
     const tecla = (e: KeyboardEvent) => {
-      if (e.key === "Escape") aoFechar();
+      if (e.key === "Escape") { e.preventDefault(); aoFechar(); }
       if (e.key === "Enter" && primeiro.current) { e.preventDefault(); primeiro.current(); }
     };
     const clique = (e: MouseEvent) => {
@@ -115,9 +121,44 @@ export function BuscaGlobalV1a({ consulta, pedidos, paginas, aoAbrirPedido, aoNa
     const casa = criarBusca(q);
     const lista: Achado[] = [];
 
-    (pedidos ?? []).forEach((p) => {
+    /* O que bate por inteiro vem antes do que só começa igual, e este antes
+       do que só contém: "286" era a 286 C perdida entre 2860, 2865...; "#4"
+       era o #42 atrás do #04. A ordem do catálogo fica dentro de cada nível. */
+    const qJunto = normalizarBusca(q).replace(/ /g, "").replace(/^#/, "");
+    const nivelPara = (qj: string) => (codigo: string) => {
+      const c = normalizarBusca(codigo).replace(/ /g, "").replace(/^#/, "");
+      if (c === qj || c.replace(/c$/, "") === qj) return 0;
+      /* palavra inteira também é exata: "021" é a Orange 021 C */
+      if (normalizarBusca(codigo).replace(/ c$/, "").split(" ").includes(qj)) return 0;
+      return c.startsWith(qj) ? 1 : 2;
+    };
+    const nivel = nivelPara(qJunto);
+    /* O Pantone escrito como o hub escreve ("P 286 C", do Copiar e do Design
+       criado) ou por extenso ("Pantone 286"): o prefixo não faz parte do
+       código da tabela, e sem tirar ele nada casava (simulação 3, 30/09/2026). */
+    const qCor = q.replace(/^\s*(?:pantone|p)\s+(?=\S)/i, "");
+    const casaCor = criarBusca(qCor);
+    const nivelCor = nivelPara(normalizarBusca(qCor).replace(/ /g, "").replace(/^#/, ""));
+    /* A faca serve deitada: "30x40" é a 40×30 (como no Ver todos e no Novo
+       pedido; o topo só achava na ordem escrita). */
+    const deitada = (m?: string) => {
+      const x = /^\s*([\d.,]+)\s*[x×]\s*([\d.,]+)/i.exec(m ?? "");
+      return x ? `${x[2]}x${x[1]}` : undefined;
+    };
+    const primeiroOsExatos = <T,>(itens: T[], codigo: (x: T) => string, nivelDe: (x: T) => number = (x) => nivel(codigo(x))) =>
+      itens.map((x, i) => ({ x, i, n: nivelDe(x) }))
+        .sort((a, b) => a.n - b.n || a.i - b.i)
+        .map((o) => o.x);
+    /* Hex só quando a busca é um hex de verdade: "#42" é o pedido 42, e não
+       as cores cujo hex começa com #42. */
+    const buscaHex = /^#?[0-9a-f]{6}$/i.test(q) || /^#[0-9a-f]*[a-f][0-9a-f]*$/i.test(q);
+
+    /* as duas grafias do número: "#2" e "#02" (é como o hub escreve) */
+    const numeroDigitado = /^\d+$/.test(qJunto) ? Number(qJunto) : null;
+    primeiroOsExatos((pedidos ?? []).filter((p) => (numeroDigitado != null && p.numero === numeroDigitado) ||
+      casa(`#${p.numero}`, `#${String(p.numero).padStart(2, "0")}`, String(p.numero), p.cliente, p.status, p.medida, deitada(p.medida), p.substrato, p.tipo)),
+    (p) => String(p.numero), (p) => (numeroDigitado != null && p.numero === numeroDigitado ? 0 : 1)).forEach((p) => {
       if (lista.filter((a) => a.grupo === "Pedidos").length >= LIMITE_GRUPO) return;
-      if (!casa(`#${p.numero}`, String(p.numero), p.cliente, p.status, p.medida, p.substrato, p.tipo)) return;
       lista.push({
         grupo: "Pedidos",
         chave: "p" + p.id,
@@ -156,9 +197,21 @@ export function BuscaGlobalV1a({ consulta, pedidos, paginas, aoAbrirPedido, aoNa
       });
     });
 
-    (facas ?? []).forEach((f) => {
+    /* Medida digitada: a faca exata vem primeiro, depois a que começa igual, por
+       último a deitada, como na tela Facas (simulação 5: "100x50" trazia a
+       50×100 antes da 100×50). Sem medida, vale o nível do código. */
+    const soMedida = (m?: string) => normalizarBusca(m ?? "").replace(/ /g, "").replace(/×/g, "x");
+    const medidaQ = /^\s*[\d.,]+\s*[x×]\s*[\d.,]+/i.test(q) ? soMedida(q) : "";
+    const nivelFaca = (f: FacaLeve) => {
+      if (!medidaQ) return nivel(f.cod);
+      const m = soMedida(f.medida);
+      if (m === medidaQ) return 0;
+      if (m.startsWith(medidaQ)) return 1;
+      const dt = soMedida(deitada(f.medida));
+      return dt === medidaQ || dt.startsWith(medidaQ) ? 2 : 3;
+    };
+    primeiroOsExatos((facas ?? []).filter((f) => casa(f.cod, f.medida, deitada(f.medida), f.sistema, f.secao)), (f) => f.cod, nivelFaca).forEach((f) => {
       if (lista.filter((a) => a.grupo === "Facas").length >= LIMITE_GRUPO) return;
-      if (!casa(f.cod, f.medida, f.sistema, f.secao)) return;
       lista.push({
         grupo: "Facas",
         chave: "f" + f.cod,
@@ -168,9 +221,8 @@ export function BuscaGlobalV1a({ consulta, pedidos, paginas, aoAbrirPedido, aoNa
       });
     });
 
-    (cores ?? []).forEach((c) => {
+    primeiroOsExatos((cores ?? []).filter((c) => casaCor(c.codigo, buscaHex ? c.hex : undefined)), (c) => c.codigo, (c) => nivelCor(c.codigo)).forEach((c) => {
       if (lista.filter((a) => a.grupo === "Pantone").length >= LIMITE_GRUPO) return;
-      if (!casa(c.codigo, c.hex)) return;
       lista.push({
         grupo: "Pantone",
         chave: "c" + c.codigo,
@@ -206,7 +258,7 @@ export function BuscaGlobalV1a({ consulta, pedidos, paginas, aoAbrirPedido, aoNa
   return (
     <div ref={caixaRef}
       style={{
-        position: "absolute", top: "calc(100% + 8px)", left: 0, width: 520, zIndex: 40,
+        position: "absolute", top: "calc(100% + 8px)", ...(alinhar === "direita" ? { right: 0 } : { left: 0 }), width: 520, zIndex: 40,
         maxHeight: 460, overflowY: "auto", background: "#fff", borderRadius: 12, padding: 8,
         boxShadow: "0 1px 0 rgba(0,0,0,.04), 0 40px 70px -30px rgba(0,0,0,.45)",
       }}>

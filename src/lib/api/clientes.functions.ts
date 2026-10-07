@@ -6,9 +6,10 @@
 import { createServerFn } from "@tanstack/react-start";
 
 import { requireAuth } from "./auth-middleware";
-import { listarPastasClientes } from "@/server/files.server";
+import { listarPastasClientes, pastaDeClientesDeTeste } from "@/server/files.server";
 
-/** Só os nomes (~5 mil): a tela guarda e filtra localmente, sem ida e volta a cada tecla. */
+/** Só os nomes (~5 mil): a tela guarda e filtra localmente, sem ida e volta a cada tecla.
+    `deTeste`: a pasta em uso não é a do servidor (hub de teste). */
 export const listPastasClientes = createServerFn({ method: "POST" })
   .middleware([requireAuth])
-  .handler(async () => ({ pastas: listarPastasClientes() }));
+  .handler(async () => ({ pastas: listarPastasClientes(), deTeste: pastaDeClientesDeTeste() }));

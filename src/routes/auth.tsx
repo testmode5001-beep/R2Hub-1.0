@@ -1,13 +1,13 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
 
 import { login } from "@/lib/api/auth.functions";
+import { erroLegivel } from "@/lib/erro-legivel";
 import { getStoredSession, setStoredSession } from "@/lib/session";
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
-  head: () => ({ meta: [{ title: "Entrar — R2 Hub" }] }),
+  head: () => ({ meta: [{ title: "Entrar · R2 Hub" }] }),
   component: AuthPage,
 });
 
@@ -16,21 +16,24 @@ function AuthPage() {
   const [username, setUsername] = useState("");
   const [senha, setSenha] = useState("");
   const [loading, setLoading] = useState(false);
+  /* o erro mora no formulário: era um balão do sonner (herdado do hub
+     antigo), que saiu em 05/10/2026 */
+  const [erro, setErro] = useState("");
 
   useEffect(() => {
-    if (getStoredSession()) navigate({ to: "/hub", search: { tela: "home" } });
+    if (getStoredSession()) navigate({ to: "/hub", search: { tela: "inicio" } });
   }, [navigate]);
 
   async function handle(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
+    setErro("");
     try {
       const { token, user } = await login({ data: { username, senha } });
       setStoredSession(token, user);
-      toast.success(`Bem-vinda(o), ${user.nome.split(" ")[0]}!`);
-      navigate({ to: "/hub", search: { tela: "home" } });
+      navigate({ to: "/hub", search: { tela: "inicio" } });
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Erro ao autenticar");
+      setErro(erroLegivel(err, "Não deu para entrar. Tente de novo."));
     } finally {
       setLoading(false);
     }
@@ -51,7 +54,7 @@ function AuthPage() {
               <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-[0.06em] mb-[5px] block">Usuário</label>
               <input
                 value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                onChange={(e) => { setUsername(e.target.value); setErro(""); }}
                 required
                 autoFocus
                 autoCapitalize="none"
@@ -65,12 +68,13 @@ function AuthPage() {
               <input
                 type="password"
                 value={senha}
-                onChange={(e) => setSenha(e.target.value)}
+                onChange={(e) => { setSenha(e.target.value); setErro(""); }}
                 required
                 placeholder="••••••••"
                 className="w-full bg-background border-[1.5px] border-border rounded-[10px] px-3 py-[10px] text-sm outline-none focus:border-foreground"
               />
             </div>
+            {erro && <p role="alert" className="text-[13px] font-semibold text-destructive">{erro}</p>}
             <button type="submit" disabled={loading} className="w-full mt-2 bg-yellow text-foreground rounded-[10px] py-3 font-bold text-sm flex items-center justify-center gap-[6px] hover:opacity-85 disabled:opacity-40">
               <i className="ti ti-login"></i>
               {loading ? "Aguarde..." : "Entrar"}

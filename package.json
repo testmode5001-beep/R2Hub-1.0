@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite dev",
     "_comment:dev:teste": "Hub de TESTE na 8090: banco copiado e pasta de clientes local. Serve para experimentar modal/fluxo novo sem encostar no banco de producao nem criar pasta no \\\\server\\Arte\\Clientes.",
-    "dev:teste": "cross-env DESIGNHUB_DB=./data/teste-modais.db CLIENTES_DIR=./dev-data/Clientes-teste vite dev --port 8090",
+    "dev:teste": "cross-env DESIGNHUB_DB=./data/teste-modais.db CLIENTES_DIR=./dev-data/Clientes-teste ANEXOS_PENDENTES_DIR=./dev-data/anexos-pendentes-teste TUTORIAIS_DIR=./dev-data/Tutoriais-teste vite dev --port 8090",
     "build": "cross-env NITRO_PRESET=node-server vite build",
     "build:dev": "vite build --mode development",
     "preview": "vite preview",

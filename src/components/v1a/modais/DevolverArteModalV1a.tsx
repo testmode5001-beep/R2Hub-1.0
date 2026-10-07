@@ -154,7 +154,7 @@ export function DevolverArteModalV1a({ pedido, fechar, onEnviar }: {
                       onChange={(e) => { setSugIdx(i); setCores(cores.map((c, j) => (j === i ? e.target.value : c))); }}
                       onFocus={() => setSugIdx(i)}
                       onBlur={() => setTimeout(() => setSugIdx((s) => (s === i ? null : s)), 120)}
-                      placeholder={`Cor ${i + 1} — ex.: Pantone 485 C`}
+                      placeholder={`Cor ${i + 1} (ex.: Pantone 485 C)`}
                       style={INP} />
                     {sugestoes.length > 0 && (
                       <div style={{ position: "absolute", left: 0, right: 0, top: "calc(100% + 6px)", zIndex: 8, display: "flex", flexDirection: "column", gap: 2, background: "#fff", borderRadius: 9, padding: 6, boxShadow: "0 20px 40px -18px rgba(0,0,0,.45), 0 0 0 1px #ececec" }}>
@@ -232,7 +232,7 @@ export function DevolverArteModalV1a({ pedido, fechar, onEnviar }: {
               <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke={INK} strokeWidth={3.4} strokeLinecap="round" strokeLinejoin="round" style={{ display: pergunta ? "block" : "none" }}><path d="M4 12.5l5 5L20 6.5" /></svg>
             </span>
             <span style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 3 }}>
-              <span style={{ font: "700 13.5px/1 Inter,sans-serif", color: INK }}>É uma pergunta — preciso de resposta</span>
+              <span style={{ font: "700 13.5px/1 Inter,sans-serif", color: INK }}>É uma pergunta: preciso de resposta</span>
               <span style={{ font: "500 12px/1.35 Inter,sans-serif", color: "#7a787a" }}>
                 Fica em destaque no pedido até {vendedora} responder, e o aviso dela diz que é pergunta.
               </span>
@@ -269,7 +269,7 @@ export function DevolverArteModalV1a({ pedido, fechar, onEnviar }: {
             style={{ flex: "none", boxSizing: "border-box", width: "100%", marginTop: 10, display: "flex", alignItems: "center", justifyContent: "center", gap: 9, background: "#fafafa", border: "2px dashed #d6d5d6", borderRadius: 9, padding: 14, cursor: "pointer" }}>
             <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="#8d8b8d" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 16V5.5" /><path d="m8 9.5 4-4 4 4" /><path d="M4.5 16v3.5h15V16" /></svg>
             <span style={{ font: "400 14.5px/1.4 Inter,sans-serif", color: "#6f6d6f", textAlign: "center" }}>
-              {arquivos.length ? "Anexar mais arquivos" : "Anexar a arte final (PDF, AI, CDR) — vai para a pasta do cliente"}
+              {arquivos.length ? "Anexar mais arquivos" : "Anexar a arte final (PDF, AI, CDR). Vai para a pasta do cliente"}
             </span>
           </button>
         </div>

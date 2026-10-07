@@ -86,3 +86,21 @@ export function LottieHub10({ src, loop = true, className, style, ariaHidden = t
 
   return <div ref={caixa} className={className} style={style} aria-hidden={ariaHidden} />;
 }
+
+/** A dica de rolar das trilhas: a seta piscando para a direita, na c23, no
+    meio da trilha (de 112 a 728). É a mesma em toda trilha do hub, Pedidos,
+    Aprovações, Calculadoras, Arquivos e Facas (Augusto, 30/09/2026: "deixe a
+    mesma seta que temos em pedidos e deixe ela padrão para todas essas
+    situações"; nas Facas havia um mouse). Quem usa decide quando ela aparece
+    (some depois que a pessoa rola). Nas telas do rework v4 ela fica onde o
+    desenho põe a seta parada, na margem da direita e no meio dos cartões
+    (`centro`; Augusto, 02/10/2026: "devolva a animação da seta em todas as
+    páginas com cards"). */
+export function SetaDaTrilha({ centro }: { centro?: [number, number] } = {}) {
+  const [cx, cy] = centro ?? [1808, 424];
+  return (
+    <div className="p10-dica" aria-hidden style={{ position: "absolute", left: cx - 32, top: cy - 32, width: 64, zIndex: 30, pointerEvents: "none", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <LottieHub10 src={LOTTIE.seta} style={{ width: 64, height: 64, transform: "rotate(-90deg)" }} />
+    </div>
+  );
+}

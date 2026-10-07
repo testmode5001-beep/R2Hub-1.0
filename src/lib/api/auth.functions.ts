@@ -61,7 +61,7 @@ export const definirPrimeiraSenha = createServerFn({ method: "POST" })
     const row = db
       .prepare("SELECT precisa_trocar_senha FROM users WHERE id = ?")
       .get(user.id) as { precisa_trocar_senha: number } | undefined;
-    if (!row?.precisa_trocar_senha) throw new Error("Esta conta já tem senha definida — troque em Preferências.");
+    if (!row?.precisa_trocar_senha) throw new Error("Esta conta já tem senha definida. Troque em Preferências.");
 
     db.prepare("UPDATE users SET password_hash = ?, precisa_trocar_senha = 0, updated_at = ? WHERE id = ?").run(
       hashPassword(data.novaSenha),

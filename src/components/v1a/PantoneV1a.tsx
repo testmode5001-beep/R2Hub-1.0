@@ -10,24 +10,15 @@ import {
 import { criarBusca } from "@/lib/busca";
 import { colherBusca, semearBusca } from "@/lib/busca-semente";
 import { PANTONE_SC } from "./dados/pantone";
+import { prefixoPantone } from "./dados/pantone-busca";
 
-function familiaDe(l: [number, number, number]): string {
-  const a = l[1], b = l[2], L = l[0];
-  const croma = Math.sqrt(a * a + b * b);
-  if (croma < 12) return "neutro";
-  let h = (Math.atan2(b, a) * 180) / Math.PI;
-  if (h < 0) h += 360;
-  if (h < 20) return "rosa";
-  if (h < 45) return "vermelho";
-  if (h < 70) return "laranja";
-  if (h < 105) return L > 55 ? "amarelo" : "marrom";
-  if (h < 175) return "verde";
-  if (h < 260) return "azul";
-  if (h < 330) return "rosa";
-  return "vermelho";
-}
+/* A família vem da régua única (dados/familia-cor.ts, em OKLab). A conta que
+   morava aqui cortava pelo ângulo do Lab: punha o 286 C e o Reflex Blue em
+   "Rosas e roxos" e o Rhodamine Red em "Vermelhos" (conferido em 25/09/2026). */
+import { familiaDe } from "./dados/familia-cor";
+export { familiaDe };
 
-const PROCESSO = [
+export const PROCESSO = [
   { codigo: "Ciano", hex: "#009FE3", cmyk: "100/0/0/0", nota: "escala de processo" },
   { codigo: "Magenta", hex: "#E5007E", cmyk: "0/100/0/0", nota: "escala de processo" },
   { codigo: "Amarelo", hex: "#FFED00", cmyk: "0/0/100/0", nota: "escala de processo" },
@@ -38,7 +29,7 @@ const PROCESSO = [
   { codigo: "Branco", hex: "#FFFFFF", cmyk: "—", nota: "tinta especial · cobertura" },
 ];
 
-const FAMILIAS = [
+export const FAMILIAS = [
   { k: "todas", label: "Todas", cor: "#252425" },
   { k: "usados", label: "Pantones usados", cor: "#ffe815" },
   { k: "processo", label: "Processo e especiais", cor: "#009FE3" },
@@ -59,7 +50,7 @@ const FAMILIAS = [
  * "vermelho" traz os 457 vermelhos; "vermelho sangue" traz só os escuros.
  * Termos compridos entram antes dos curtos ("azul bic" antes de "azul").
  */
-type Recorte = { familia?: string; familias?: string[]; L?: [number, number]; croma?: [number, number] };
+export type Recorte = { familia?: string; familias?: string[]; L?: [number, number]; croma?: [number, number] };
 /* A ORDEM MANDA: vale o PRIMEIRO termo que aparecer dentro da busca. Por isso
    o específico vem sempre antes do genérico ("terracota" antes de "terra",
    "azul bic" antes de "azul") — invertido, "terra" engoliria "terracota". */
@@ -258,7 +249,7 @@ const semAcento = (t: string) => t.toLowerCase().normalize("NFD").replace(/[̀-�
  * "mel" e "dourado" contém "ouro", então quem digitasse caramelo levava o
  * recorte do mel. Cercando o termo de espaços, "mel" só casa com mel.
  */
-function recorteDaBusca(consulta: string): { termo: string; recorte: Recorte } | null {
+export function recorteDaBusca(consulta: string): { termo: string; recorte: Recorte } | null {
   const q = ` ${semAcento(consulta).replace(/[^a-z0-9]+/g, " ").trim()} `;
   if (q.trim() === "") return null;
   for (const [termo, recorte] of NOMES_DE_COR) if (q.includes(` ${termo} `)) return { termo, recorte };
@@ -267,7 +258,7 @@ function recorteDaBusca(consulta: string): { termo: string; recorte: Recorte } |
 
 const LIMITE = 320;
 
-function cmykDe(hex: string) {
+export function cmykDe(hex: string) {
   const n = parseInt(hex.slice(1), 16);
   const r = ((n >> 16) & 255) / 255, g = ((n >> 8) & 255) / 255, b = (n & 255) / 255;
   const k = 1 - Math.max(r, g, b);
@@ -282,7 +273,7 @@ type Cor = { codigo: string; nome: string; hex: string; cmyk: string; lab: strin
 /** Nome de cliente comparável: sem acento, sem pontuação, caixa alta.
  *  O pedido escreve "O PONTO DA CARNE A FAVORITA" e o Arquivos guarda o mesmo
  *  nome, mas acento e espaço dobrado não podem estragar o encontro. */
-function chaveNome(s: string): string {
+export function chaveNome(s: string): string {
   return String(s || "")
     .normalize("NFD").replace(/[̀-ͯ]/g, "")
     .toUpperCase().replace(/[^A-Z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
@@ -380,7 +371,7 @@ export function PantoneV1a({ profile, pedidos, versao, aoNavegar, onNova, onLogo
        encontrou no color book depois dele */
     return proc.concat(PANTONE_SC.concat(extras).map((c) => ({
       codigo: c.c,
-      nome: "Pantone " + c.c,
+      nome: prefixoPantone(c.c),
       hex: c.h.toUpperCase(),
       cmyk: cmykDe(c.h),
       lab: `L ${c.l[0]}  a ${c.l[1]}  b ${c.l[2]}`,
@@ -577,7 +568,7 @@ export function PantoneV1a({ profile, pedidos, versao, aoNavegar, onNova, onLogo
                   {copiado ? "Código copiado" : selecionada ? `Copiar ${selecionada.nome}` : "Copiar código"}
                 </button>
                 <div style={{ font: "400 13.5px/1.4 Inter,sans-serif", color: "#8d8b8d", marginTop: 12 }}>
-                  Lab é o valor oficial do color book; hex e CMYK são conversões para tela — confira no leque físico.
+                  Lab é o valor oficial do color book; hex e CMYK são conversões para tela. Confira no leque físico.
                 </div>
               </div>
             </div>
@@ -613,7 +604,7 @@ export function PantoneV1a({ profile, pedidos, versao, aoNavegar, onNova, onLogo
                       <button key={c.codigo} type="button" className="r2card"
                         onClick={() => { setSel(c); setCopiado(false); }}
                         onDoubleClick={() => { setSel(c); setCopiado(false); setAmpliada(true); }}
-                        title={`${uso ? `${c.nome} — usado em: ${uso.onde.map((o) => { const pa = pastaDe(o.cliente); return `#${o.numero} ${o.cliente}${pa ? ` (pasta ${pa.pasta})` : ""}`; }).join(", ")}` : c.nome} · dois cliques amplia`}
+                        title={`${uso ? `${c.nome} · usado em: ${uso.onde.map((o) => { const pa = pastaDe(o.cliente); return `#${o.numero} ${o.cliente}${pa ? ` (pasta ${pa.pasta})` : ""}`; }).join(", ")}` : c.nome} · dois cliques amplia`}
                         style={{ display: "flex", flexDirection: "column", overflow: "hidden", border: 0, padding: 0, cursor: "pointer", textAlign: "left", borderRadius: 10, background: "#fff", boxShadow: on ? `0 0 0 3px ${INK}` : "0 0 0 1px #ececec" }}>
                         {/* contorno de dentro: sem ele o Branco some no cartão branco */}
                         <span style={{ display: "block", height: 58, background: c.hex, width: "100%", boxShadow: "inset 0 0 0 1px rgba(37,36,37,.16)" }} />
@@ -641,7 +632,7 @@ export function PantoneV1a({ profile, pedidos, versao, aoNavegar, onNova, onLogo
                         fica sem saber que dá para procurar pelo nome da cor */}
                     {busca.trim() !== "" && !achadoNome && (
                       <span style={{ display: "block", marginTop: 10 }}>
-                        Também dá para procurar pelo <strong style={{ color: "#5c5a5c" }}>nome da cor</strong> — azul bic, verde bandeira,
+                        Também dá para procurar pelo <strong style={{ color: "#5c5a5c" }}>nome da cor</strong>: azul bic, verde bandeira,
                         vinho, terracota, off white, cinza chumbo, mostarda…
                       </span>
                     )}

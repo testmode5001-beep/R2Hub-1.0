@@ -8,7 +8,6 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
-import { Toaster } from "sonner";
 
 import appCss from "../styles.css?url";
 import { AvisoVersaoNova } from "../components/AvisoVersaoNova";
@@ -59,7 +58,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "stylesheet", href: appCss },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fraunces:opsz,wght,SOFT@9..144,100..900,0..100&family=JetBrains+Mono:wght@400;600;700&display=swap" },
+      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,800&family=Fraunces:opsz,wght,SOFT@9..144,100..900,0..100&family=JetBrains+Mono:wght@400;600;700&display=swap" },
       { rel: "stylesheet", href: "https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" },
     ],
   }),
@@ -83,7 +82,6 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <Outlet />
-      <Toaster richColors position="top-center" />
       {/* fica na raiz para valer em TODAS as telas, inclusive a do celular */}
       <AvisoVersaoNova />
     </QueryClientProvider>

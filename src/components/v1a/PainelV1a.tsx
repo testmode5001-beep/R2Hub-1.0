@@ -278,7 +278,7 @@ export function PainelV1a({ profile, pedidos, versao, aoNavegar, onNova, onLogou
       ? `Esta OS já está na ${lista.find((x) => x.k === jaNaMaquina[0])?.nome ?? "máquina"}.`
       : ["Clichê recebido", "Em produção", "Finalizado"].includes(status)
         ? ""
-        : `Atenção: ${num} está em "${status}" — o clichê ainda não chegou.`);
+        : `Atenção: ${num} está em "${status}". O clichê ainda não chegou.`);
   }
 
   function carregar(k: string) {
@@ -297,7 +297,7 @@ export function PainelV1a({ profile, pedidos, versao, aoNavegar, onNova, onLogou
     }
     setAchado(null);
     setOs("");
-    setAviso(`${achado.num} entrou na ${nome} — cronômetro rodando.`);
+    setAviso(`${achado.num} entrou na ${nome}. Cronômetro rodando.`);
   }
 
   function encerrar(k: string, tipo: "fim" | "cancelado") {
@@ -473,7 +473,7 @@ export function PainelV1a({ profile, pedidos, versao, aoNavegar, onNova, onLogou
               <span style={{ font: "400 14.5px/1.45 Inter,sans-serif", color: "#8d8b8d", maxWidth: 270, textAlign: "right" }}>
                 {achado
                   ? (livres.length ? "Escolha a máquina para iniciar:" : "Todas as máquinas estão ocupadas.")
-                  : "O pedido vem do cadastro — matéria-prima e cores entram na máquina."}
+                  : "O pedido vem do cadastro: matéria-prima e cores entram na máquina."}
               </span>
               {achado && livres.map((m) => (
                 <button key={m.k} type="button" onClick={() => carregar(m.k)} className="r2chip" style={{ border: 0, borderRadius: 999, padding: "12px 15px", cursor: "pointer", font: "700 13.5px/1 Inter,sans-serif", letterSpacing: ".04em", textTransform: "uppercase", whiteSpace: "nowrap", background: AMARELO, color: INK }}>
@@ -488,7 +488,7 @@ export function PainelV1a({ profile, pedidos, versao, aoNavegar, onNova, onLogou
             <span style={{ flex: "none", font: "700 12.5px/1 Inter,sans-serif", letterSpacing: ".12em", textTransform: "uppercase", color: "#8d8b8d", whiteSpace: "nowrap" }}>Leituras da produção</span>
             <div style={{ flex: 1, minWidth: 0, display: "flex", gap: 7, overflow: "auto" }}>
               {leituras.filter((l) => !l.usada).length === 0 && (
-                <span style={{ font: "400 14.5px/1 Inter,sans-serif", color: "#b3b1b3", whiteSpace: "nowrap" }}>nenhuma leitura na fila — capture pela tela Leitura</span>
+                <span style={{ font: "400 14.5px/1 Inter,sans-serif", color: "#b3b1b3", whiteSpace: "nowrap" }}>nenhuma leitura na fila: capture pela tela Leitura</span>
               )}
               {leituras.filter((l) => !l.usada).map((l) => (
                 <button
@@ -708,7 +708,7 @@ export function PainelV1a({ profile, pedidos, versao, aoNavegar, onNova, onLogou
               <div style={{ flex: "none", background: INK, borderRadius: 12, padding: "18px 20px" }}>
                 <span style={{ font: "700 12.5px/1 Inter,sans-serif", letterSpacing: ".12em", textTransform: "uppercase", color: AMARELO }}>Quem pode ver valores</span>
                 <div style={{ font: "400 14.5px/1.5 Inter,sans-serif", color: "#b3b1b3", marginTop: 10 }}>
-                  Controlado pela permissão <b style={{ color: "#f1f1f1" }}>Custos da fábrica (ver)</b> — ajuste em Equipe → Permissões de cada pessoa.
+                  Controlado pela permissão <b style={{ color: "#f1f1f1" }}>Custos da fábrica (ver)</b>. Ajuste em Equipe → Permissões de cada pessoa.
                 </div>
               </div>
             ) : (

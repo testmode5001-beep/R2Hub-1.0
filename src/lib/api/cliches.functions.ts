@@ -81,7 +81,7 @@ export const criarSolicitacaoCliche = createServerFn({ method: "POST" })
     const html = `
       <div style="font-family:Arial,sans-serif;font-size:14px;color:#222">
         <h2 style="margin:0 0 4px">Solicitação de Clichê #${String(numero).padStart(4, "0")}</h2>
-        <p style="margin:0 0 12px;color:#666">R2 Etiquetas — enviada por ${user.nome} em ${new Date().toLocaleString("pt-BR")}</p>
+        <p style="margin:0 0 12px;color:#666">R2 Etiquetas · enviada por ${user.nome} em ${new Date().toLocaleString("pt-BR")}</p>
         ${data.cliente ? `<p><b>Cliente/Referência:</b> ${data.cliente}</p>` : ""}
         <p><b>Tipo de clichê:</b> ${data.tipo}</p>
         <p style="margin-bottom:4px"><b>Cores (${data.cores.length}):</b></p>
@@ -92,7 +92,7 @@ export const criarSolicitacaoCliche = createServerFn({ method: "POST" })
 
     const resultado = await enviarEmail({
       para: destino ?? "",
-      assunto: `Solicitação de Clichê #${String(numero).padStart(4, "0")}${data.cliente ? ` — ${data.cliente}` : ""} — R2 Etiquetas`,
+      assunto: `Solicitação de Clichê #${String(numero).padStart(4, "0")}${data.cliente ? ` · ${data.cliente}` : ""} · R2 Etiquetas`,
       html,
       anexos: salvos.map((s) => ({ nome: s.nome, conteudo: s.conteudo })),
     });
@@ -113,7 +113,7 @@ export const criarSolicitacaoCliche = createServerFn({ method: "POST" })
       usersWithRoles(["gestor", "admin"]),
       user.id,
       "Solicitação de clichê",
-      `#${String(numero).padStart(4, "0")} — ${data.motivo}${data.cliente ? ` (${data.cliente})` : ""}`,
+      `#${String(numero).padStart(4, "0")} · ${data.motivo}${data.cliente ? ` (${data.cliente})` : ""}`,
       "/hub?tela=aprovacao",
     );
     audit({ id: user.id, nome: user.nome }, "cliche.solicitar", "cliche_solicitacoes", id, {
@@ -139,6 +139,24 @@ export const listSolicitacoesCliche = createServerFn({ method: "POST" })
 
 /* ===================== APONTAMENTOS ===================== */
 
+/* O motivo no texto do histórico ("Clichê marcado para refação. Motivo: X
+   (obs)"), lido sem regex: o texto vem da tela, e a regex de antes custava N³
+   num texto com muitos espaços (travava o hub inteiro). Motivo da lista com
+   parênteses ("Gasto (uso)") sai inteiro: confere primeiro com a lista. */
+function motivoDaRefacao(obs: string | null, daLista: string[]): string {
+  if (!obs) return "";
+  const i = obs.indexOf("Motivo:");
+  if (i < 0) return "";
+  let resto = obs.slice(i + 7).trim();
+  const achado = daLista
+    .filter((m) => resto === m || resto === `${m}.` || resto.startsWith(`${m} (`))
+    .sort((a, b) => b.length - a.length)[0];
+  if (achado) return achado;
+  const p = resto.indexOf(" (");
+  if (p >= 0) resto = resto.slice(0, p);
+  return resto.endsWith(".") ? resto.slice(0, -1).trim() : resto.trim();
+}
+
 export const getApontamentos = createServerFn({ method: "POST" })
   .validator(z.object({ de: z.string().min(10), ate: z.string().min(10) }))
   .middleware([requireAuth])
@@ -155,12 +173,17 @@ export const getApontamentos = createServerFn({ method: "POST" })
        vez que o lançamento (ou uma correção dele) acontecia dias depois — o
        gasto migrava de mês junto com a digitação. */
     const DIA_DO_GASTO = "COALESCE(data_chegada, date(created_at, 'localtime'))";
+    /* `qtde` é o número de chegadas (registros); `itens`, o de clichês que
+       chegaram (cada cor lançada num registro é um clichê). O relatório
+       mostrava as chegadas como "clichês recebidos" (simulação 5, 05/10/2026:
+       3 chegadas com 8 clichês). */
     const clichesResumo = db
       .prepare(
-        `SELECT COUNT(*) AS qtde, COALESCE(SUM(total), 0) AS total
+        `SELECT COUNT(*) AS qtde, COALESCE(SUM(total), 0) AS total,
+                COALESCE(SUM(CASE WHEN json_valid(itens) THEN json_array_length(itens) ELSE 0 END), 0) AS itens
          FROM cliche_registros WHERE ${DIA_DO_GASTO} BETWEEN ? AND ?`,
       )
-      .get(de, ate) as { qtde: number; total: number };
+      .get(de, ate) as { qtde: number; total: number; itens: number };
 
     const clichesPorDia = db
       .prepare(
@@ -178,6 +201,27 @@ export const getApontamentos = createServerFn({ method: "POST" })
          GROUP BY motivo ORDER BY qtde DESC`,
       )
       .all(de, ate);
+
+    /* Refações de clichê por motivo: as marcadas dentro do pedido e as de
+       clientes antigos cadastradas pelo "Refazer clichê" de Aprovações, juntas
+       (Augusto, 02/10/2026). As duas gravam no histórico o mesmo texto,
+       "Clichê marcado para refação. Motivo: X (observação)". */
+    const refacoesNoPeriodo = db
+      .prepare(
+        `SELECT observacao FROM pedido_historico
+         WHERE status = 'refazer_cliche' AND date(created_at, 'localtime') BETWEEN ? AND ?
+           AND COALESCE(observacao, '') NOT LIKE 'Pedido reativado%'`,
+      )
+      .all(de, ate) as { observacao: string | null }[];
+    const motivosDaLista = (db.prepare("SELECT nome FROM cliche_motivos").all() as { nome: string }[]).map((m) => m.nome);
+    const contaRefacao = new Map<string, number>();
+    for (const r of refacoesNoPeriodo) {
+      const motivo = motivoDaRefacao(r.observacao, motivosDaLista) || "Sem motivo registrado";
+      contaRefacao.set(motivo, (contaRefacao.get(motivo) ?? 0) + 1);
+    }
+    const refacoesPorMotivo = [...contaRefacao]
+      .map(([motivo, qtde]) => ({ motivo, qtde }))
+      .sort((a, b) => b.qtde - a.qtde);
 
     // Pedidos criados no período: matéria-prima, medidas e vendedoras
     const materias = db
@@ -223,6 +267,19 @@ export const getApontamentos = createServerFn({ method: "POST" })
         `SELECT COUNT(*) AS qtde FROM pedidos WHERE date(created_at, 'localtime') BETWEEN ? AND ?`,
       )
       .get(de, ate) as { qtde: number };
+
+    /* Os movimentos do período, do histórico dos pedidos: quando, qual pedido,
+       para qual etapa e quem. A observação fica de fora (pode levar o valor do
+       clichê, que nem todo mundo vê). Os "Últimos movimentos" do relatório
+       eram os pedidos com o status de agora (simulação 5, 05/10/2026). */
+    const movimentos = db
+      .prepare(
+        `SELECT h.created_at AS quando, p.numero AS numero, p.cliente AS cliente, h.status AS status, h.user_nome AS quem
+         FROM pedido_historico h JOIN pedidos p ON p.id = h.pedido_id
+         WHERE date(h.created_at, 'localtime') BETWEEN ? AND ?
+         ORDER BY h.created_at DESC LIMIT 300`,
+      )
+      .all(de, ate) as { quando: string; numero: number; cliente: string; status: string; quem: string | null }[];
 
     // Facas para afiação: eventos DO PERÍODO (enviadas, novas pedidas)
     const facasResumo = db
@@ -290,6 +347,7 @@ export const getApontamentos = createServerFn({ method: "POST" })
       cliches: clichesResumo,
       clichesPorDia,
       solicitacoesPorMotivo,
+      refacoesPorMotivo,
       materias,
       medidas,
       vendedoras,
@@ -299,5 +357,83 @@ export const getApontamentos = createServerFn({ method: "POST" })
       facasCompradas,
       facasPorSubstrato,
       facasPorEstado,
+      movimentos,
+      cartoes: cartoesDoRelatorio(db, de, ate),
     };
   });
+
+/** As contas dos cartões de Relatórios (Augusto, 07/10/2026): o que cada
+    cartão precisa, do banco, sem teto (os movimentos acima param em 300).
+    Pedidos: alterações (o Pedir revisão), cancelados e o tempo da
+    solicitação à primeira aprovação. Clichês: cada chegada do período com a
+    espessura do pedido, a primeira aprovação (a espera até a chegada) e se
+    ela veio depois de uma refação (o valor dos refeitos); as refações por
+    cliente, no período e desde sempre. */
+function cartoesDoRelatorio(db: ReturnType<typeof getDb>, de: string, ate: string) {
+  const NO_PERIODO = "date(h.created_at, 'localtime') BETWEEN ? AND ?";
+  const alteracoes = db
+    .prepare(
+      `SELECT h.created_at AS quando, p.numero AS numero, p.cliente AS cliente
+       FROM pedido_historico h JOIN pedidos p ON p.id = h.pedido_id
+       WHERE h.status = 'revisao' AND ${NO_PERIODO} ORDER BY h.created_at`,
+    )
+    .all(de, ate) as { quando: string; numero: number; cliente: string }[];
+  const cancelados = db
+    .prepare(
+      `SELECT p.numero AS numero, p.cliente AS cliente, MIN(h.created_at) AS quando
+       FROM pedido_historico h JOIN pedidos p ON p.id = h.pedido_id
+       WHERE h.status = 'cancelado' AND ${NO_PERIODO} GROUP BY p.id ORDER BY quando`,
+    )
+    .all(de, ate) as { numero: number; cliente: string; quando: string }[];
+  /* a primeira aprovação de cada pedido, quando ela cai no período */
+  const aprovacoes = db
+    .prepare(
+      `SELECT p.numero AS numero, p.cliente AS cliente, p.created_at AS entrada, MIN(h.created_at) AS aprovado
+       FROM pedido_historico h JOIN pedidos p ON p.id = h.pedido_id
+       WHERE h.status = 'aprovada' GROUP BY p.id
+       HAVING date(MIN(h.created_at), 'localtime') BETWEEN ? AND ?`,
+    )
+    .all(de, ate) as { numero: number; cliente: string; entrada: string; aprovado: string }[];
+  const chegadas = db
+    .prepare(
+      `SELECT r.total AS total, r.itens AS itens, r.data_chegada AS data_chegada, r.hora_chegada AS hora_chegada, r.created_at AS lancado,
+              p.numero AS numero, p.cliente AS cliente, p.cliche_espessura AS espessura,
+              (SELECT MIN(h.created_at) FROM pedido_historico h WHERE h.pedido_id = r.pedido_id AND h.status = 'aprovada') AS aprovado,
+              (SELECT COUNT(*) FROM pedido_historico h WHERE h.pedido_id = r.pedido_id AND h.status = 'refazer_cliche'
+                 AND COALESCE(h.observacao, '') NOT LIKE 'Pedido reativado%' AND h.created_at < r.created_at) AS refacoes_antes
+       FROM cliche_registros r LEFT JOIN pedidos p ON p.id = r.pedido_id
+       WHERE COALESCE(r.data_chegada, date(r.created_at, 'localtime')) BETWEEN ? AND ?
+       ORDER BY r.created_at`,
+    )
+    .all(de, ate) as {
+      total: number | null; itens: string | null; data_chegada: string | null; hora_chegada: string | null; lancado: string;
+      numero: number | null; cliente: string | null; espessura: string | null; aprovado: string | null; refacoes_antes: number;
+    }[];
+  const REFACAO = "h.status = 'refazer_cliche' AND COALESCE(h.observacao, '') NOT LIKE 'Pedido reativado%'";
+  const refacoesPorCliente = db
+    .prepare(
+      `SELECT p.cliente AS cliente, COUNT(*) AS qtde
+       FROM pedido_historico h JOIN pedidos p ON p.id = h.pedido_id
+       WHERE ${REFACAO} AND ${NO_PERIODO} GROUP BY p.cliente ORDER BY qtde DESC`,
+    )
+    .all(de, ate) as { cliente: string; qtde: number }[];
+  const refacoesDesdeSempre = db
+    .prepare(
+      `SELECT p.cliente AS cliente, COUNT(*) AS qtde
+       FROM pedido_historico h JOIN pedidos p ON p.id = h.pedido_id
+       WHERE ${REFACAO} GROUP BY p.cliente`,
+    )
+    .all() as { cliente: string; qtde: number }[];
+  return {
+    alteracoes,
+    cancelados,
+    aprovacoes,
+    chegadas: chegadas.map((c) => {
+      let n = 0;
+      try { n = c.itens ? (JSON.parse(c.itens) as unknown[]).length : 0; } catch { n = 0; }
+      return { ...c, itens: n };
+    }),
+    refacoesPorCliente,
+    refacoesDesdeSempre,
+  };
+}
