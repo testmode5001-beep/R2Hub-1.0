@@ -7,10 +7,12 @@
 // Preto; na Frios & Cia traz 220 C e a legenda diz as quatro de escala e
 // Verniz. Vale o que a legenda diz.
 //
-// Nas provas de hoje a folha inteira é uma imagem de 300 dpi, então a legenda
-// não é texto. A leitura desenha a página com o pdf.js e passa o OCR (o
-// tesseract local, o mesmo de ocr-op.ts) na coluna da direita, onde o modelo
-// da R2 põe a legenda.
+// Nas provas até 30/09/2026 a folha inteira era uma imagem de 300 dpi (em
+// CMYK mais os Pantones), então a legenda não era texto; desde 01/10 a prova
+// sai em sRGB e a página é desenho. Nos dois casos a leitura desenha a página
+// com o pdf.js e passa o OCR (o tesseract local, o mesmo de ocr-op.ts) na
+// coluna da direita, onde o modelo da R2 põe a legenda. A prova no jeito
+// antigo também avisa (provaEmCmyk): no celular e no WhatsApp a cor muda.
 //
 // Desenhar respeita as camadas desligadas, e isso importa: o modelo novo tem
 // uma camada "CMYK", escondida, com "Ciano, Magenta, Amarelo, Preto" em
@@ -34,7 +36,7 @@ export type LinhaLida = {
   palavras?: { texto: string; x0: number; confianca: number }[];
 };
 
-export type LeituraDaProva =
+export type LeituraDaProva = (
   | {
       ok: true;
       /** na ordem da legenda, no jeito que o hub escreve ("P 2314 C") */
@@ -47,7 +49,12 @@ export type LeituraDaProva =
       /** Pantones que o arquivo tem e a legenda não cita */
       foraDaLegenda: string[];
     }
-  | { ok: false; motivo: "nao-e-prova" | "sem-legenda" };
+  | { ok: false; motivo: "nao-e-prova" | "sem-legenda" }
+) & {
+  /** a prova saiu no jeito antigo, em CMYK ou PDF/X (ver provaEmCmyk); só vem
+      quando o arquivo é mesmo uma prova */
+  emCmyk?: boolean;
+};
 
 const semAcento = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "");
 
@@ -273,6 +280,22 @@ export function separacoesDoPdf(textos: string[]): string[] {
   return nomes;
 }
 
+/** A prova saiu no jeito antigo: PDF/X com perfil de saída, ou cores em
+    CMYK ou DeviceN (a folha numa imagem em CMYK mais os Pantones). Cada
+    visualizador converte essas cores do seu jeito, e no celular e no WhatsApp
+    a cor muda; a prova exportada em sRGB mostra o mesmo em todos (medido em
+    07/10/2026 no PDFium, no pdf.js e no Ghostscript). Procura só nos
+    dicionários do PDF: o corpo dos streams (desenho, imagens e a cópia
+    editável que o Illustrator grava junto, onde também aparece /DeviceCMYK)
+    fica de fora. Conferido nas 82 provas anexadas de 20/09 a 07/10: as até
+    30/09 dão sim (menos as duas já em sRGB), as de outubro dão não (menos uma
+    de 06/10 exportada do jeito antigo). */
+export function provaEmCmyk(textos: string[]): boolean {
+  const [bruto = "", ...objetos] = textos;
+  const dicionarios = [bruto.replace(/(?<!end)stream\r?\n[\s\S]*?endstream/g, "stream endstream"), ...objetos];
+  return dicionarios.some((t) => /\/GTS_PDFX|\/OutputIntents|\/DeviceN\b|\/DeviceCMYK\b/.test(t));
+}
+
 async function inflar(dados: Uint8Array): Promise<string> {
   const fluxo = new Blob([dados.slice()]).stream().pipeThrough(new DecompressionStream("deflate"));
   return new TextDecoder("latin1").decode(await new Response(fluxo).arrayBuffer());
@@ -402,7 +425,9 @@ export async function lerCoresDaProva(arquivo: Blob, aoProgresso?: (pct: number)
     return { ok: false, motivo: "nao-e-prova" };
   }
   // antes do pdf.js, que transfere o buffer para o worker dele
-  const separacoes = separacoesDoPdf(await textosDoPdf(bytes));
+  const textos = await textosDoPdf(bytes);
+  const separacoes = separacoesDoPdf(textos);
+  const emCmyk = provaEmCmyk(textos);
 
   const { libPdfJs } = await import("./pdf-preview");
   const pdfjs = await libPdfJs();
@@ -427,7 +452,9 @@ export async function lerCoresDaProva(arquivo: Blob, aoProgresso?: (pct: number)
 
     const linhasOcr = await linhasDoOcr(tela, aoProgresso);
     const conteudo = await pagina.getTextContent();
-    return interpretarLeitura(linhasOcr, linhasDoTextoDoPdf(conteudo.items, vp, x0), separacoes);
+    const r = interpretarLeitura(linhasOcr, linhasDoTextoDoPdf(conteudo.items, vp, x0), separacoes);
+    /* o aviso de CMYK só vale para prova (a arte final vai em CMYK mesmo) */
+    return r.ok || r.motivo === "sem-legenda" ? { ...r, emCmyk } : r;
   } finally {
     // a imagem da prova tem dezenas de MB depois de aberta: solta tudo
     void tarefa.destroy();

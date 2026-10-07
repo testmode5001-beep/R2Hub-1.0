@@ -93,9 +93,9 @@ const TITULO_FAIXA: CSSProperties = {
 
 /** Avisos da leitura da prova: amarelam, não impedem (o mesmo da caixa
     "Clichê chegou"). */
-function Aviso({ texto }: { texto: string }) {
+function Aviso({ texto, primeiro = false }: { texto: string; primeiro?: boolean }) {
   return (
-    <div style={{ marginTop: 10, display: "flex", alignItems: "flex-start", gap: 9, background: PALETA.amarelo, border: `1px solid ${PRETO}`, borderRadius: 12, padding: "10px 14px", font: `600 15px/1.4 ${INTER}`, color: PRETO }}>
+    <div style={{ marginTop: primeiro ? 0 : 10, display: "flex", alignItems: "flex-start", gap: 9, background: PALETA.amarelo, border: `1px solid ${PRETO}`, borderRadius: 12, padding: "10px 14px", font: `600 15px/1.4 ${INTER}`, color: PRETO }}>
       <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke={PRETO} strokeWidth={2.4} strokeLinecap="round" style={{ flex: "none", marginTop: 2 }}>
         <path d="M12 4 2.5 20h19z" /><line x1="12" y1="10" x2="12" y2="14" /><line x1="12" y1="17" x2="12" y2="17" />
       </svg>
@@ -200,6 +200,10 @@ export function DesignCriadoHub10({ pedido, versaoSugerida = "v1", fechar, onEnv
   const [leitura, setLeitura] = useState<{ arquivo: string; conferir: string[]; foraDaLegenda: string[] } | null>(null);
   const [antesDaLeitura, setAntesDaLeitura] = useState<{ cores: string[]; hex: Record<number, string> } | null>(null);
   const [avisoLeitura, setAvisoLeitura] = useState("");
+  /* As provas anexadas que saíram no jeito antigo, em CMYK ou PDF/X: no
+     celular e no WhatsApp a cor muda (Augusto, 07/10/2026). Avisa, não trava;
+     a mesma prova lida de novo em sRGB, ou tirada da lista, apaga o aviso. */
+  const [provasEmCmyk, setProvasEmCmyk] = useState<string[]>([]);
   /* A leitura leva alguns segundos e dá para anexar de novo no meio. Cada
      leitura tem um número; uma mais velha só não preenche se uma mais nova
      JÁ preencheu. Anexar a arte final durante a leitura da prova não joga a
@@ -228,6 +232,10 @@ export function DesignCriadoHub10({ pedido, versaoSugerida = "v1", fechar, onEnv
           console.warn("Leitura das cores da prova", f.name, e);
           aviso = `Não consegui ler as cores de ${f.name}. Preencha as cores à mão.`;
           continue;
+        }
+        if (r.ok || r.motivo === "sem-legenda") {
+          const nome = f.name, emCmyk = !!r.emCmyk;
+          setProvasEmCmyk((xs) => (emCmyk ? (xs.includes(nome) ? xs : [...xs, nome]) : xs.filter((x) => x !== nome)));
         }
         if (r.ok) {
           /* uma leitura mais nova já preencheu, ou o design já está indo */
@@ -319,6 +327,9 @@ export function DesignCriadoHub10({ pedido, versaoSugerida = "v1", fechar, onEnv
   const previaRecado = obs.trim()
     ? (obs.trim().length > 46 ? `${obs.trim().slice(0, 46)}…` : obs.trim())
     : "opcional";
+  const avisoCmyk = provasEmCmyk.length
+    ? `${provasEmCmyk.length === 1 ? `A prova ${provasEmCmyk[0]} saiu` : `As provas ${juntarCores(provasEmCmyk)} saíram`} em CMYK: no celular e no WhatsApp as cores mudam. Exporte de novo em sRGB (Converter em destino, sRGB IEC61966-2.1).`
+    : "";
 
   return (
     <div onClick={fechar} ref={veuRef}
@@ -431,7 +442,12 @@ export function DesignCriadoHub10({ pedido, versaoSugerida = "v1", fechar, onEnv
                     {leitura.foraDaLegenda.length > 0 && (
                       <Aviso texto={`O arquivo também tem ${juntarCores(leitura.foraDaLegenda)}, que não ${leitura.foraDaLegenda.length === 1 ? "está" : "estão"} na legenda.`} />
                     )}
+                    {avisoCmyk && <Aviso texto={avisoCmyk} />}
                   </div>
+                )}
+                {/* sem a legenda lida, o aviso de CMYK abre a lista sozinho */}
+                {!leitura && avisoCmyk && (
+                  <div style={{ marginBottom: 16 }}><Aviso texto={avisoCmyk} primeiro /></div>
                 )}
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px 12px" }}>
                   {cores.map((valor, i) => {
@@ -517,7 +533,11 @@ export function DesignCriadoHub10({ pedido, versaoSugerida = "v1", fechar, onEnv
                   {arquivos.map((f, i) => (
                     <div key={`${f.name}-${f.size}-${f.lastModified}`} style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, font: `500 15px/1.3 ${INTER}`, color: PRETO }}>
                       <span style={{ flex: 1, minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} title={f.name}>{f.name}</span>
-                      <button onClick={() => setArquivos(arquivos.filter((_, j) => j !== i))} className="p10-flat" aria-label={`Tirar ${f.name}`}
+                      <button onClick={() => {
+                        const resta = arquivos.filter((_, j) => j !== i);
+                        setArquivos(resta);
+                        setProvasEmCmyk((xs) => xs.filter((x) => resta.some((a) => a.name === x)));
+                      }} className="p10-flat" aria-label={`Tirar ${f.name}`}
                         style={{ flex: "none", width: 24, height: 24, display: "grid", placeItems: "center", background: "none", border: "none", padding: 0, cursor: "pointer" }}>
                         <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke={PRETO} strokeWidth={2.6} strokeLinecap="round"><path d="M6 6l12 12" /><path d="M18 6L6 18" /></svg>
                       </button>
@@ -525,6 +545,7 @@ export function DesignCriadoHub10({ pedido, versaoSugerida = "v1", fechar, onEnv
                   ))}
                 </div>
               )}
+              {avisoCmyk && <Aviso texto={avisoCmyk} />}
               {lendoCores && (
                 <div style={{ marginTop: 12, font: `600 15px/1.4 ${INTER}`, color: CINZA, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                   Lendo as cores de {lendoCores}…

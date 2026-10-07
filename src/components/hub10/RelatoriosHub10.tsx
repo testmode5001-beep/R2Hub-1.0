@@ -9,27 +9,26 @@
 // Primeiro foi um cartão por número; depois de ver, ele pediu "um card só para
 // os pedidos e um para aprovação, no de pedidos na capa coloque o total de
 // pedidos solicitados e dentro do card as demais informações", e nos clichês
-// a mesma coisa (07/10/2026).
+// a mesma coisa (07/10/2026). Depois, no mesmo dia: "aprovação vai para dentro
+// do card clichês aprovados" e as facas novas para dentro do cartão de Facas.
 //
 // Os números que ele pediu (07/10/2026):
 // - Pedidos: os solicitados na capa; dentro, as alterações (o Pedir revisão),
 //   os cancelados e as vendedoras.
-// - Aprovação: as artes aprovadas na capa; dentro, o tempo da solicitação à
-//   primeira aprovação da arte.
 // - Clichês aprovados (cada cor que chegou é um clichê) na capa; dentro, os
 //   valores e a média por clichê, separados em 1.14 e 1.70 (a espessura
 //   escolhida no Enviar p/ clicheria, desde a migração 52; o que veio antes
-//   fica "sem espessura"), e a espera da aprovação da arte à chegada.
+//   fica "sem espessura"), as artes aprovadas, o tempo da solicitação à
+//   primeira aprovação da arte e o da aprovação à chegada do clichê.
 // - Clichês refeitos na capa; dentro, os motivos, o valor e as vezes que cada
 //   cliente já refez.
 // - Pantones: os diferentes que foram pedidos e os mais usados.
-// - Facas e medidas: as facas diferentes e as mais usadas, os pedidos com faca
-//   nova, as medidas diferentes e as mais pedidas.
+// - Facas: as diferentes na capa; dentro, as mais usadas e os pedidos com
+//   faca nova. Medidas: as diferentes e as mais pedidas.
 // - Arquivo físico: as pastas vagas (é o estado de hoje, não o do período).
 //
 // As bolinhas mostram a quantidade que o número diz: uma por item (acima de
-// 100, cada bolinha vale vários, e o cartão diz quantos); nos tempos, quantos
-// foram rápidos, médios e demorados; nos valores e nas vagas, as partes do
+// 100, cada bolinha vale vários, e o cartão diz quantos); nas vagas, as partes do
 // todo. Antes (02/10/2026) a página era a dos Relatórios antigos no molde novo;
 // a cópia ficou no scratchpad da sessão efce7741 (relatorios-antigo).
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -392,7 +391,6 @@ export function RelatoriosHub10({ profile, pedidos, aoNavegar, onNova, onLogout,
     const cancelados = c?.cancelados ?? [];
     const aprovs = (c?.aprovacoes ?? []).map((x) => ({ ...x, h: horas(x.entrada, x.aprovado) })).filter((x) => x.h !== null) as { numero: number; cliente: string; h: number }[];
     const tAprov = media(aprovs.map((x) => x.h));
-    const ate1 = aprovs.filter((x) => x.h <= 24).length, ate3 = aprovs.filter((x) => x.h > 24 && x.h <= 72).length;
 
     /* ————— os clichês que chegaram no período ————— */
     const chegadas = c?.chegadas ?? [];
@@ -438,8 +436,8 @@ export function RelatoriosHub10({ profile, pedidos, aoNavegar, onNova, onLogout,
     lista.forEach((p) => { const k = p.gaveta || "—"; const g = porGaveta[k] ?? (porGaveta[k] = { n: 0, vagas: 0 }); g.n++; if (p.vaga) g.vagas++; });
 
     const unidades = (nome: string, n: number): Grupo[] => [{ nome, n }];
-    const mais4 = aprovs.length - ate1 - ate3;
-    const esperaAte3 = esperas.filter((y) => y.h <= 72).length, esperaAte7 = esperas.filter((y) => y.h > 72 && y.h <= 168).length;
+    const aprovMaisLenta = aprovs.length ? [...aprovs].sort((a, b) => b.h - a.h)[0] : null;
+    const chegadaMaisLenta = esperas.length ? [...esperas].sort((a, b) => b.h - a.h)[0] : null;
     return [
       /* Pedidos: o ciano do Aguardando design. Na capa, o total solicitado; dentro,
          o que aconteceu no período (alterações e cancelados) e as vendedoras */
@@ -458,30 +456,13 @@ export function RelatoriosHub10({ profile, pedidos, aoNavegar, onNova, onLogout,
         ],
         destino: "Pedidos",
       },
-      /* Aprovação: as artes aprovadas pela primeira vez no período; dentro, o tempo
-         da solicitação à aprovação (cada bolinha é uma arte, na força do tempo que levou) */
-      {
-        id: "aprovacao", nome: "Aprovação", status: "nova", tom: 0.2, numero: f(aprovs.length), temDado: aprovs.length > 0, carregando,
-        frase: aprovs.length === 1 ? "arte aprovada no período" : "artes aprovadas no período",
-        contexto: `${plural(aprovs.length, "arte aprovada", "artes aprovadas")} pela primeira vez ${periodoTexto}. Em média, ${tempo(tAprov)} da solicitação à aprovação.`,
-        vazio: "Nenhuma arte aprovada no período.", modo: "unidades",
-        grupos: [{ nome: "Até 1 dia", n: ate1 }, { nome: "2 a 3 dias", n: ate3 }, { nome: "4 dias ou mais", n: mais4 }],
-        listas: [
-          { titulo: "Da solicitação à aprovação", linhas: aprovs.length ? [
-            { rotulo: "Em média", valor: tempo(tAprov) },
-            { rotulo: "Até 1 dia", valor: plural(ate1, "arte", "artes") },
-            { rotulo: "2 a 3 dias", valor: plural(ate3, "arte", "artes") },
-            { rotulo: "4 dias ou mais", valor: plural(mais4, "arte", "artes") },
-          ] : [], vazia: "Nenhuma arte aprovada." },
-          { titulo: "As mais demoradas", linhas: [...aprovs].sort((a, b) => b.h - a.h).map((x) => ({ rotulo: `${numeroDoPedido(x.numero)} ${x.cliente}`, valor: tempo(x.h) })), vazia: "Nenhuma arte aprovada." },
-        ],
-        destino: "Aprovação",
-      },
       /* Clichês: o rosa da Clicheria. Os aprovados (cada cor que chegou é um clichê,
          cada bolinha na força da sua espessura); dentro, os valores por espessura,
-         a média por clichê e a espera da aprovação da arte à chegada */
+         a média por clichê e a aprovação: as artes aprovadas, o tempo da
+         solicitação à aprovação e da aprovação à chegada (Augusto, 07/10/2026:
+         "aprovação vai para dentro do card clichês aprovados") */
       {
-        id: "cliches-aprovados", nome: "Clichês aprovados", status: "cliche", tom: 0, numero: f(itens), temDado: itens > 0, carregando,
+        id: "cliches-aprovados", nome: "Clichês aprovados", status: "cliche", tom: 0, numero: f(itens), temDado: itens > 0 || aprovs.length > 0, carregando,
         frase: itens === 1 ? "clichê aprovado no período" : "clichês aprovados no período",
         contexto: `${plural(itens, "clichê chegou", "clichês chegaram")} (cada cor é um) em ${plural(chegadas.length, "chegada", "chegadas")} ${periodoTexto}.`,
         vazio: "Nenhum clichê chegou no período.", modo: "unidades", grupos: porEsp.map((e) => ({ nome: e.k, n: e.itens })),
@@ -493,12 +474,15 @@ export function RelatoriosHub10({ profile, pedidos, aoNavegar, onNova, onLogout,
                 { rotulo: "Total", valor: brlNum(gasto) },
               ] : [], vazia: "Nenhum clichê no período." }
             : { titulo: "Por espessura", linhas: porEsp.filter((e) => e.itens).map((e) => ({ rotulo: e.k, valor: plural(e.itens, "clichê", "clichês") })), vazia: "Nenhum clichê no período." },
-          { titulo: "Da aprovação à chegada", linhas: esperas.length ? [
-            { rotulo: "Em média", valor: tempo(tEspera) },
-            { rotulo: "Até 3 dias", valor: plural(esperaAte3, "chegada", "chegadas") },
-            { rotulo: "4 a 7 dias", valor: plural(esperaAte7, "chegada", "chegadas") },
-            { rotulo: "8 dias ou mais", valor: plural(esperas.length - esperaAte3 - esperaAte7, "chegada", "chegadas") },
-          ] : [], vazia: "Nenhuma chegada no período." },
+          /* os tempos são médias; a mais demorada de cada um diz qual pedido puxou a média */
+          { titulo: "Aprovação e chegada", linhas: carregando ? [] : [
+            { rotulo: "Artes aprovadas", valor: f(aprovs.length) },
+            { rotulo: "Da solicitação à aprovação", valor: aprovs.length ? tempo(tAprov) : "nenhuma" },
+            { rotulo: "Da aprovação à chegada", valor: esperas.length ? tempo(tEspera) : "nenhuma" },
+            /* o pedido vai no valor: no rótulo, o número era cortado */
+            ...(aprovMaisLenta ? [{ rotulo: "Aprovação mais lenta", valor: `${numeroDoPedido(aprovMaisLenta.numero)}, ${tempo(aprovMaisLenta.h)}` }] : []),
+            ...(chegadaMaisLenta ? [{ rotulo: "Chegada mais lenta", valor: `${numeroDoPedido(chegadaMaisLenta.x.numero)}, ${tempo(chegadaMaisLenta.h)}` }] : []),
+          ], vazia: "Carregando…" },
         ],
         destino: "Aprovação",
       },
@@ -523,25 +507,21 @@ export function RelatoriosHub10({ profile, pedidos, aoNavegar, onNova, onLogout,
         listas: [{ titulo: "Os mais usados", linhas: pantonesUnicos.map(([nome, n]) => ({ rotulo: nome, valor: plural(n, "vez", "vezes") })), vazia: "Nenhum Pantone no período." }],
         destino: "Pantone",
       },
-      /* Facas e medidas: o verde-limão do Aprovado, em tons */
+      /* Facas e medidas: o verde-limão do Aprovado, em tons. As facas novas
+         ficam dentro do cartão de Facas (Augusto, 07/10/2026) */
       {
-        id: "facas", nome: "Facas", status: "aprovada", tom: 0, numero: f(facasUnicas.length), temDado: facasUnicas.length > 0,
+        id: "facas", nome: "Facas", status: "aprovada", tom: 0, numero: f(facasUnicas.length), temDado: facasUnicas.length > 0 || facasNovas.length > 0,
         frase: facasUnicas.length === 1 ? "faca usada no período" : "facas diferentes usadas no período",
-        contexto: `${plural(facasUnicas.length, "faca diferente", "facas diferentes")} em ${plural(facas.length, "pedido", "pedidos")} ${periodoTexto}.`,
-        vazio: "Nenhuma faca do catálogo nos pedidos do período.", modo: "unidades", grupos: unidades("Facas", facasUnicas.length),
-        listas: [{ titulo: "As mais usadas", linhas: facasUnicas.map(([cod, n]) => ({ rotulo: cod, valor: plural(n, "pedido", "pedidos") })), vazia: "Nenhuma faca no período." }],
+        contexto: `${plural(facasUnicas.length, "faca diferente", "facas diferentes")} em ${plural(facas.length, "pedido", "pedidos")} ${periodoTexto}. ${facasNovas.length ? `${plural(facasNovas.length, "pedido pediu", "pedidos pediram")} faca nova.` : "Nenhum pedido pediu faca nova."}`,
+        vazio: "Nenhuma faca nos pedidos do período.", modo: "unidades", grupos: unidades("Facas", facasUnicas.length),
+        listas: [
+          { titulo: "As mais usadas", linhas: facasUnicas.map(([cod, n]) => ({ rotulo: cod, valor: plural(n, "pedido", "pedidos") })), vazia: "Nenhuma faca do catálogo no período." },
+          { titulo: `Facas novas (${plural(facasNovas.length, "pedido", "pedidos")})`, linhas: facasNovas.map((p) => ({ rotulo: `${numeroDoPedido(p.numero)} ${p.cliente ?? ""}`, valor: p.largura && p.altura ? `${p.largura}×${p.altura}` : "sem medida" })), vazia: "Nenhum pedido com faca nova." },
+        ],
         destino: "Facas",
       },
       {
-        id: "facas-novas", nome: "Facas novas", status: "aprovada", tom: 0.14, numero: f(facasNovas.length), temDado: facasNovas.length > 0,
-        frase: facasNovas.length === 1 ? "pedido com faca nova no período" : "pedidos com faca nova no período",
-        contexto: `${plural(facasNovas.length, "pedido pediu", "pedidos pediram")} faca nova ${periodoTexto}.`,
-        vazio: "Nenhum pedido com faca nova no período.", modo: "unidades", grupos: unidades("Facas novas", facasNovas.length),
-        listas: [{ titulo: "Os pedidos", linhas: facasNovas.map((p) => ({ rotulo: `${numeroDoPedido(p.numero)} ${p.cliente ?? ""}`, valor: p.largura && p.altura ? `${p.largura}×${p.altura}` : "—" })), vazia: "Nenhum pedido." }],
-        destino: "Pedidos",
-      },
-      {
-        id: "medidas", nome: "Medidas", status: "aprovada", tom: 0.28, numero: f(medidasUnicas.length), temDado: medidasUnicas.length > 0,
+        id: "medidas", nome: "Medidas", status: "aprovada", tom: 0.2, numero: f(medidasUnicas.length), temDado: medidasUnicas.length > 0,
         frase: medidasUnicas.length === 1 ? "medida pedida no período" : "medidas diferentes no período",
         contexto: `${plural(medidasUnicas.length, "medida diferente", "medidas diferentes")} em ${plural(medidas.length, "pedido", "pedidos")} ${periodoTexto}.`,
         vazio: "Nenhuma medida nos pedidos do período.", modo: "unidades", grupos: unidades("Medidas", medidasUnicas.length),
