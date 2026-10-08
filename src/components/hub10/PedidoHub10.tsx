@@ -29,31 +29,21 @@ import {
 } from "./ChromeHub10";
 import { baseFraunces, baseInter, folgaFraunces, folgaInter } from "./grade-hub10";
 import { LOTTIE, LottieHub10, SetaDaTrilha } from "./LottieHub10";
+import { useEncaixeDaTrilha } from "./trilha-encaixe";
+import { CAPA_V4 } from "./CapaV4Hub10";
+import { entrarNoCartao, jeitoDoCartao, posicaoNaTrilha, sairDaTrilha, sairDoCartao, voltarATrilha, type JeitoDoCartao } from "@/lib/transicao-cartao";
 import { ModalSucesso, PedidoDetalheHub10, ehEntregaDeArte } from "./PedidoDetalheHub10";
 import { PastaClienteHub10 } from "./PastaClienteHub10";
 import type { AcoesPedido, DetalhePedido, PodeNoPedido } from "./PedidoDetalheHub10";
 import type { SessionUser } from "@/lib/session";
-import { criarBusca } from "@/lib/busca";
+import { alvoBusca, criarBusca, normalizarBusca } from "@/lib/busca";
 import { erroLegivel } from "@/lib/erro-legivel";
-import { separarCores } from "@/lib/cores";
-import { PALETA, paletaEmTeste } from "@/lib/paleta-hub";
+import { coresEfetivas, numeroDeCores, separarCores } from "@/lib/cores";
+import { PALETA } from "@/lib/paleta-hub";
 
 /* ————— status: chave do banco → nome e cores do projeto 1.0 ————— */
 type Estilo = { rotulo: string; cor: string; tinta: string };
-const STATUS_DE_HOJE: Record<string, Estilo> = {
-  nova: { rotulo: "Aguardando design", cor: "#c2ffff", tinta: "#252425" },
-  criacao: { rotulo: "Criação", cor: "#aba9fc", tinta: "#252425" },
-  aguardando: { rotulo: "Design criado", cor: "#79cdf4", tinta: "#252425" },
-  revisao: { rotulo: "Revisão", cor: "#fff079", tinta: "#252425" },
-  aprovada: { rotulo: "Aprovado", cor: "#6ede8a", tinta: "#252425" },
-  cliche: { rotulo: "Clicheria", cor: "#ffbcf2", tinta: "#252425" },
-  refazer_cliche: { rotulo: "Refazer clichê", cor: "#f9caaa", tinta: "#252425" },
-  concluido: { rotulo: "Finalizado", cor: "#315bf4", tinta: "#6ede8a" },
-  cancelado: { rotulo: "Cancelado", cor: "#f96767", tinta: "#252425" },
-  /* parado esperando o cliente: cinza, a cor de quem não está andando */
-  aguardando_cliente: { rotulo: "Aguardando cliente", cor: "#d4d2d4", tinta: "#252425" },
-};
-/* Teste das cores da FormFrom nos cartões (Augusto, 05/10/2026: "veja as
+/* As cores da FormFrom nos cartões (Augusto, 05/10/2026: "veja as
    cores que o formfrom design usa, vamos testá-las nos cards do hub"). As
    cores saíram dos pixels das ilustrações deles (formfrom.design): roxo e
    lima são a assinatura da casa; ciano elétrico, azul, laranja, framboesa,
@@ -67,9 +57,9 @@ const STATUS_DE_HOJE: Record<string, Estilo> = {
    Cancelado, pedido dele), onde o #252425 ficava abaixo de 4,5 de
    contraste; o Finalizado continua azul com a letra verde, como ele prefere,
    só que elétrico: o azul #1e40ff e o verde neon #5ffc3f da FormFrom (4,8 de
-   contraste; o par de hoje dá 3,2). A troca mora em lib/paleta-hub: só no hub de teste, e
-   Alt+C alterna com a de hoje. A produção segue com a de hoje. */
-const STATUS_FORMFROM: Record<string, Estilo> = {
+   contraste; o par de antes dava 3,2). Aprovadas com a paleta nova em
+   08/10/2026 ("a paleta nova com certeza"): são as únicas. */
+const STATUS: Record<string, Estilo> = {
   nova: { rotulo: "Aguardando design", cor: "#00f2ff", tinta: "#252425" },
   criacao: { rotulo: "Criação", cor: "#a66cff", tinta: "#252425" },
   aguardando: { rotulo: "Design criado", cor: "#666bff", tinta: "#000000" },
@@ -81,7 +71,6 @@ const STATUS_FORMFROM: Record<string, Estilo> = {
   cancelado: { rotulo: "Cancelado", cor: "#b82573", tinta: "#ffffff" },
   aguardando_cliente: { rotulo: "Aguardando cliente", cor: "#c2c8cf", tinta: "#252425" },
 };
-const STATUS = paletaEmTeste() === "nova" ? STATUS_FORMFROM : STATUS_DE_HOJE;
 const estiloDe = (st: string): Estilo => STATUS[st] ?? { rotulo: st, cor: PALETA.amarelo, tinta: "#252425" };
 /** O nome do status no 1.0, para quem mostra status fora desta tela (a
     busca do topo). */
@@ -185,8 +174,13 @@ export type PedidoLinha = {
   id: string; numero: number; cliente: string; status: string;
   /** "cliche" no cartão de refação e de reposição de clichê */
   tipo?: string | null;
+  /** 1 no cartão de Refazer clichê de cliente antigo (quem cadastra é o design
+      ou o admin, não uma vendedora) */
+  cartao_refacao?: number | boolean | null;
   materia?: string | null; largura?: string | null; altura?: string | null;
-  cores?: string | null; cores_desc?: string | null;
+  /** cores_desc: as que a vendedora pediu; cores_arte: as lidas da prova
+      (desde 07/10/2026; numeroDeCores e coresEfetivas escolhem) */
+  cores?: string | null; cores_desc?: string | null; cores_arte?: string | null;
   vendedor_id?: string; vendedor_nome?: string | null; designer_nome?: string | null;
   fila?: number | null; respostas_novas?: number; perguntas_abertas?: number;
   /** perguntas esperando a MINHA resposta (sem destinatário conta para o design) */
@@ -286,6 +280,8 @@ const ROTULO_V4: CSSProperties = { position: "absolute", fontFamily: INTER, font
    tinta, 01/10/2026; a normal saía 18% mais clara) */
 const PILULA_PE: CSSProperties = { boxSizing: "border-box", height: V4.pilulaAlt, border: `${V4.pilulaBorda}px solid ${PRETO}`, borderRadius: 999, background: "transparent",
   display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "2px 22px 0", fontFamily: INTER, fontSize: 20.5, fontWeight: 500, letterSpacing: "-.014em", color: PRETO, whiteSpace: "nowrap", cursor: "pointer" };
+/* o botão de cadastrar a refação, no pé de Aprovações (o mesmo nome do status) */
+const TEXTO_REFAZER = "Refazer clichê";
 
 /* As colunas da tabela do "Ver todos": começam em c1, c4, c8, c11, c15, c17,
    c18 e c21 e terminam na c23 (1760 px de c1 a c23). Cada controle de cima
@@ -502,32 +498,6 @@ export function PedidoHub10({ profile, pedidos, aoNavegar, onNova, onLogout, dis
     return () => document.removeEventListener("mousedown", aoClicar);
   }, []);
 
-  /* Rodinha vertical vira rolagem horizontal na trilha — sem isso o mouse
-     comum não anda nos cards, que é a navegação principal da tela.
-     Anda um CARD por vez, e não os ~120px do giro: a trilha tem
-     `scroll-snap-type: x mandatory`, então qualquer passo menor que meio card
-     era desfeito pelo próprio snap — a roda parecia morta. A trava de 220ms
-     evita que um giro de trackpad, que dispara dezenas de eventos, atravesse
-     a fila inteira de uma vez. */
-  useEffect(() => {
-    const el = trilha.current;
-    if (!el) return;
-    let liberadoEm = 0;
-    const aoRodar = (e: WheelEvent) => {
-      if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
-      e.preventDefault();
-      const agora = performance.now();
-      if (agora < liberadoEm) return;
-      liberadoEm = agora + 220;
-      const card = el.querySelector<HTMLElement>(".pd4-cartao");
-      const passo = card?.offsetWidth || el.clientWidth / 4;
-      el.scrollBy({ left: Math.sign(e.deltaY) * passo, behavior: "smooth" });
-      setRolou(true);
-    };
-    el.addEventListener("wheel", aoRodar, { passive: false });
-    return () => el.removeEventListener("wheel", aoRodar);
-  }, []);
-
   /* As margens ficam limpas, como no desenho (v4): o cartão cujo meio sai da
      janela de c1 a c23 some, e a sombra dos que estão dentro continua inteira
      (cortar a trilha nas colunas cortaria a sombra). Direto no DOM, sem estado:
@@ -551,14 +521,29 @@ export function PedidoHub10({ profile, pedidos, aoNavegar, onNova, onLogout, dis
 
   /* Arrastar com o ponteiro. Guarda se houve movimento para não abrir o
      pedido quando o clique foi, na verdade, um arrasto. */
-  const arrasto = useRef({ ativo: false, x0: 0, scroll0: 0, andou: false });
+  const arrasto = useRef({ ativo: false, x0: 0, scroll0: 0, escala: 1, andou: false });
   const aoApontar = (e: PointerEventReact<HTMLDivElement>) => {
     const el = trilha.current;
     if (!el || e.button !== 0) return;
-    arrasto.current = { ativo: true, x0: e.clientX, scroll0: el.scrollLeft, andou: false };
+    /* com o palco em escala (janela menor que 1920), a trilha anda o que a
+       mão andou, na medida da página */
+    const escala = el.getBoundingClientRect().width / (el.offsetWidth || 1) || 1;
+    arrasto.current = { ativo: true, x0: e.clientX, scroll0: el.scrollLeft, escala, andou: false };
   };
+  /* A roda vertical anda um cartão por giro, e a trilha encaixa no cartão
+     pela conta (trilha-encaixe.ts): o scroll-snap do CSS media o cartão em
+     hover, que cresce, e deixava a trilha 8 px fora da coluna; no arrasto
+     ele prendia a trilha, que pulava um cartão inteiro de uma vez (Augusto,
+     07/10/2026: "alguns tem um comportamento estranho no scroll"). */
+  const encaixar = useEncaixeDaTrilha(trilha, { seletor: ".pd4-cartao", arrastando: () => arrasto.current.ativo });
   useEffect(() => {
-    const soltar = () => { arrasto.current.ativo = false; };
+    /* soltou depois de arrastar: a trilha anda até o cartão mais perto */
+    const soltar = () => {
+      const a = arrasto.current;
+      if (!a.ativo) return;
+      a.ativo = false;
+      if (a.andou) encaixar();
+    };
     const mover = (e: PointerEvent) => {
       const a = arrasto.current, el = trilha.current;
       if (!a.ativo || !el) return;
@@ -570,7 +555,7 @@ export function PedidoHub10({ profile, pedidos, aoNavegar, onNova, onLogout, dis
       if (e.buttons === 0) { soltar(); return; }
       const d = e.clientX - a.x0;
       if (Math.abs(d) > 4) { a.andou = true; setRolou(true); }
-      el.scrollLeft = a.scroll0 - d;
+      el.scrollLeft = a.scroll0 - d / a.escala;
     };
     /* Com o botão apertado na trilha, arrastar é rolar: a seleção de texto não
        começa. Antes o arrasto pintava o texto dos cartões com o marca-texto
@@ -636,8 +621,11 @@ export function PedidoHub10({ profile, pedidos, aoNavegar, onNova, onLogout, dis
     () => [...new Set(doEscopo.map((p) => estiloDe(p.status).rotulo))].sort(),
     [doEscopo],
   );
+  /* quem cadastrou cartão de Refazer clichê não é vendedora (Augusto,
+     07/10/2026: "Admin" e "Design" apareciam no filtro); quem fez pedido de
+     verdade continua, seja do papel que for */
   const vendedoras = useMemo(
-    () => [...new Set(doEscopo.map((p) => p.vendedor_nome).filter(Boolean) as string[])].sort(),
+    () => [...new Set(doEscopo.filter((p) => !p.cartao_refacao).map((p) => p.vendedor_nome).filter(Boolean) as string[])].sort(),
     [doEscopo],
   );
   /* Se a escolha deixou de existir — o último cancelado voltou a andar, a
@@ -705,16 +693,43 @@ export function PedidoHub10({ profile, pedidos, aoNavegar, onNova, onLogout, dis
      "Laticínios") e com a medida escrita de qualquer jeito ("41x16", "41 × 16",
      "38,66x40"). Antes era um includes cru, que dependia de acento e não
      olhava a medida. */
+  /* "Vendas Simulação 2" trazia os pedidos da outra vendedora: o "2" casava
+     com o 2 de "#25", "#21" e "P 2042 C" (simulação 6, 07/10/2026). Agora,
+     fora a medida (que segue a regra do hub, criarBusca):
+       - número sozinho casa com número inteiro: "2" acha "#2" e "V2", não
+         "#25" nem "2042"; "#24" acha o #24 e não o #245; "38" ainda acha a
+         38,66 (a parte inteira);
+       - a frase inteira num campo só vale mais que as palavras espalhadas:
+         se algum pedido tem a frase ("Vendas Simulação 2" na vendedora),
+         ficam só eles. */
   const naBusca = useMemo(() => {
-    const casa = criarBusca(busca);
-    if (!busca.trim()) return ordenados;
-    return ordenados.filter((p) =>
-      /* as duas grafias do número entram no texto procurado: quem digita
-         "#3" e quem digita "#03" acham a mesma linha */
-      casa(p.cliente, numeroPedido(p.numero), `#${p.numero}`, p.vendedor_nome, p.designer_nome, estiloDe(p.status).rotulo,
-        p.largura && p.altura ? `${p.largura}x${p.altura}` : p.largura || p.altura,
-        /* a faca serve deitada: "30x50" acha o pedido de 50×30 */
-        p.largura && p.altura ? `${p.altura}x${p.largura}` : undefined, p.materia, p.cores_desc));
+    const q = normalizarBusca(busca);
+    if (!q) return ordenados;
+    /* as duas grafias do número entram no texto procurado: quem digita
+       "#3" e quem digita "#03" acham a mesma linha */
+    const partes = (p: PedidoLinha) => [p.cliente, numeroPedido(p.numero), `#${p.numero}`, p.vendedor_nome, p.designer_nome, estiloDe(p.status).rotulo,
+      p.largura && p.altura ? `${p.largura}x${p.altura}` : p.largura || p.altura,
+      /* a faca serve deitada: "30x50" acha o pedido de 50×30 */
+      p.largura && p.altura ? `${p.altura}x${p.largura}` : undefined, p.materia, p.cores_desc, p.cores_arte];
+    const junto = q.replace(/ /g, "");
+    if (/^\d+(?:\.\d+)?x\d+(?:\.\d+)?$/.test(junto)) {
+      const casa = criarBusca(busca);
+      return ordenados.filter((p) => casa(...partes(p)));
+    }
+    const alvos = ordenados.map((p) => alvoBusca(...partes(p)));
+    const termos = q.split(" ");
+    if (termos.length > 1) {
+      const naFrase = ordenados.filter((_, i) => alvos[i].includes(junto));
+      if (naFrase.length) return naFrase;
+    }
+    const testes = termos.map((t) => {
+      const n = /^(#?)(\d+)$/.exec(t);
+      if (!n) return (alvo: string) => alvo.includes(t);
+      /* nem dígito antes (nem a parte decimal, "66" de "38.66"), nem depois */
+      const re = new RegExp(n[1] ? `#${n[2]}(?!\\d)` : `(?<!\\d)(?<!\\d\\.)${n[2]}(?!\\d)`);
+      return (alvo: string) => re.test(alvo);
+    });
+    return ordenados.filter((_, i) => testes.every((casa) => casa(alvos[i])));
   }, [ordenados, busca]);
 
   /* ————— estatísticas da faixa preta ————— */
@@ -750,12 +765,71 @@ export function PedidoHub10({ profile, pedidos, aoNavegar, onNova, onLogout, dis
   /* Abrir fecha o "Ver todos": ele cobre o palco (z 50) e o painel do pedido
      fica embaixo (z 38) — o clique na linha abria o pedido escondido, e parecia
      que nada tinha acontecido. */
-  const abrir = (p: PedidoLinha) => {
+  /* Entrar e sair dos cartões (transicao-cartao.ts; Augusto, 07/10/2026:
+     "adicione transições ao entrar e sair dos cards"). Abrir pelo cartão
+     anima a saída da trilha, e o pedido aberto só aparece quando ela acaba
+     e os dados chegaram (até lá a trilha fica, sem receber clique); fechar
+     anima a saída do pedido e depois a volta da trilha. Pelo "Ver todos",
+     pela busca ou pelo aviso, abre como antes. */
+  const [saindoDaTrilha, setSaindoDaTrilha] = useState(false);
+  const entrada = useRef<{ id: string; jeito: JeitoDoCartao; centro: { x: number; y: number } } | null>(null);
+  const volta = useRef<{ id: string; jeito: JeitoDoCartao } | null>(null);
+  const fechando = useRef(false);
+  /* onde o cartão do pedido aberto mora no palco (a c1, no alto das capas) */
+  const LUGAR_DO_PEDIDO = { x: 80, y: CAPA_V4.topo };
+  const abrir = (p: PedidoLinha, cartao?: HTMLElement) => {
     abertoPorAqui.current = p.id;
     setRespostaNova((p.respostas_novas ?? 0) > 0);
     setVerTodos(false);
+    const jeito = jeitoDoCartao(), el = trilha.current;
+    if (jeito && el && cartao && !detalheId) {
+      const de = posicaoNaTrilha(el, cartao);
+      entrada.current = { id: p.id, jeito, centro: { x: de.x + cartao.offsetWidth / 2, y: de.y + cartao.offsetHeight / 2 } };
+      const ms = sairDaTrilha(el, cartao, jeito, LUGAR_DO_PEDIDO);
+      setSaindoDaTrilha(true);
+      window.setTimeout(() => setSaindoDaTrilha(false), ms);
+    } else entrada.current = null;
     aoAbrirDetalhe(p.id);
   };
+  const detalheNaTela = !!(detalheId && detalhe && !saindoDaTrilha);
+  /* o pedido aberto acabou de aparecer: entra com o jeito do clique */
+  useLayoutEffect(() => {
+    if (!detalheNaTela) return;
+    const e = entrada.current;
+    entrada.current = null;
+    const raiz = document.querySelector<HTMLElement>("[data-pedido-aberto]");
+    if (e && e.id === detalheId && raiz) entrarNoCartao(raiz, e.jeito, e.centro);
+  }, [detalheNaTela, detalheId]);
+  /* fechar: o pedido aberto sai, depois fecha de fato */
+  const fecharComTransicao = useCallback(() => {
+    if (fechando.current) return;
+    const jeito = jeitoDoCartao(), el = trilha.current, id = detalheId;
+    const raiz = document.querySelector<HTMLElement>("[data-pedido-aberto]");
+    if (!jeito || !el || !id || !raiz) { aoFecharDetalhe(); return; }
+    const cartao = el.querySelector<HTMLElement>(`[data-pedido-id="${CSS.escape(id)}"]`);
+    let destino: { x: number; y: number } | undefined;
+    if (cartao) {
+      const d = posicaoNaTrilha(el, cartao);
+      destino = { x: d.x + cartao.offsetWidth / 2, y: d.y + cartao.offsetHeight / 2 };
+    }
+    fechando.current = true;
+    const ms = sairDoCartao(raiz, jeito, destino);
+    volta.current = { id, jeito };
+    window.setTimeout(() => { fechando.current = false; aoFecharDetalhe(); }, ms);
+  }, [aoFecharDetalhe, detalheId]);
+  /* fechou (ou o pedido não chegou a abrir): a trilha volta; sem a volta
+     animada, só desfaz a saída */
+  useLayoutEffect(() => {
+    if (detalheId) return;
+    const el = trilha.current;
+    if (!el) return;
+    const v = volta.current;
+    volta.current = null;
+    entrada.current = null;
+    const cartao = v ? el.querySelector<HTMLElement>(`[data-pedido-id="${CSS.escape(v.id)}"]`) : null;
+    voltarATrilha(el, cartao, v?.jeito ?? null, LUGAR_DO_PEDIDO);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [detalheId]);
 
   const enfileirar = (id: string) => {
     if (!aoEnfileirar) return;
@@ -773,6 +847,25 @@ export function PedidoHub10({ profile, pedidos, aoNavegar, onNova, onLogout, dis
   const rotuloPeriodo = periodo === "Data"
     ? (dataEsp ? dataEsp.split("-").reverse().join("/") : "Data específica")
     : periodo;
+
+  /* As pílulas do pé não podem passar por baixo do "Ver todos": com filtro
+     de texto comprido (o "Status: Refazer clichê", uma vendedora de nome
+     grande), o "Limpar filtros" chegava nele (simulação 6, 07/10/2026). Sem
+     espaço, ele vira só "Limpar". Medido com o texto inteiro, uma vez por
+     combinação de filtros, e de novo quando a fonte chega. */
+  const pilulasRef = useRef<HTMLDivElement | null>(null);
+  const verTodosRef = useRef<HTMLButtonElement | null>(null);
+  const [fontesDoPe, setFontesDoPe] = useState(0);
+  useEffect(() => { void document.fonts?.ready.then(() => setFontesDoPe((n) => n + 1)); }, []);
+  const chaveDoPe = [eStatus, eVendedora, rotuloPeriodo, filtrando, pilulasEsq, fontesDoPe].join("|");
+  const [apertoDoPe, setApertoDoPe] = useState({ chave: "", apertado: false });
+  const peApertado = apertoDoPe.chave === chaveDoPe && apertoDoPe.apertado;
+  useLayoutEffect(() => {
+    if (apertoDoPe.chave === chaveDoPe) return;
+    const el = pilulasRef.current, vt = verTodosRef.current;
+    if (!el || !vt) return;
+    setApertoDoPe({ chave: chaveDoPe, apertado: el.offsetLeft + el.offsetWidth > vt.offsetLeft - V4.vao });
+  }, [chaveDoPe, apertoDoPe.chave]);
 
   /* ————— o cartão —————
      Função que desenha, e não componente: declarado aqui dentro, um
@@ -915,7 +1008,7 @@ export function PedidoHub10({ profile, pedidos, aoNavegar, onNova, onLogout, dis
             deixa o texto quebrar dentro dela. */}
         <div style={{ position: "absolute", left: 82, right: 40, top: 413, display: "grid", gridTemplateColumns: "206px minmax(0, 1fr)", rowGap: 30, zIndex: 1 }}>
           <CampoHub10 rotulo="Entrada:" valor={dataCurta(p.created_at)} caixa={CAIXA_DESLOCADA} />
-          <CampoHub10 rotulo="Cores:" valor={p.cores || "—"} caixa={CAIXA_DESLOCADA} />
+          <CampoHub10 rotulo="Cores:" valor={numeroDeCores(p) || "—"} caixa={CAIXA_DESLOCADA} />
           <CampoHub10 rotulo="Medida:" valor={medidaDe(p)} />
           <CampoHub10 rotulo="Substrato:" valor={p.materia || "—"} />
         </div>
@@ -945,7 +1038,7 @@ export function PedidoHub10({ profile, pedidos, aoNavegar, onNova, onLogout, dis
        layout, 01/10/2026). O Finalizado, azul, mantém o verde. */
     const tinta = e.tinta === "#252425" ? PRETO : e.tinta;
     return (
-      <div key={p.id} onClick={() => { if (!arrasto.current.andou) abrir(p); }} className="pd4-cartao"
+      <div key={p.id} data-pedido-id={p.id} onClick={(ev) => { if (!arrasto.current.andou) abrir(p, ev.currentTarget); }} className="pd4-cartao"
         style={{ position: "relative", flex: `0 0 ${V4.cartao}px`, height: V4.altura, borderRadius: V4.raio, background: fundo, color: tinta, boxShadow: V4.sombra, zIndex: total - indice, cursor: "pointer" }}>
         <span style={{ ...ROTULO_V4, left: V4.col1, top: V4.basePessoa - baseInter(24, 24), maxWidth: V4.cartao - V4.col1 - 112, overflow: "hidden", textOverflow: "ellipsis" }}>{pessoa}</span>
 
@@ -1011,18 +1104,20 @@ export function PedidoHub10({ profile, pedidos, aoNavegar, onNova, onLogout, dis
         </div>
 
         {/* o pé (Entrada, Cores, Medida, Substrato): o mesmo do cartão do pedido aberto */}
-        <PeDoCartaoV4 entrada={dataCurta(p.created_at)} cores={p.cores || "—"} medida={medidaDe(p)} substrato={p.materia || "—"} />
+        <PeDoCartaoV4 entrada={dataCurta(p.created_at)} cores={numeroDeCores(p) || "—"} medida={medidaDe(p)} substrato={p.materia || "—"} />
       </div>
     );
   };
 
   /* os filtros do pé: o nome do filtro na pílula; escolhido um valor, a
-     pílula mostra o valor e acende no amarelo do hub */
-  const pilulaDoPe = (chave: "periodo" | "status" | "vendedora", rotulo: string, valor: string, ligado: boolean, minimo: number, menuAberto: ReactNode) => (
+     pílula mostra o valor e acende no amarelo do hub. `comRotulo` escreve
+     "Status: Refazer clichê", para quando o valor sozinho repete o texto de
+     outra pílula do pé. */
+  const pilulaDoPe = (chave: "periodo" | "status" | "vendedora", rotulo: string, valor: string, ligado: boolean, minimo: number, menuAberto: ReactNode, comRotulo = false) => (
     <div key={chave} data-pop style={{ position: "relative", flex: "none" }}>
       <button onClick={() => setMenu(menu === chave ? null : chave)} className="p10-flat" aria-haspopup="menu" aria-expanded={menu === chave}
         aria-label={ligado ? `${rotulo}: ${valor}` : rotulo}
-        style={{ ...PILULA_PE, minWidth: minimo, background: ligado ? AMARELO_MAIS : "transparent" }}>{ligado ? valor : rotulo}</button>
+        style={{ ...PILULA_PE, minWidth: minimo, background: ligado ? AMARELO_MAIS : "transparent" }}>{ligado ? (comRotulo ? `${rotulo}: ${valor}` : valor) : rotulo}</button>
       {menu === chave && !verTodos && menuAberto}
     </div>
   );
@@ -1043,7 +1138,9 @@ export function PedidoHub10({ profile, pedidos, aoNavegar, onNova, onLogout, dis
           display: "flex", alignItems: "flex-start", overflowX: ordenados.length > 4 ? "auto" : "hidden", overflowY: "hidden", scrollPaddingLeft: 80, zIndex: 2,
           /* com um pedido aberto, o painel cobre só até 728 e a trilha (até 872)
              aparecia por baixo dele: antes a faixa preta a escondia */
-          visibility: detalheId ? "hidden" : undefined }}>
+          visibility: detalheNaTela || (detalheId && !entrada.current) ? "hidden" : undefined,
+          /* abrindo pelo cartão, a trilha fica na tela enquanto sai, mas não recebe clique */
+          pointerEvents: detalheId ? "none" : undefined }}>
         {ordenados.map((p, i) => desenharCartaoV4({ p, fundo: fundos[i].cor, indice: i, total: ordenados.length }))}
         {/* a margem da direita: o último cartão para na c23 */}
         {ordenados.length > 4 && <div aria-hidden style={{ flex: "0 0 80px", height: 1 }} />}
@@ -1083,11 +1180,15 @@ export function PedidoHub10({ profile, pedidos, aoNavegar, onNova, onLogout, dis
       <div ref={tituloRef} style={{ position: "absolute", left: 80 - folgaFraunces(600, 104, titulo.charAt(0)) - (ACERTO_TITULO_PE[titulo.charAt(0)] ?? 0), top: V4.basePe - baseFraunces(104, 104),
         ...FR, fontSize: 104, lineHeight: "104px", letterSpacing: "-.02em", whiteSpace: "nowrap", color: PRETO, zIndex: 3 }}>{titulo}</div>
 
-      <div style={{ position: "absolute", left: pilulasEsq, top: V4.basePe - 0.85 - V4.pilulaAlt, display: "flex", alignItems: "center", gap: V4.vao, zIndex: NIVEL.painel + 2 /* acima do pedido aberto: a lista do filtro abria por trás dos painéis (Augusto, 02/10/2026) */ }}>
+      <div ref={pilulasRef} style={{ position: "absolute", left: pilulasEsq, top: V4.basePe - 0.85 - V4.pilulaAlt, display: "flex", alignItems: "center", gap: V4.vao, zIndex: NIVEL.painel + 2 /* acima do pedido aberto: a lista do filtro abria por trás dos painéis (Augusto, 02/10/2026) */ }}>
+        {/* Em Aprovações, com o Status em "Refazer clichê", a pílula do filtro
+            e o botão de cadastrar diziam as duas "Refazer clichê", lado a lado
+            (simulação 6, 07/10/2026): aí o filtro diz que é o Status. */}
         {statusUnicos.length > 1 && pilulaDoPe("status", "Status", eStatus, eStatus !== "Todos", 143.29,
           <OpcoesPop lista={["Todos", ...statusUnicos]} atual={eStatus}
             aoEscolher={(v) => { setFStatus(v); setMenu(null); }}
-            style={{ left: 0, bottom: "calc(100% + 16px)", minWidth: 230 }} />)}
+            style={{ left: 0, bottom: "calc(100% + 16px)", minWidth: 230 }} />,
+          !!(aoCadastrarRefacao && motivosDoCliche) && eStatus === TEXTO_REFAZER)}
         {vendedoras.length > 1 && pilulaDoPe("vendedora", "Vendedora", eVendedora, eVendedora !== "Todas", 178.24,
           <OpcoesPop lista={["Todas", ...vendedoras]} atual={eVendedora}
             aoEscolher={(v) => { setFVendedora(v); setMenu(null); }}
@@ -1108,16 +1209,16 @@ export function PedidoHub10({ profile, pedidos, aoNavegar, onNova, onLogout, dis
         {/* o "Refazer clichê" (só em Aprovações, para designers e admin): o
             clichê de cliente que não está no hub, danificado ou gasto */}
         {aoCadastrarRefacao && motivosDoCliche && (
-          <button onClick={() => { setRefazendo(true); setMenu(null); }} className="p10-flat" style={{ ...PILULA_PE, minWidth: 143.29 }}>Refazer clichê</button>
+          <button onClick={() => { setRefazendo(true); setMenu(null); }} className="p10-flat" style={{ ...PILULA_PE, minWidth: 143.29 }}>{TEXTO_REFAZER}</button>
         )}
         {filtrando && (
-          <button onClick={limparFiltros} className="p10-flat" style={PILULA_PE}>
-            <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke={PRETO} strokeWidth={2.4} strokeLinecap="round" aria-hidden><path d="M6 6l12 12" /><path d="M18 6L6 18" /></svg>Limpar filtros
+          <button onClick={limparFiltros} className="p10-flat" style={PILULA_PE} aria-label="Limpar filtros" title={peApertado ? "Limpar filtros" : undefined}>
+            <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke={PRETO} strokeWidth={2.4} strokeLinecap="round" aria-hidden><path d="M6 6l12 12" /><path d="M18 6L6 18" /></svg>{peApertado ? "Limpar" : "Limpar filtros"}
           </button>
         )}
       </div>
 
-      <button onClick={() => { setVerTodos(true); setMenu(null); }} className="p10-flat"
+      <button ref={verTodosRef} onClick={() => { setVerTodos(true); setMenu(null); }} className="p10-flat"
         style={{ ...PILULA_PE, position: "absolute", right: 1920 - (1840 + V4.pilulaBorda / 2), top: V4.basePe - 0.85 - V4.pilulaAlt, minWidth: 143.29, zIndex: 30 }}>Ver todos</button>
 
       {/* ————— Ver todos ————— */}
@@ -1220,8 +1321,11 @@ export function PedidoHub10({ profile, pedidos, aoNavegar, onNova, onLogout, dis
                   <div key={p.id} className="p10-linha" onClick={() => abrir(p)}
                     style={{ display: "grid", gridTemplateColumns: COLUNAS_DA_LISTA, alignItems: "center", boxSizing: "border-box", height: 5 * LINHA_DA_GRADE_HUB, paddingTop: ACERTO_LINHA_DA_LISTA, borderBottom: "1px solid rgba(37,36,37,.12)", fontSize: 18, cursor: "pointer" }}>
                     <span style={{ fontWeight: 700 }}>{numeroPedido(p.numero)}</span>
-                    <span style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-                      <span style={{ ...FR, fontSize: 22, letterSpacing: "-.02em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.cliente}</span>
+                    {/* as reticências param 16 px antes da coluna da Vendedora:
+                        no fim da coluna, o nome comprido encostava nela (vão de
+                        0 a 3,4 px, simulação 6, 07/10/2026). O nome inteiro, no title. */}
+                    <span style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, paddingRight: 16 }}>
+                      <span title={p.cliente ?? undefined} style={{ ...FR, fontSize: 22, letterSpacing: "-.02em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.cliente}</span>
                     </span>
                     <span>{p.vendedor_nome ?? "—"}</span>
                     {/* a urgência e a conversa na linha do status, como no card */}
@@ -1244,7 +1348,7 @@ export function PedidoHub10({ profile, pedidos, aoNavegar, onNova, onLogout, dis
                         </span>
                       )}
                     </span>
-                    <span>{medidaDe(p)}</span><span>{p.cores || "—"}</span><span>{p.materia || "—"}</span><span>{dataCurta(p.created_at)}</span>
+                    <span>{medidaDe(p)}</span><span>{numeroDeCores(p) || "—"}</span><span>{p.materia || "—"}</span><span>{dataCurta(p.created_at)}</span>
                   </div>
                 );
               })}
@@ -1262,7 +1366,7 @@ export function PedidoHub10({ profile, pedidos, aoNavegar, onNova, onLogout, dis
         </div>
       )}
 
-      {detalheId && detalhe && (() => {
+      {detalheId && detalhe && !saindoDaTrilha && (() => {
         const e = estiloDe(String(detalhe.pedido.status ?? ""));
         /* key por pedido: abrir outro pedido (busca, aviso) com um em edição
            levava junto o formulário aberto, e o Salvar gravava os dados do
@@ -1284,7 +1388,7 @@ export function PedidoHub10({ profile, pedidos, aoNavegar, onNova, onLogout, dis
                  28/09/2026). */
               finalizar: () => (detalhe.anexos.some((a) => a.tipo === "arte") ? setFinalizando(true) : setSemArte(true)),
               pedirPasta: () => setPastaPara("iniciar") }}
-            aoFechar={aoFecharDetalhe} />
+            aoFechar={fecharComTransicao} />
         );
       })()}
 
@@ -1315,10 +1419,11 @@ export function PedidoHub10({ profile, pedidos, aoNavegar, onNova, onLogout, dis
           pedido={{
             num: numeroPedido(Number(detalhe.pedido.numero)),
             cliente: String(detalhe.pedido.cliente ?? ""),
-            spec: detalhe.pedido.cores ? `${detalhe.pedido.cores} cores` : "",
+            spec: numeroDeCores(detalhe.pedido) ? `${numeroDeCores(detalhe.pedido)} cores` : "",
             /* as cores que a vendedora já escreveu no briefing entram
-               preenchidas — o designer confere em vez de digitar de novo */
-            coresNomes: separarCores(String(detalhe.pedido.cores_desc ?? "")),
+               preenchidas (o designer confere em vez de digitar de novo); da
+               segunda entrega em diante, as da arte anterior */
+            coresNomes: separarCores(coresEfetivas(detalhe.pedido)),
           }}
           /* v1 na primeira entrega, v2 na segunda. Conta as entregas no
              HISTÓRICO, não os anexos: entregar sem arquivo anexado é comum e
@@ -1355,8 +1460,8 @@ export function PedidoHub10({ profile, pedidos, aoNavegar, onNova, onLogout, dis
           pedido={{
             num: numeroPedido(Number(detalhe.pedido.numero)),
             cliente: String(detalhe.pedido.cliente ?? ""),
-            /* as cores da ARTE, que é o que virou clichê — não as pedidas */
-            cores: String(detalhe.pedido.cores_desc || detalhe.pedido.cores || ""),
+            /* as cores da ARTE, que é o que virou clichê (não as pedidas) */
+            cores: coresEfetivas(detalhe.pedido) || String(detalhe.pedido.cores ?? ""),
           }}
           fechar={() => setFinalizando(false)}
           /* a caixa espera: fecha no sucesso, e no erro fica aberta com os

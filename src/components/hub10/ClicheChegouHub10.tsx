@@ -9,7 +9,7 @@
 //
 // Nada trava por causa do PDF: as conferências avisam. Quem está com o clichê
 // na mão sabe mais que a nota.
-import { useEffect, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 
 import { fileToBase64 } from "@/lib/files";
@@ -17,7 +17,7 @@ import { lerNotaClichePdf, pareceOutroCliente, type NotaCliche } from "@/lib/not
 import { parseValorBR } from "@/lib/valor";
 import { corDoNome, sugestoesPantone } from "../v1a/dados/pantone-busca";
 import { linhasIniciais, type RegistroCliche } from "../v1a/modais/ClicheChegouModalV1a";
-import { FR, INTER, NIVEL, PRETO, useEscDoTopo } from "./ChromeHub10";
+import { FR, INTER, NIVEL, PRETO, PerguntaDescartar, useEscDoTopo } from "./ChromeHub10";
 import { PantoneHub10 } from "./PantoneHub10";
 import { PALETA } from "@/lib/paleta-hub";
 
@@ -27,6 +27,18 @@ const CINZA = "#8a8a8a";
 const BORDA_CAMPO = "#d9d8d6";
 /* Mesmo teto da caixa de arte, que é o do projeto: um clichê por cor. */
 const MAX_CLICHES = 7;
+
+/** A espessura do clichê que foi pedida à clicheria (1.14 ou 1.70), do pedido
+    aberto. A caixa mostra no alto, para quem registra a chegada conferir
+    (simulação 6, 07/10/2026: só o Histórico dizia). Quem hospeda a caixa é a
+    tela de Pedidos; a rota, que tem o detalhe do pedido, põe o valor em volta
+    dela. `pedido.espessura`, quando vem, vale mais. */
+export const EspessuraDoClicheHub10 = createContext("");
+
+/** O dia no relógio de quem está usando (AAAA-MM-DD). O toISOString dá o dia
+    em UTC: depois das 21h a caixa sugeria a data de amanhã (simulação 6). */
+const diaLocal = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
 const brl = (n: number) => {
   const [i, d] = Math.abs(Number(n) || 0).toFixed(2).split(".");
@@ -79,15 +91,20 @@ function Aviso({ texto }: { texto: string }) {
 }
 
 export function ClicheChegouHub10({ pedido, fechar, onSalvar }: {
-  pedido: { num?: string; cliente?: string; cores?: string };
+  pedido: { num?: string; cliente?: string; cores?: string; espessura?: string };
   fechar: () => void;
   /** a caixa espera a promessa: fecha quem chamou, no sucesso; no erro ela
       fica aberta com os valores e a nota */
   onSalvar: (d: RegistroCliche) => Promise<unknown> | void;
 }) {
   const p = pedido || {};
+  const espessuraDaRota = useContext(EspessuraDoClicheHub10);
+  const espessura = String(p.espessura ?? espessuraDaRota ?? "").trim();
   const agora = new Date();
-  const [data, setData] = useState(agora.toISOString().slice(0, 10));
+  const [data, setData] = useState(diaLocal(agora));
+  /* chegada depois de hoje não vale: o servidor também recusa */
+  const hoje = diaLocal(new Date());
+  const dataNoFuturo = !!data && data > hoje;
   const [hora, setHora] = useState(
     `${String(agora.getHours()).padStart(2, "0")}:${String(agora.getMinutes()).padStart(2, "0")}`);
   /* Uma linha por clichê. Quando o pedido já tem os NOMES das cores (o que o
@@ -131,7 +148,7 @@ export function ClicheChegouHub10({ pedido, fechar, onSalvar }: {
   const entrada = useRef<HTMLInputElement | null>(null);
 
   const total = linhas.reduce((s, l) => { const v = parseValorBR(l.valor); return s + (Number.isFinite(v) ? v : 0); }, 0);
-  const valido = !!data && !!hora && linhas.length > 0 && !enviando
+  const valido = !!data && !dataNoFuturo && !!hora && linhas.length > 0 && !enviando
     && linhas.every((l) => l.descricao.trim() && Number.isFinite(parseValorBR(l.valor)) && parseValorBR(l.valor) >= 0);
 
   /* Conferências da nota — todas avisam, nenhuma trava. */
@@ -139,8 +156,29 @@ export function ClicheChegouHub10({ pedido, fechar, onSalvar }: {
   const notaDeOutro = !!nota && pareceOutroCliente(nota, p.cliente);
   const notaSemValores = !!nota && nota.itens.every((i) => i.valor === 0);
 
-  /* ESC fecha só esta caixa — não o painel do pedido atrás dela. */
-  useEscDoTopo(true, NIVEL.caixa, fechar);
+  /* o que a caixa trouxe ao abrir: mexeu em algo, ela pergunta antes de fechar */
+  const comoAbriu = useRef<{ data: string; hora: string; linhas: string } | null>(null);
+  if (!comoAbriu.current) comoAbriu.current = { data, hora, linhas: JSON.stringify(linhas) };
+  const preenchido = !!notaNome || data !== comoAbriu.current.data || hora !== comoAbriu.current.hora
+    || JSON.stringify(linhas) !== comoAbriu.current.linhas;
+  /* Fechar sem perder o preenchido (revisão de 08/10/2026): o clique fora, o
+     Esc, o × e o Cancelar descartavam tudo sem perguntar. Com algo
+     preenchido, a caixa pergunta antes; o Esc com a pergunta aberta volta a
+     editar. O clique só conta como "fora" quando começou no véu: selecionar
+     um texto e soltar o mouse fora da caixa não fecha mais. */
+  const [descartar, setDescartar] = useState(false);
+  const pedirParaFechar = () => {
+    if (enviando) return;
+    if (descartar) { setDescartar(false); return; }
+    if (preenchido) setDescartar(true); else fechar();
+  };
+  const fecharRef = useRef(pedirParaFechar);
+  fecharRef.current = pedirParaFechar;
+  const aoEsc = useCallback(() => fecharRef.current(), []);
+  const veuPressionado = useRef(false);
+  /* ESC fecha só esta caixa (perguntando, se houver algo preenchido), não o
+     painel do pedido atrás dela. */
+  useEscDoTopo(true, NIVEL.caixa, aoEsc);
 
   const lerNota = async (arquivo: File) => {
     setErro(""); setLendo(true);
@@ -236,7 +274,8 @@ export function ClicheChegouHub10({ pedido, fechar, onSalvar }: {
   const previaNota = notaNome ? (nota ? notaNome : `${notaNome} · valores à mão`) : (lendo ? "lendo o PDF…" : "solte o PDF da clicheria aqui");
 
   return (
-    <div onClick={fechar}
+    <div onMouseDown={(e) => { veuPressionado.current = e.target === e.currentTarget; }}
+      onClick={(e) => { if (e.target === e.currentTarget && veuPressionado.current) pedirParaFechar(); }}
       /* O véu cobre o PALCO INTEIRO (1920×1080), não só a faixa do
          detalhe: estas caixas são filhas do palco, e com 616 sobrava a barra
          do topo e a faixa preta de baixo acesas — e o cartão, centrado em
@@ -253,11 +292,17 @@ export function ClicheChegouHub10({ pedido, fechar, onSalvar }: {
       <div onClick={(e) => e.stopPropagation()}
         style={{ boxSizing: "border-box", position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 720, maxHeight: 600, overflow: "hidden", display: "flex", flexDirection: "column", background: "#fff", border: `1.5px solid ${PRETO}`, borderRadius: 22, boxShadow: "0 50px 110px -28px rgba(0,0,0,.62)", fontFamily: INTER, color: PRETO }}>
 
+        {descartar && (
+          <PerguntaDescartar texto="A nota da clicheria, os valores e a data que você pôs aqui se perdem."
+            aoContinuar={() => setDescartar(false)} aoDescartar={fechar} />
+        )}
         {/* ————— cabeçalho ————— */}
         <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 24, padding: "26px 42px 20px", flex: "none" }}>
           <div style={{ minWidth: 0 }}>
             <div style={{ font: `700 14px/1.25 ${INTER}`, letterSpacing: ".04em", textTransform: "uppercase", color: CINZA }}>
               {`${p.num ? `${p.num} · ` : ""}${p.cliente ?? ""}`}
+              {/* a espessura pedida, para conferir com o clichê na mão */}
+              {espessura && <span style={{ color: PRETO }}>{` · clichê ${espessura}`}</span>}
             </div>
             <div style={{ ...FR, fontVariationSettings: "'SOFT' 100, 'opsz' 96", fontSize: 44, lineHeight: 1, letterSpacing: "-.035em", marginTop: 10, whiteSpace: "nowrap" }}>Clichê chegou</div>
           </div>
@@ -273,8 +318,10 @@ export function ClicheChegouHub10({ pedido, fechar, onSalvar }: {
                   <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke={CINZA} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" style={{ flex: "none" }}>
                     <rect x="3" y="5" width="18" height="16" rx="2" /><line x1="3" y1="10" x2="21" y2="10" /><line x1="8" y1="3" x2="8" y2="7" /><line x1="16" y1="3" x2="16" y2="7" />
                   </svg>
-                  <input type="date" value={data} onChange={(e) => setData(e.target.value)} aria-label="Data da chegada"
-                    style={{ border: "none", background: "none", padding: 0, font: `800 16px/1 ${INTER}`, color: PRETO, outline: "none" }} />
+                  <input type="date" value={data} max={hoje} onChange={(e) => setData(e.target.value)} aria-label="Data da chegada"
+                    aria-invalid={dataNoFuturo || undefined}
+                    /* depois de hoje: marca-texto amarelo, e o rodapé diz por quê */
+                    style={{ border: "none", background: dataNoFuturo ? PALETA.amarelo : "none", borderRadius: 4, padding: 0, font: `800 16px/1 ${INTER}`, color: PRETO, outline: "none" }} />
                 </span>
                 <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
                   <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke={CINZA} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" style={{ flex: "none" }}>
@@ -285,7 +332,7 @@ export function ClicheChegouHub10({ pedido, fechar, onSalvar }: {
                 </span>
               </div>
             </div>
-            <button onClick={fechar} className="p10-flat" aria-label="Fechar"
+            <button onClick={pedirParaFechar} className="p10-flat" aria-label="Fechar"
               style={{ width: 46, height: 46, display: "grid", placeItems: "center", background: "none", border: `1.5px solid ${PRETO}`, borderRadius: 999, cursor: "pointer" }}>
               <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={PRETO} strokeWidth={2.4} strokeLinecap="round"><path d="M6 6l12 12" /><path d="M18 6L6 18" /></svg>
             </button>
@@ -408,13 +455,16 @@ export function ClicheChegouHub10({ pedido, fechar, onSalvar }: {
 
         {/* ————— rodapé ————— */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 22, padding: "18px 25px", background: PRETO, flex: "none" }}>
-          <div style={{ minWidth: 0, font: `600 16px/1.45 ${INTER}`, color: "#c9c8c6", marginLeft: 20 }}>
-            {valido || total > 0
-              ? `${linhas.length} ${linhas.length === 1 ? "clichê" : "clichês"} · ${brl(total)}`
-              : "O pedido fecha com o valor do clichê"}
+          <div role={dataNoFuturo ? "alert" : undefined}
+            style={{ minWidth: 0, font: `600 16px/1.45 ${INTER}`, color: dataNoFuturo ? PALETA.amarelo : "#c9c8c6", marginLeft: 20 }}>
+            {dataNoFuturo
+              ? "A data da chegada não pode ser depois de hoje."
+              : valido || total > 0
+                ? `${linhas.length} ${linhas.length === 1 ? "clichê" : "clichês"} · ${brl(total)}`
+                : "O pedido fecha com o valor do clichê"}
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 11, flex: "none" }}>
-            <button onClick={fechar} className="p10-flat"
+            <button onClick={pedirParaFechar} className="p10-flat"
               style={{ border: "1.5px solid #555355", borderRadius: 999, padding: "14px 24px", cursor: "pointer", font: `700 17px/1 ${INTER}`, background: "none", color: "#f1f1f1" }}>Cancelar</button>
             <button onClick={salvar} disabled={!valido}
               style={{ border: `1.5px solid ${valido ? PRETO : "#4a484a"}`, borderRadius: 999, padding: "14px 28px", cursor: valido ? "pointer" : "not-allowed", font: `800 17px/1 ${INTER}`, whiteSpace: "nowrap", background: valido ? AMARELO : "#4a484a", color: valido ? PRETO : CINZA }}>

@@ -48,6 +48,13 @@ const CALCULADORAS: Calculadora[] = [
     ilustracao: { left: 85, top: 218, width: 215, height: 242 } },
 ];
 
+/* As ilustrações maiores (Augusto, 07/10/2026: "as ilustrações dos cards
+   das calculadoras precisam ser maiores", e depois "aumente também a
+   ilustração de facas"): 40% sobre a caixa do handoff; as de Facas e do
+   Clichê, que já eram largas, até 400 de largura, 20 de folga para a borda
+   do cartão (440). */
+const AUMENTO_DA_ILUSTRACAO: Record<string, number> = { facas: 400 / 358, cliche: 400 / 333, distorcao: 1.4, etiqueta: 1.4, substrato: 1.4 };
+
 /** Calculadora → permissão calc.* — a mesma tabela da tela V1a. */
 const PERM_DA_CALC: Record<string, string> = {
   distorcao: "calc.distorcao", valorcliche: "calc.valor", caixa: "calc.caixa", valor: "calc.valoretiqueta",
@@ -144,10 +151,16 @@ export function CalculadorasHub10({ profile, aoNavegar, onNova, onLogout, dispon
                 fontFamily: INTER, fontSize: 17, fontWeight: 600, letterSpacing: "-.01em", whiteSpace: "nowrap" }}>Em breve</span>
             )}
             <TituloV4 linhas={[c.nome]} />
-            {/* a ilustração do handoff, no tamanho dela, centrada no cartão */}
-            <img src={`/calc10/${c.id}.svg`} alt="" aria-hidden draggable={false}
-              style={{ position: "absolute", left: (CAPA_V4.cartao - c.ilustracao.width) / 2, top: MEIO_DA_ILUSTRACAO - c.ilustracao.height / 2,
-                width: c.ilustracao.width, height: c.ilustracao.height, display: "block", pointerEvents: "none" }} />
+            {/* a ilustração do handoff, aumentada (AUMENTO_DA_ILUSTRACAO) e centrada no cartão */}
+            {(() => {
+              const k = AUMENTO_DA_ILUSTRACAO[c.id] ?? 1;
+              const largura = c.ilustracao.width * k, altura = c.ilustracao.height * k;
+              return (
+                <img src={`/calc10/${c.id}.svg`} alt="" aria-hidden draggable={false}
+                  style={{ position: "absolute", left: (CAPA_V4.cartao - largura) / 2, top: MEIO_DA_ILUSTRACAO - altura / 2,
+                    width: largura, height: altura, display: "block", pointerEvents: "none" }} />
+              );
+            })()}
             <DescricaoV4 texto={c.descricao} />
           </CartaoV4>
         ))}

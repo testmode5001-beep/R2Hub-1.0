@@ -78,6 +78,12 @@ function assertAcessoPedido(user: AuthUser, pedido: { vendedor_id: string }) {
     28/09/2026). */
 const nn = (numero: unknown) => `#${String(numero ?? "").padStart(2, "0")}`;
 
+/** O dia de hoje no relógio do servidor (AAAA-MM-DD, na hora local). */
+function diaDeHoje(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 /* Valor de clichê é de quem tem cliche.valor_ver (a vendedora, no cargo
    padrão, não tem). A lista de pedidos já escondia; o total ainda ia no
    histórico, nos registros do clichê e no aviso da chegada (simulação 3,
@@ -97,6 +103,14 @@ function usuarioVeValorDoCliche(userId: string): boolean {
   return !!u && (u.role === "admin" || effectivePermissions(userId, u.role).includes("cliche.valor_ver"));
 }
 
+/* A linha 'revisao' do histórico que é alteração pedida de verdade: a
+   reativação ("Pedido reativado. Volta para Revisão.") e as anotações da
+   etapa (resposta ao cliente, prova, chegada do clichê) também gravam a etapa
+   e não contam (simulação 6, 07/10/2026; a mesma lista do pedido aberto e dos
+   Relatórios). */
+const SO_ALTERACAO = ["Pedido reativado", "Resposta ao cliente", "Prova de impressão", "Clichê chegou", "Valores do clichê", "Voltou para a clicheria"]
+  .map((inicio) => `COALESCE(h.observacao, '') NOT LIKE '${inicio}%'`).join(" AND ");
+
 export const listPedidos = createServerFn({ method: "POST" })
   .middleware([requireAuth])
   .handler(async ({ context }) => {
@@ -105,8 +119,14 @@ export const listPedidos = createServerFn({ method: "POST" })
     /* O registro de chegada do clichê vem JUNTO (o mais recente de cada
        pedido): sem ele a tela de Aprovação não tinha de onde tirar o valor
        recebido e mostrava um número inventado. */
-    const base = `SELECT p.id, p.numero, p.cliente, p.materia, p.largura, p.altura, p.cores, p.cores_desc,
+    const base = `SELECT p.id, p.numero, p.cliente, p.materia, p.largura, p.altura, p.cores, p.cores_desc, p.cores_arte,
                          p.status, p.status_anterior, p.tipo, p.fila, p.designer_id, p.urgente, p.faca_cod, p.faca_nova,
+                         /* o cartão de Refazer clichê de cliente antigo: quem o cadastrou
+                            (design ou admin) não é vendedora, e o filtro Vendedora o deixa
+                            de fora (Augusto, 07/10/2026; a mesma regra dos Relatórios) */
+                         (p.tipo = 'cliche' AND EXISTS (SELECT 1 FROM pedido_historico hr
+                            WHERE hr.pedido_id = p.id AND hr.status = 'refazer_cliche'
+                              AND hr.created_at = p.created_at)) AS cartao_refacao,
                          uv.nome AS vendedor_nome, ud.nome AS designer_nome,
                          /* Resposta que EU ainda não li: pergunta que eu fiz, já
                             respondida depois da última vez que abri o pedido. É
@@ -138,11 +158,11 @@ export const listPedidos = createServerFn({ method: "POST" })
                             eram a mesma linha. A coluna chave é o id da linha
                             do histórico que pediu a revisão. */
                          (SELECT COUNT(*) FROM pedido_historico h
-                           WHERE h.pedido_id = p.id AND h.status = 'revisao'
+                           WHERE h.pedido_id = p.id AND h.status = 'revisao' AND ${SO_ALTERACAO}
                              AND h.id NOT IN (SELECT r.chave FROM pedido_revisoes_resolvidas r
                                                WHERE r.pedido_id = p.id)) AS alteracoes_abertas,
                          (SELECT MIN(h.created_at) FROM pedido_historico h
-                           WHERE h.pedido_id = p.id AND h.status = 'revisao'
+                           WHERE h.pedido_id = p.id AND h.status = 'revisao' AND ${SO_ALTERACAO}
                              AND h.id NOT IN (SELECT r.chave FROM pedido_revisoes_resolvidas r
                                                WHERE r.pedido_id = p.id)) AS alteracao_desde
                   FROM pedidos p
@@ -190,7 +210,10 @@ export const getPedido = createServerFn({ method: "POST" })
 
     const historico = db
       .prepare(
-        "SELECT id, status, observacao, user_nome, created_at FROM pedido_historico WHERE pedido_id = ? ORDER BY created_at ASC",
+        /* o rowid desempata o mesmo instante, como o reativarPedido lê: a tela
+           conta daqui a etapa para onde a reativação volta e tem de chegar na
+           mesma (simulação 6, 07/10/2026) */
+        "SELECT id, status, observacao, user_nome, created_at FROM pedido_historico WHERE pedido_id = ? ORDER BY created_at ASC, rowid ASC",
       )
       .all(data.id) as LinhaSQL[];
 
@@ -304,7 +327,9 @@ export const perguntarNoPedido = createServerFn({ method: "POST" })
       alvos,
       user.id,
       `Pergunta em ${pedido.cliente}`,
-      `${nn(pedido.numero)} · ${user.nome.split(" ")[0]} precisa de uma resposta: ${texto.slice(0, 110)}`,
+      /* o nome inteiro: com duas vendedoras, o primeiro nome ("Vendas") não
+         dizia quem perguntou (simulação 6, 07/10/2026) */
+      `${nn(pedido.numero)} · ${user.nome} precisa de uma resposta: ${texto.slice(0, 110)}`,
       `/pedido/${data.pedidoId}`,
     );
 
@@ -353,7 +378,8 @@ export const responderPergunta = createServerFn({ method: "POST" })
       [pergunta.de_id as string].filter(Boolean) as string[],
       user.id,
       `Resposta em ${pedido.cliente}`,
-      `${nn(pedido.numero)} · ${user.nome.split(" ")[0]}: ${texto.slice(0, 120)}`,
+      /* o nome inteiro, como na pergunta */
+      `${nn(pedido.numero)} · ${user.nome}: ${texto.slice(0, 120)}`,
       `/pedido/${pedido.id as string}`,
     );
 
@@ -601,7 +627,7 @@ export const comentarPedido = createServerFn({ method: "POST" })
       alvos,
       user.id,
       `Comentário em ${pedido.cliente}`,
-      `${user.nome.split(" ")[0]}: ${data.texto.trim().slice(0, 120)}`,
+      `${user.nome}: ${data.texto.trim().slice(0, 120)}`,
       `/pedido/${data.pedidoId}`,
     );
 
@@ -646,7 +672,7 @@ export const responderCliente = createServerFn({ method: "POST" })
     notifyUsers(
       alvos, user.id,
       `Resposta ao cliente · ${pedido.cliente}`,
-      `${user.nome.split(" ")[0]}: ${texto.slice(0, 120)}`,
+      `${user.nome}: ${texto.slice(0, 120)}`,
       `/pedido/${data.pedidoId}`,
     );
 
@@ -688,7 +714,7 @@ export const registrarProvaImpressao = createServerFn({ method: "POST" })
     notifyUsers(
       alvos, user.id,
       `Prova enviada · ${pedido.cliente}`,
-      `${user.nome.split(" ")[0]} enviou a prova de impressão do pedido #${String(pedido.numero).padStart(4, "0")}.`,
+      `${user.nome} enviou a prova de impressão do pedido #${String(pedido.numero).padStart(4, "0")}.`,
       `/pedido/${data.pedidoId}`,
     );
 
@@ -731,6 +757,12 @@ export const registrarCliche = createServerFn({ method: "POST" })
       | Record<string, unknown>
       | undefined;
     if (!pedido) throw new Error("Pedido não encontrado.");
+    /* Chegada depois de hoje não existe: um ano digitado errado (31/12/2030)
+       tirava o gasto do clichê dos relatórios do mês (simulação 6,
+       07/10/2026). Hoje é o dia no relógio do servidor, que fica na fábrica. */
+    if (/^\d{4}-\d{2}-\d{2}$/.test(data.dataChegada) && data.dataChegada > diaDeHoje()) {
+      throw new Error("A data da chegada não pode ser depois de hoje.");
+    }
 
     const total = data.itens.reduce((s, i) => s + i.valor, 0);
     const ts = agora();
@@ -1493,12 +1525,17 @@ export const changeStatus = createServerFn({ method: "POST" })
       | undefined;
     if (!pedido) throw new Error("Pedido não encontrado.");
 
+    /* A etapa que a tela viu vem antes do "nada a mudar" (revisão de
+       08/10/2026): com o painel parado, "Pedir revisão" num pedido que outra
+       pessoa já tinha mandado para revisão respondia "ok" sem gravar o texto,
+       e o mesmo valia para o motivo do Refazer clichê e a espessura do
+       Enviar p/ clicheria. Agora os botões da tela 1.0 mandam o `de`. */
+    if (data.de && pedido.status !== data.de) throw new Error("Este pedido mudou de etapa. Atualize a página.");
     /* Mesma etapa de novo (duas abas, clique repetido): nada muda e nada se
        grava. O Histórico ganhava "Criação iniciada" duas vezes e todo mundo
        recebia dois avisos (simulação de 28/09/2026). Entregar arte de novo
        em Design criado continua valendo: é uma versão nova. */
     if (data.status === pedido.status && data.status !== "aguardando") return { ok: true, semMudanca: true };
-    if (data.de && pedido.status !== data.de) throw new Error("Este pedido mudou de etapa. Atualize a página.");
     /* Reativar: volta para a etapa em que estava (permissão própria) */
     if (pedido.status === "cancelado" && data.status === "nova") {
       requirePerm(user, "pedidos.reabrir");
@@ -1606,19 +1643,17 @@ export const changeStatus = createServerFn({ method: "POST" })
     } else if (pedido.status === "cancelado") {
       sets.push("cancelado_em = NULL");
     }
-    /* As cores confirmadas passam a valer no pedido. Só quem conduz a etapa de
-       design pode reescrever (é ele quem sabe o que usou na arte). */
+    /* As cores confirmadas na entrega são as da ARTE e ficam ao lado das que
+       a vendedora pediu (Augusto, 07/10/2026: "guarde as duas listas"). Antes
+       gravavam por cima de cores_desc e de cores: se o designer errasse uma
+       cor, ninguém via a diferença. Quem precisa das cores reais (clichê,
+       Pantones, relatórios, o número do cartão) lê coresEfetivas e
+       numeroDeCores (lib/cores). Só quem conduz a etapa de design grava (é
+       ele quem sabe o que usou na arte). */
     const coresNovas = (data.coresDesc ?? "").trim();
     if (coresNovas && temPerm(user, "pedidos.status_design")) {
-      sets.push("cores_desc = ?");
+      sets.push("cores_arte = ?");
       valores.push(coresNovas);
-      /* ...e o número de cores acompanha: o card mostrava "4" para uma arte
-         de duas cores (simulação de 28/09/2026). */
-      const quantas = separarCores(coresNovas).length;
-      if (quantas) {
-        sets.push("cores = ?");
-        valores.push(String(quantas));
-      }
     }
     valores.push(data.id);
     db.prepare(`UPDATE pedidos SET ${sets.join(", ")} WHERE id = ?`).run(...(valores as never[]));
@@ -1633,6 +1668,10 @@ export const changeStatus = createServerFn({ method: "POST" })
       pedido.vendedor_id as string,
       pedido.designer_id as string | null,
       ...usersWithRoles(["gestor", "admin"]),
+      /* Cancelado antes de alguém do design assumir: o pedido estava na fila
+         (ou esperando) do time do design, que recebeu a "Nova solicitação" e
+         precisa saber que ele saiu (simulação 6, 07/10/2026). */
+      ...(data.status === "cancelado" && !pedido.designer_id ? usersWithRoles(["designer"]) : []),
     ].filter(Boolean) as string[];
     notifyUsers(
       alvos,
@@ -1874,8 +1913,17 @@ export const marcarPedidoVisto = createServerFn({ method: "POST" })
   .middleware([requireAuth])
   .handler(async ({ data, context }) => {
     const { user } = context as AuthContext;
-    getDb()
-      .prepare(`INSERT INTO pedido_vistos (user_id, pedido_id, visto_em) VALUES (?, ?, ?)
+    const db = getDb();
+    /* Só grava no pedido que existe e que a pessoa vê, a regra do getPedido.
+       O link com um id que não existe soltava "FOREIGN KEY constraint failed"
+       na tela, e o de outra vendedora gravava o visto num pedido que ela não
+       vê (simulação 6, 07/10/2026). */
+    const pedido = db.prepare("SELECT id, vendedor_id FROM pedidos WHERE id = ?").get(data.id) as
+      | { id: string; vendedor_id: string }
+      | undefined;
+    if (!pedido) throw new Error("Pedido não encontrado.");
+    assertAcessoPedido(user, pedido);
+    db.prepare(`INSERT INTO pedido_vistos (user_id, pedido_id, visto_em) VALUES (?, ?, ?)
                 ON CONFLICT(user_id, pedido_id) DO UPDATE SET visto_em = excluded.visto_em`)
       .run(user.id, data.id, agora());
     return { ok: true };

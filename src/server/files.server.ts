@@ -92,6 +92,7 @@ export function sanitizeFileName(nome: string): string {
  * Retorna o caminho UNC completo da pasta do cliente.
  */
 export function ensureClienteFolderOnDisk(nomePasta: string): string {
+  assertPastaDeCliente(nomePasta);
   const base = clientesBaseDir();
   if (!existsSync(base)) {
     // Em dev cria a base local; em produção o share precisa estar acessível.
@@ -128,6 +129,7 @@ export function saveClienteFile(
   nomeArquivo: string,
   conteudo: Buffer,
 ): { fullPath: string; nomeSalvo: string } {
+  assertPastaDeCliente(pastaCliente);
   /* A arte vai para "Design" — a pasta que o hub cria quando o designer
      anexa o primeiro design. Cliente antigo que JÁ tem "Artes" continua
      recebendo lá, para a arte dele não se dividir em duas pastas (Augusto,
@@ -283,7 +285,7 @@ export function listarPastasClientes(forcar = false): string[] {
   const base = clientesBaseDir();
   if (!existsSync(base)) return cachePastas?.nomes ?? [];
   const nomes = readdirSync(base, { withFileTypes: true })
-    .filter((e) => e.isDirectory() && !e.name.startsWith("_"))  // "_Solicitações de Clichê" não é cliente
+    .filter((e) => e.isDirectory() && !naoEhPastaDeCliente(e.name))  // nem "_Solicitações de Clichê", nem a Relação, nem Modelos
     .map((e) => e.name)
     .sort((a, b) => a.localeCompare(b, "pt-BR"));
   cachePastas = { quando: Date.now(), nomes };
@@ -305,6 +307,28 @@ export function esquecerCachePastas() {
    aviso "já existe" ignorava só as maiúsculas). */
 const chavePasta = (n: string) =>
   String(n ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ").trim().toLowerCase();
+
+/* Pastas da base que NÃO são de cliente (revisão de segurança, 08/10/2026):
+   a Relação de Ferramentais é só leitura (regra 2) e Modelos guarda vídeos,
+   tutoriais e o instalador do hub. Elas apareciam na lista de pastas de
+   cliente, e escolher uma criava "Referências" e gravava arquivos lá dentro.
+   As que começam com "_" (como "_Solicitações de Clichê") também não são. */
+const PASTAS_QUE_NAO_SAO_DE_CLIENTE = new Set(["relacao de ferramentais", "modelos"]);
+function naoEhPastaDeCliente(nome: string): boolean {
+  const n = String(nome ?? "").trim();
+  return n.startsWith("_") || PASTAS_QUE_NAO_SAO_DE_CLIENTE.has(chavePasta(n));
+}
+/** Recusa gravar numa dessas pastas. `alvo` é o nome da pasta do cliente ou
+    um caminho dentro da base. Caminho (com barra) vale como está, a partir da
+    pasta de trabalho, como o resto do arquivo faz; nome solto fica dentro da
+    base. No hub de teste a base é relativa, e juntar as duas coisas fazia a
+    primeira pasta lida ser "dev-data" (a trava não pegava). */
+function assertPastaDeCliente(alvo: string) {
+  const base = path.resolve(clientesBaseDir());
+  const cheio = /[\\/]/.test(alvo) ? path.resolve(alvo) : path.resolve(base, alvo);
+  const primeira = path.relative(base, cheio).split(/[\\/]/)[0] ?? "";
+  if (naoEhPastaDeCliente(primeira)) throw new Error(`A pasta "${primeira}" não é de cliente: o hub não grava nela.`);
+}
 
 export function acharPastaExata(nome: string): string | null {
   const bruto = String(nome ?? "").trim();

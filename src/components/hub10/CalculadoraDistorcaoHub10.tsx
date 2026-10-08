@@ -4,12 +4,17 @@
 // a grade são as de lá (CalculadoraFacasHub10), como na de clichê.
 //
 //   - em cima à esquerda, o que o designer digita: os dentes da engrenagem na
-//     c1 e, se quiser a arte corrigida, a medida dela na c6;
+//     c1 (a medida da arte, para a arte corrigida, saiu em 08/10/2026:
+//     "a medida da arte é desnecessária na calculadora de distorção");
 //   - a coluna da direita, na c18: "Configurações" (módulo e chapa, com os
-//     padrões da calculadora antiga) e "Resultados:" (repetição, tamanho no
-//     impresso, K da chapa, fator de gravação e a arte corrigida);
-//   - a distorção enorme na c1 e, na 62, a frase que a calculadora antiga já
-//     dizia sobre onde aplicar a redução.
+//     padrões da calculadora antiga) e "Resultados:" (repetição, distorção do
+//     clichê, porcentagem de redução e fator de gravação);
+//   - o tamanho do clichê enorme na c1 e, na 62, a frase sobre onde aplicar a
+//     redução. Augusto, 08/10/2026: primeiro "colocar o K da chapa no lugar
+//     da distorção" (o K, em mm, virou "Distorção do clichê" e a porcentagem
+//     foi para os resultados como "Porcentagem de redução"); depois "substitua
+//     a posição da distorção do clichê pelo tamanho do impresso, que agora
+//     fica tamanho do clichê".
 //
 // A conta é a da calculadora antiga (`calcular("distorcao")`): nenhuma fórmula
 // nova mora aqui.
@@ -17,10 +22,11 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 
 import { PADROES, calcular } from "../v1a/CalculadorasV1a";
 import { FUNDO, INTER, NIVEL, PRETO, useEscDoTopo } from "./ChromeHub10";
+import { baseFraunces, folgaFraunces } from "./grade-hub10";
 import {
-  ACERTO_PRECO, ALTURA_DA_ABA, BASE_VALOR, C1, C18, C23, C6, CINZA, CampoMedida, FANTASMA, FOLGA_PRECO,
-  JUSTO_VALOR, LIMITE_VALOR, Opcoes, PEQUENO, PRECO, Par, QUEBRA, ROTULO_BAIXO, ValorEscolha, linhaDaAba,
-  naGrade, noFraunces, num, soNumero, valorNaGrade,
+  ACERTO_FRASE, ACERTO_PRECO, ALTURA_DA_ABA, BASE_VALOR, C1, C18, C23, CINZA, CampoMedida, FANTASMA, FOLGA_FRASE, FOLGA_PRECO,
+  FR400, FRASE, JUSTO_VALOR, L5, LIMITE_VALOR, Opcoes, PEQUENO, PRECO, Par, QUEBRA, ROTULO_BAIXO, ValorEscolha, linhaDaAba,
+  naGrade, noFraunces, num, valorNaGrade,
 } from "./CalculadoraFacasHub10";
 
 /* os módulos e as chapas da conta antiga (MODULOS e CHAPAS): o rótulo é o
@@ -46,12 +52,10 @@ const partir = (s: string): [string, string | undefined] => {
 /** A aba da calculadora de distorção: a página inteira abaixo da barra. */
 export function CalculadoraDistorcaoHub10({ aoFechar }: { aoFechar: () => void }) {
   const [dentes, setDentes] = useState("");
-  const [arte, setArte] = useState("");
   const [modulo, setModulo] = useState(PADRAO.modulo);
   const [chapa, setChapa] = useState(PADRAO.chapa);
   const [menu, setMenu] = useState<null | "modulo" | "chapa">(null);
   const campoDentes = useRef<HTMLInputElement | null>(null);
-  const campoArte = useRef<HTMLInputElement | null>(null);
   const [fontes, setFontes] = useState(0);
   useEffect(() => { void document.fonts?.ready.then(() => setFontes((n) => n + 1)); }, []);
 
@@ -70,16 +74,35 @@ export function CalculadoraDistorcaoHub10({ aoFechar }: { aoFechar: () => void }
   const alternar = (m: NonNullable<typeof menu>) => setMenu(menu === m ? null : m);
 
   const completa = num(dentes) > 0;
+  /* Zero dente: a conta não roda e nada dizia por quê (simulação 6,
+     07/10/2026). Como nas outras abas, a frase só aparece depois de sair do
+     campo; o campo abre com o foco. */
+  const [dentesEmFoco, setDentesEmFoco] = useState(true);
+  useEffect(() => {
+    const el = campoDentes.current;
+    if (!el) return;
+    const entra = () => setDentesEmFoco(true);
+    const sai = () => setDentesEmFoco(false);
+    el.addEventListener("focus", entra);
+    el.addEventListener("blur", sai);
+    return () => { el.removeEventListener("focus", entra); el.removeEventListener("blur", sai); };
+  }, []);
+  const mensagem = dentes !== "" && !completa && !dentesEmFoco
+    ? "Os dentes precisam ser mais que zero.\nDigite o Z do cilindro."
+    : "";
   /* a conta recebe o inteiro, sem a vírgula que pode ter ficado à vista */
-  const res = useMemo(() => (completa ? calcular("distorcao", { ...PADRAO, dentes: String(Math.trunc(num(dentes))), modulo, chapa, arte }) : null),
-    [completa, dentes, modulo, chapa, arte]);
+  const res = useMemo(() => (completa ? calcular("distorcao", { ...PADRAO, dentes: String(Math.trunc(num(dentes))), modulo, chapa }) : null),
+    [completa, dentes, modulo, chapa]);
   const linhaDe = (rotulo: string) => res?.linhas.find((l) => l.label === rotulo)?.valor ?? "";
   const resultado = !!res;
+  /* a conta antiga chama a porcentagem de "Distorção do clichê"; aqui ela é a
+     porcentagem de redução, e a distorção do clichê é o K da chapa, em mm */
   const [pct] = partir(linhaDe("Distorção do clichê"));
-  const textoValor = resultado ? `${pct}%` : "0,000%";
+  const distorcaoMm = linhaDe("K da chapa");
+  /* o número grande é o tamanho do clichê (na conta antiga, "Tamanho a
+     aplicar no impresso": a repetição menos o K) */
+  const textoValor = resultado ? `${res!.destaque.valor} mm` : "000,000 mm";
   const [repeticao] = partir(linhaDe("Repetição (R)"));
-  const [arteFlat] = partir(linhaDe("Arte flat (correção)"));
-  const temArte = resultado && num(arte) > 0 && arteFlat !== "—";
 
   /* o número para meia coluna antes da c18; só aperta as letras se passar */
   const valorRef = useRef<HTMLDivElement | null>(null);
@@ -101,15 +124,12 @@ export function CalculadoraDistorcaoHub10({ aoFechar }: { aoFechar: () => void }
 
       <h1 className="h10-so-leitor">Calculadora de distorção</h1>
       <div role="status" aria-live="polite" aria-atomic="true" className="h10-so-leitor">
-        {resultado ? `Distorção do clichê: ${textoValor}.${temArte ? ` Arte no clichê: ${arteFlat} mm.` : ""}` : ""}
+        {mensagem ? mensagem.replace(/\n/g, " ") : resultado ? `Tamanho do clichê: ${textoValor}. Distorção do clichê: ${distorcaoMm} mm. Porcentagem de redução: ${pct} %.` : ""}
       </div>
 
-      {/* o que se digita: os dentes da engrenagem e, se quiser, a medida da arte */}
+      {/* o que se digita: os dentes da engrenagem */}
       <CampoMedida x={C1} nome="Dentes" valor={dentes} rotulo="dentes da engrenagem" titulo="O número de dentes da engrenagem: o Z do cilindro."
-        aoMudar={(v) => setDentes(soInteiro(v))} auto campoRef={campoDentes} aoEnter={() => campoArte.current?.focus()} />
-      <CampoMedida x={C6} nome="Medida da arte" valor={arte} rotulo="medida da arte em mm, opcional"
-        titulo="Opcional: a medida da arte no impresso, no sentido do desenvolvimento, em mm. A conta dá a medida para gravar no clichê."
-        aoMudar={(v) => setArte(soNumero(v))} campoRef={campoArte} />
+        aoMudar={(v) => setDentes(soInteiro(v))} auto campoRef={campoDentes} />
 
       {/* o fechar do painel, vazado, terminando em c23 e centrado na linha 13 */}
       <button onClick={aoFechar} className="p10-flat" aria-label="Fechar a calculadora"
@@ -134,22 +154,38 @@ export function CalculadoraDistorcaoHub10({ aoFechar }: { aoFechar: () => void }
         </ValorEscolha>
       </div>
 
-      {/* os resultados de três em três linhas, da 45 à 57, sempre à vista */}
+      {/* os quatro resultados de quatro em quatro linhas, da 45 à 57, sempre à
+          vista: como no substrato, o primeiro três linhas abaixo do rótulo e o
+          último na linha de base do número grande */}
       <span style={{ ...valorNaGrade(C18, ROTULO_BAIXO, "R"), color: CINZA }}>Resultados:</span>
       <Par x={C18} k={BASE_VALOR - 12} nome="Repetição (R)" valor={resultado ? repeticao : nada} un={resultado ? "mm" : undefined} />
-      <Par x={C18} k={BASE_VALOR - 9} nome="Tamanho no impresso" valor={resultado ? res!.destaque.valor : nada} un={resultado ? "mm" : undefined} />
-      <Par x={C18} k={BASE_VALOR - 6} nome="K da chapa" valor={resultado ? linhaDe("K da chapa") : nada} />
-      <Par x={C18} k={BASE_VALOR - 3} nome="Fator de gravação" valor={resultado ? linhaDe("Fator de gravação") : nada} />
-      <Par x={C18} k={BASE_VALOR} nome="Arte no clichê" valor={temArte ? arteFlat : nada} un={temArte ? "mm" : undefined} />
+      <Par x={C18} k={BASE_VALOR - 8} nome="Distorção do clichê" valor={resultado ? distorcaoMm : nada} un={resultado ? "mm" : undefined} />
+      <Par x={C18} k={BASE_VALOR - 4} nome="Porcentagem de redução" valor={resultado ? pct : nada} un={resultado ? "%" : undefined} />
+      <Par x={C18} k={BASE_VALOR} nome="Fator de gravação" valor={resultado ? linhaDe("Fator de gravação") : nada} />
 
-      {/* a distorção, embaixo, na c1: o rótulo na 42, a maiúscula da 45 à 57 */}
-      <span aria-hidden style={{ ...naGrade(C1, ROTULO_BAIXO, PEQUENO, 400, "D"), color: CINZA }}>Distorção do clichê:</span>
-      <div ref={valorRef} aria-hidden style={{ ...noFraunces(C1, BASE_VALOR, PRECO, textoValor.charAt(0), FOLGA_PRECO, ACERTO_PRECO), letterSpacing: `calc(${JUSTO_VALOR} + ${aperto}px)`, color: resultado ? PRETO : FANTASMA }}>
-        {textoValor}
-      </div>
-      {/* na 62, o que a calculadora antiga já dizia sobre a redução */}
+      {/* a distorção, embaixo, na c1: o rótulo na 42, a maiúscula da 45 à 57.
+          Sem conta possível, o que falta, no mesmo lugar (como no substrato). */}
+      {mensagem ? (
+        <div style={{ position: "absolute", left: C1, width: LIMITE_VALOR - C1,
+          bottom: ALTURA_DA_ABA - (linhaDaAba(BASE_VALOR) + L5 - baseFraunces(FRASE, L5) - ACERTO_FRASE),
+          ...FR400, fontSize: FRASE, lineHeight: `${L5}px`, color: PRETO }}>
+          {mensagem.split("\n").map((frase, i) => (
+            <div key={i} style={{ marginLeft: -(folgaFraunces(400, FRASE, frase.charAt(0)) + FOLGA_FRASE), textWrap: "balance" }}>{frase}</div>
+          ))}
+        </div>
+      ) : (
+        <>
+          <span aria-hidden style={{ ...naGrade(C1, ROTULO_BAIXO, PEQUENO, 400, "T"), color: CINZA }}>Tamanho do clichê:</span>
+          <div ref={valorRef} aria-hidden style={{ ...noFraunces(C1, BASE_VALOR, PRECO, textoValor.charAt(0), FOLGA_PRECO, ACERTO_PRECO), letterSpacing: `calc(${JUSTO_VALOR} + ${aperto}px)`, color: resultado ? PRETO : FANTASMA }}>
+            {textoValor}
+          </div>
+        </>
+      )}
+      {/* na 62, onde aplicar a redução (a frase da calculadora antiga dizia
+          "essa redução": com o número grande em mm, ela passa a nomear a
+          porcentagem, para ninguém tirar os mm da medida da arte) */}
       {resultado && (
-        <span style={{ ...naGrade(C1, QUEBRA, PEQUENO, 400, "A"), color: CINZA }}>Aplique essa redução no sentido do desenvolvimento antes de gravar o clichê.</span>
+        <span style={{ ...naGrade(C1, QUEBRA, PEQUENO, 400, "A"), color: CINZA }}>Aplique a porcentagem de redução no sentido do desenvolvimento antes de gravar o clichê.</span>
       )}
     </div>
   );

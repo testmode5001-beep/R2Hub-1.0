@@ -108,7 +108,15 @@ export function CalculadoraSubstratoHub10({ aoFechar }: { aoFechar: () => void }
   const metros = resultado ? `${res!.destaque.valor} m` : "";
   const temArea = resultado && num(largura) > 0;
 
-  const mensagem = !completa ? "" : faltaTubete
+  /* Zero digitado no Ø ou na espessura: a conta não roda e ficava o
+     fantasma, sem dizer por quê (simulação 6, 07/10/2026). Como os outros
+     erros de número, só depois de sair do campo. */
+  const externoZero = externo !== "" && !(num(externo) > 0) && emFoco !== "externo";
+  const espessuraZero = espessura !== "" && !(num(espessura) > 0) && emFoco !== "espessura";
+  const mensagem = externoZero && espessuraZero ? "O Ø externo e a espessura precisam ser maiores que zero."
+    : externoZero ? "O Ø externo precisa ser maior que zero.\nMeça o diâmetro de fora do rolo, em mm."
+    : espessuraZero ? "A espessura precisa ser maior que zero.\nDigite em milímetros, por exemplo 0,080."
+    : !completa ? "" : faltaTubete
     ? "Falta o tubete.\nConfira nas configurações."
     : espessuraDemais ? (emFoco === "espessura" ? "" : "A espessura passa de 1 mm.\nDigite em milímetros, por exemplo 0,080.")
     : menorQueTubete ? (emFoco === "externo" ? "" : `O Ø externo precisa ser maior que o tubete.\nO tubete está em ${tubete} mm, nas configurações.`)

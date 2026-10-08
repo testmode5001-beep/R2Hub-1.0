@@ -8,7 +8,7 @@
 // A barra cuida do próprio estado (pesquisa, notificações, configurações,
 // sair) e lê o resto do contexto do hub. Quem a usa só diz qual página está
 // ativa e o que fazer ao navegar.
-import { Component, Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Component, Suspense, lazy, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 
 import { BuscaGlobalV1a } from "../v1a/BuscaGlobalV1a";
@@ -34,6 +34,10 @@ class ProtecaoDasPreferencias extends Component<{ fechar: () => void; children: 
 import { baseFraunces, baseInter, folgaDireitaInter, folgaFraunces, folgaInter } from "./grade-hub10";
 import type { SessionUser } from "@/lib/session";
 import { PALETA } from "@/lib/paleta-hub";
+import { entrarNaPagina } from "@/lib/transicao-hub";
+
+/* o efeito antes de pintar, sem o aviso do React no servidor */
+const useEfeitoAntesDePintar = typeof window === "undefined" ? useEffect : useLayoutEffect;
 
 /* ————— kit 1.0 —————
    Preto #000 e amarelo #fff079 (o #FFE815 só no "+"), que NÃO são os do kit
@@ -54,43 +58,93 @@ export const AMARELO_MAIS = PALETA.amareloForte;
    sobre a tela esmaecida. A barra mora no palco escalado (PalcoFixo), então
    o pé dela na janela é a mesma conta do palco: a escala que cabe e o palco
    centrado. */
-/* dez tons em passos iguais de cor percebida (OKLab), do amarelo claro ao
-   forte. A escala antiga começava num quase branco (#fffbe6) e os passos do
-   lado claro eram o dobro dos do forte: a faixa mais clara saltava (Augusto,
-   05/10/2026: "conseguimos uma transição de cor mais suave na mais clara,
-   ela é muito aparente") */
-const TONS_DO_CARREGANDO = ["#fff3b8", "#ffeeab", "#ffea9e", "#ffe590", "#ffe081", "#ffdc72", "#ffd761", "#ffd24e", "#ffcd35", "#ffc800"];
-/* uma volta de cores vira as faixas: a imagem leva duas voltas e anda meia
-   imagem por ciclo, então a faixa encaixa sem salto */
-function faixasDaVolta(volta: string[]): string {
-  const todas = [...volta, ...volta];
-  return todas.map((cor, i) => `${cor} ${(i * 100) / todas.length}% ${((i + 1) * 100) / todas.length}%`).join(", ");
-}
-/* do claro ao forte e de volta, sem repetir as pontas: com o forte e o claro
-   duas vezes seguidas, cada virada saía uma faixa larga da mesma cor
-   (Augusto, 05/10/2026: "as duas faixas com a mesma cor do meio não está
-   legal") */
-/* (Uma prévia nas cores da impressão, CMY e CMYK, foi vista e recusada em
-   05/10/2026: ficou o amarelo.) */
-const FAIXAS_DO_CARREGANDO = faixasDaVolta([...TONS_DO_CARREGANDO, ...[...TONS_DO_CARREGANDO].reverse().slice(1, -1)]);
+/* (As faixas amarelas do carregamento, com os dez tons em OKLab de 05/10/2026,
+   saíram em 07/10/2026 para a marca de registro; estão no histórico do git.) */
 function peDaBarraNaJanela() {
   if (typeof window === "undefined") return 112;
   const w = window.innerWidth, h = window.innerHeight;
   const escala = Math.min(w / 1920, h / 1080);
   return (h - 1080 * escala) / 2 + 112 * escala;
 }
+/* O carregamento é a marca de registro da impressão (Augusto, 07/10/2026,
+   entre seis ideias: "gostei do loading marca de registro, vamos deixar mais
+   dinâmico"; antes eram as faixas amarelas acima). Em cada volta, cada cor
+   aparece num fade in na sua partida, afastada e fora de registro, e só
+   então começa o acerto, em duas sessões (08/10): na primeira chega perto,
+   ainda deslocada e torta (fora de eixo); na segunda endireita e acerta o
+   registro (multiply: preta pura). A marca então respira de leve, abre uma
+   onda amarela suave e some num fade out (o preto por último, para clarear
+   em cinza); a volta seguinte começa noutro arranjo (três). A animação
+   mora no styles.css (.h10-registro). Medida na escala do palco, porque a
+   camada é fixa na janela. */
+const CORES_DO_REGISTRO = ["#00aeef", "#ec008c", "#ffd200", "#252425"];  // ciano, magenta, amarelo, preto
+function escalaDoPalco() {
+  if (typeof window === "undefined") return 1;
+  return Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+}
 export function CarregandoHub10() {
-  const [topo, setTopo] = useState(peDaBarraNaJanela);
+  const [caixa, setCaixa] = useState(() => ({ topo: peDaBarraNaJanela(), escala: escalaDoPalco() }));
   useEffect(() => {
-    const medir = () => setTopo(peDaBarraNaJanela());
+    const medir = () => setCaixa({ topo: peDaBarraNaJanela(), escala: escalaDoPalco() });
     window.addEventListener("resize", medir);
     return () => window.removeEventListener("resize", medir);
   }, []);
+  const k = caixa.escala;
   return (
-    <div role="status" aria-label="Carregando" style={{ position: "fixed", left: 0, right: 0, top: topo, bottom: 0, zIndex: 10000,
-      animation: "h10-carregando-entra .25s ease both" }}>
-      <div className="h10-carregando-tela" style={{ position: "absolute", inset: 0,
-        background: `linear-gradient(90deg, ${FAIXAS_DO_CARREGANDO})`, backgroundSize: "200% 100%" }} />
+    <div role="status" aria-label="Carregando" style={{ position: "fixed", left: 0, right: 0, top: caixa.topo, bottom: 0, zIndex: 10000,
+      background: FUNDO_PAGINA, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: Math.round(34 * k),
+      paddingBottom: Math.round(112 * k), boxSizing: "border-box", animation: "h10-carregando-entra .25s ease both" }}>
+      <svg className="h10-registro" viewBox="-70 -70 140 140" width={Math.round(210 * k)} height={Math.round(210 * k)} aria-hidden="true">
+        <circle className="h10-registro-onda" r={34} />
+        <g className="h10-registro-junto">
+          {CORES_DO_REGISTRO.map((cor, i) => (
+            <g key={cor} className={`h10-registro-cor h10-registro-${i}`} stroke={cor}>
+              <circle r={34} />
+              <path d="M-56 0H56M0 -56V56" />
+            </g>
+          ))}
+        </g>
+      </svg>
+      <span className="h10-registro-texto" style={{ fontFamily: INTER, fontSize: Math.round(22 * k), letterSpacing: "-.01em", color: "#8a8a8a" }}>Acertando o registro…</span>
+    </div>
+  );
+}
+/* O carregamento sob demanda, só no hub de teste: na tela real ele aparece
+   quando uma consulta demora, e no teste (banco local) quase nunca. Alt+L
+   mostra em velocidade normal; de novo, em câmera lenta (recomeça do zero,
+   para ver as duas sessões de encaixe); de novo, fecha. O selo preto no
+   canto diz o que está ligado e some sozinho. */
+const MODOS_DO_CARREGANDO = ["desligado", "normal", "lento"] as const;
+export function CarregandoDeTesteHub10() {
+  const [modo, setModo] = useState<(typeof MODOS_DO_CARREGANDO)[number]>("desligado");
+  const [selo, setSelo] = useState(false);
+  const caixa = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const aoTeclar = (e: KeyboardEvent) => {
+      if (!e.altKey || e.ctrlKey || e.metaKey || e.code !== "KeyL") return;
+      e.preventDefault();
+      setModo((m) => MODOS_DO_CARREGANDO[(MODOS_DO_CARREGANDO.indexOf(m) + 1) % MODOS_DO_CARREGANDO.length]);
+    };
+    window.addEventListener("keydown", aoTeclar);
+    return () => window.removeEventListener("keydown", aoTeclar);
+  }, []);
+  useEffect(() => {
+    if (modo === "lento") caixa.current?.getAnimations({ subtree: true }).forEach((a) => { a.playbackRate = 0.35; });
+    if (modo === "desligado") return;
+    setSelo(true);
+    const t = setTimeout(() => setSelo(false), 3000);
+    return () => clearTimeout(t);
+  }, [modo]);
+  if (modo === "desligado") return null;
+  return (
+    <div ref={caixa} key={modo} data-carregando-teste={modo}>
+      <CarregandoHub10 />
+      {selo && (
+        <div style={{ position: "fixed", left: 24, bottom: 24, zIndex: 10001, background: "#000", color: "#fff", fontFamily: INTER, fontSize: 16,
+          fontWeight: 600, lineHeight: 1.3, padding: "12px 18px", borderRadius: 999, pointerEvents: "none" }}>
+          {modo === "normal" ? "Carregamento: velocidade normal (Alt+L: câmera lenta)" : "Carregamento: câmera lenta (Alt+L fecha)"}
+        </div>
+      )}
     </div>
   );
 }
@@ -238,6 +292,26 @@ export const numeroPedido = (n: number) => `#${String(n).padStart(2, "0")}`;
 export const NIVEL = { painel: 38, verTodos: 50, caixa: 68, pantone: 76, preferencias: 92, apresentacao: 1000 } as const;
 
 const pilhaEsc: { nivel: number }[] = [];
+
+/** A pergunta antes de fechar uma caixa com algo preenchido (Design criado e
+    Clichê chegou; revisão de 08/10/2026): cobre o cartão, e o foco já vem no
+    "Continuar editando", que é o seguro. O cartão precisa estar posicionado. */
+export function PerguntaDescartar({ texto, aoContinuar, aoDescartar }: { texto: string; aoContinuar: () => void; aoDescartar: () => void }) {
+  return (
+    <div role="alertdialog" aria-modal="true" aria-labelledby="h10-descartar-titulo" aria-describedby="h10-descartar-texto"
+      style={{ position: "absolute", inset: 0, zIndex: 20, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 18,
+        padding: "0 64px", textAlign: "center", background: "rgba(255,255,255,.97)", borderRadius: 22, fontFamily: INTER, color: PRETO }}>
+      <div id="h10-descartar-titulo" style={{ ...FR, fontSize: 36, lineHeight: 1.05, letterSpacing: "-.02em" }}>Descartar o que foi preenchido?</div>
+      <div id="h10-descartar-texto" style={{ fontSize: 18, lineHeight: 1.45, color: "#5b595b", maxWidth: 520 }}>{texto}</div>
+      <div style={{ display: "flex", gap: 12, marginTop: 8 }}>
+        <button autoFocus onClick={aoContinuar} className="p10-flat"
+          style={{ border: `1.5px solid ${PRETO}`, borderRadius: 999, padding: "14px 24px", cursor: "pointer", font: `700 17px/1 ${INTER}`, background: "none", color: PRETO }}>Continuar editando</button>
+        <button onClick={aoDescartar} className="p10-flat"
+          style={{ border: `1.5px solid ${PRETO}`, borderRadius: 999, padding: "14px 24px", cursor: "pointer", font: `800 17px/1 ${INTER}`, background: PRETO, color: "#f1f1f1" }}>Descartar</button>
+      </div>
+    </div>
+  );
+}
 
 export function useEscDoTopo(ativo: boolean, nivel: number, fechar: () => void) {
   useEffect(() => {
@@ -487,7 +561,10 @@ function GradeDeConferencia() {
 
 export function PalcoFixo({ children }: { children: ReactNode }) {
   const ref = useRef<HTMLDivElement | null>(null);
+  const palco = useRef<HTMLDivElement | null>(null);
   const [escala, setEscala] = useState(1);
+  /* a transição entre as páginas: a Escada com mola (transicao-hub.ts) */
+  useEfeitoAntesDePintar(() => { entrarNaPagina(palco.current); }, []);
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
@@ -502,7 +579,7 @@ export function PalcoFixo({ children }: { children: ReactNode }) {
   }, []);
   return (
     <div ref={ref} style={{ position: "relative", width: "100%", height: "100vh", overflow: "hidden", background: "#e4e4e4" }}>
-      <div style={{ position: "absolute", left: "50%", top: "50%", width: 1920, height: 1080, transform: `translate(-50%,-50%) scale(${escala})`, transformOrigin: "center center", background: FUNDO, overflow: "hidden", color: PRETO, fontFamily: INTER, WebkitFontSmoothing: "antialiased" }}>
+      <div ref={palco} data-palco-hub="" style={{ position: "absolute", left: "50%", top: "50%", width: 1920, height: 1080, transform: `translate(-50%,-50%) scale(${escala})`, transformOrigin: "center center", background: FUNDO, overflow: "hidden", color: PRETO, fontFamily: INTER, WebkitFontSmoothing: "antialiased" }}>
         {children}
         {import.meta.env.DEV && <GradeDeConferencia />}
       </div>
@@ -619,12 +696,13 @@ export function BarraTopoHub10({ profile, paginaAtiva, aoNavegar, onNova, onLogo
           caixas: as listas que descem dela passavam por baixo do desenho de
           Vendas da Home (z 45), que escondia nomes de pedidos e avisos
           (simulação 5, 05/10/2026). Fechadas, volta aos 40 de sempre. */}
-      <div style={{ position: "absolute", left: 0, top: 0, width: 1920, height: 112, background: configAberta ? "transparent" : fundo,
+      <div data-barra-topo="" style={{ position: "absolute", left: 0, top: 0, width: 1920, height: 112, background: configAberta ? "transparent" : fundo,
         zIndex: configAberta ? NIVEL.preferencias + 1 : algoDaBarraAberto ? NIVEL.caixa : 40 }}>
         {/* o wordmark leva para a Home (Augusto, 06/10/2026: "clicar no
             wordmark da r2 leva para a home"), como o HOME do menu. O desenho
-            continua em (80, 47); a folga em volta só aumenta a área do clique. */}
-        <a href="#" onClick={(e) => { e.preventDefault(); setConfigAberta(false); if (paginaAtiva !== "Home") aoNavegar("Home"); }}
+            continua em (80, 47); a folga em volta só aumenta a área do clique.
+            Na própria Home, volta ao começo dela, como o menu (abaixo). */}
+        <a href="#" onClick={(e) => { e.preventDefault(); setConfigAberta(false); aoNavegar("Home"); }}
           className="h10-navi" aria-label="Ir para a Home" title="Ir para a Home"
           style={{ position: "absolute", left: 80 - 12, top: 47 - 13, padding: "13px 12px", display: "block", lineHeight: 0 }}>
           <img src="/home10/wordmark.svg" alt="R2 Etiquetas" draggable={false} style={{ display: "block", height: 17.56, width: "auto" }} />
@@ -638,8 +716,11 @@ export function BarraTopoHub10({ profile, paginaAtiva, aoNavegar, onNova, onLogo
         <nav style={{ position: "absolute", left: 480 - folgaInter(500, 16, menu[0]?.[0].charAt(0) ?? "H"),
           width: 880 + folgaInter(500, 16, menu[0]?.[0].charAt(0) ?? "H") + folgaDireitaInter(500, 16, menu[menu.length - 1]?.[0].slice(-1) ?? "E") + 0.16,
           top: 0, height: 112, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          {/* o item da página em que se está também navega: volta ao começo
+              dela (Augusto, 08/10/2026: o CALC'S leva a todas as calculadoras,
+              e o mesmo nas outras páginas; quem faz é o aoNavegar do hub) */}
           {menu.map(([rotulo, pagina]) => (
-            <a key={rotulo} href="#" onClick={(e) => { e.preventDefault(); setConfigAberta(false); if (pagina !== paginaAtiva) aoNavegar(pagina); }}
+            <a key={rotulo} href="#" onClick={(e) => { e.preventDefault(); setConfigAberta(false); aoNavegar(pagina); }}
               className={`h10-navi${pagina === paginaAtiva ? " on" : ""}`}
               style={{ fontSize: 16, fontWeight: 500, letterSpacing: ".01em", color: TINTA_MENU, whiteSpace: "nowrap", textDecoration: "none" }}>{rotulo}</a>
           ))}

@@ -10,6 +10,7 @@ import { notifyUsers, usersWithRoles } from "@/server/notify.server";
 import { saveSolicitacaoClicheFile } from "@/server/files.server";
 import { clicheEmailDestino, enviarEmail } from "@/server/email.server";
 import { valorOuZero } from "@/lib/valor";
+import { separarCores } from "@/lib/cores";
 
 /* ===================== MOTIVOS ===================== */
 
@@ -156,6 +157,10 @@ function motivoDaRefacao(obs: string | null, daLista: string[]): string {
   if (p >= 0) resto = resto.slice(0, p);
   return resto.endsWith(".") ? resto.slice(0, -1).trim() : resto.trim();
 }
+
+/* As linhas do histórico que só ANOTAM algo na etapa em que o pedido está
+   (e levam a chave dela): a mesma lista do pedido aberto (PedidoDetalheHub10). */
+const ANOTACOES_DO_HISTORICO = ["Resposta ao cliente", "Prova de impressão", "Clichê chegou", "Valores do clichê", "Voltou para a clicheria"];
 
 export const getApontamentos = createServerFn({ method: "POST" })
   .validator(z.object({ de: z.string().min(10), ate: z.string().min(10) }))
@@ -371,20 +376,48 @@ export const getApontamentos = createServerFn({ method: "POST" })
     cliente, no período e desde sempre. */
 function cartoesDoRelatorio(db: ReturnType<typeof getDb>, de: string, ate: string) {
   const NO_PERIODO = "date(h.created_at, 'localtime') BETWEEN ? AND ?";
+  /* A linha que só ANOTA algo na etapa em que o pedido está (a resposta ao
+     cliente, a prova, a chegada do clichê: a mesma lista do pedido aberto,
+     em PedidoDetalheHub10) leva a chave da etapa no histórico, e a reativação
+     grava a etapa para onde o pedido volta ("Pedido reativado. Volta para
+     Revisão."). Nenhuma das duas é alteração pedida nem cancelamento
+     (simulação 6, 07/10/2026: a reativação contava como alteração). */
+  const SO_ACAO = ["Pedido reativado", ...ANOTACOES_DO_HISTORICO]
+    .map((inicio) => `COALESCE(h.observacao, '') NOT LIKE '${inicio}%'`).join(" AND ");
   const alteracoes = db
     .prepare(
       `SELECT h.created_at AS quando, p.numero AS numero, p.cliente AS cliente
        FROM pedido_historico h JOIN pedidos p ON p.id = h.pedido_id
-       WHERE h.status = 'revisao' AND ${NO_PERIODO} ORDER BY h.created_at`,
+       WHERE h.status = 'revisao' AND ${SO_ACAO} AND ${NO_PERIODO} ORDER BY h.created_at`,
     )
     .all(de, ate) as { quando: string; numero: number; cliente: string }[];
   const cancelados = db
     .prepare(
       `SELECT p.numero AS numero, p.cliente AS cliente, MIN(h.created_at) AS quando
        FROM pedido_historico h JOIN pedidos p ON p.id = h.pedido_id
-       WHERE h.status = 'cancelado' AND ${NO_PERIODO} GROUP BY p.id ORDER BY quando`,
+       WHERE h.status = 'cancelado' AND ${SO_ACAO} AND ${NO_PERIODO} GROUP BY p.id ORDER BY quando`,
     )
     .all(de, ate) as { numero: number; cliente: string; quando: string }[];
+  /* O cartão de Refazer clichê de cliente antigo nasce como pedido (tipo
+     'cliche', com a refação gravada no mesmo instante, em
+     cadastrarRefazerCliche), mas não é pedido solicitado: ele já conta em
+     Clichês refeitos. Quem cadastra é o design ou a administração, que
+     apareciam como vendedoras (simulação 6, 07/10/2026). A reposição de
+     clichê (solicitarCliche) também é tipo 'cliche', mas nasce sem refação e
+     continua contando como pedido. */
+  const CARTAO_DE_REFACAO = `p.tipo = 'cliche' AND EXISTS (SELECT 1 FROM pedido_historico hr
+    WHERE hr.pedido_id = p.id AND hr.status = 'refazer_cliche' AND hr.created_at = p.created_at)`;
+  const cartoesDeRefacao = (db
+    .prepare(`SELECT p.numero AS numero FROM pedidos p WHERE date(p.created_at, 'localtime') BETWEEN ? AND ? AND ${CARTAO_DE_REFACAO}`)
+    .all(de, ate) as { numero: number }[]).map((r) => r.numero);
+  const vendedoras = db
+    .prepare(
+      `SELECT COALESCE(u.nome, 'Desconhecido') AS nome, COUNT(*) AS qtde
+       FROM pedidos p LEFT JOIN users u ON u.id = p.vendedor_id
+       WHERE date(p.created_at, 'localtime') BETWEEN ? AND ? AND NOT (${CARTAO_DE_REFACAO})
+       GROUP BY p.vendedor_id ORDER BY qtde DESC`,
+    )
+    .all(de, ate) as { nome: string; qtde: number }[];
   /* a primeira aprovação de cada pedido, quando ela cai no período */
   const aprovacoes = db
     .prepare(
@@ -424,9 +457,40 @@ function cartoesDoRelatorio(db: ReturnType<typeof getDb>, de: string, ate: strin
        WHERE ${REFACAO} GROUP BY p.cliente`,
     )
     .all() as { cliente: string; qtde: number }[];
+  /* Cada refação do período com quantos clichês ela refaz: cada cor é um
+     clichê, como em Clichês aprovados (simulação 6, 07/10/2026: cada refação
+     valia 1, tivesse 1 ou 3 cores). No cartão de Refazer clichê, as cores do
+     cartão; na refação de dentro do pedido, as da arte (sem prova lida, as
+     pedidas), porque o hub não guarda quais foram marcadas (o "Refazer
+     clichê" do pedido pede só o motivo). Pedido sem as cores escritas conta 1 clichê (uma refação refaz
+     pelo menos um), e a tela diz quantos foram assim. */
+  const motivosDaLista = (db.prepare("SELECT nome FROM cliche_motivos").all() as { nome: string }[]).map((m) => m.nome);
+  const refacoes = (db
+    .prepare(
+      `SELECT h.created_at AS quando, h.observacao AS observacao, p.numero AS numero, p.cliente AS cliente,
+              p.cores AS cores, p.cores_desc AS cores_desc, p.cores_arte AS cores_arte,
+              CASE WHEN p.tipo = 'cliche' AND h.created_at = p.created_at THEN 1 ELSE 0 END AS do_cartao
+       FROM pedido_historico h JOIN pedidos p ON p.id = h.pedido_id
+       WHERE ${REFACAO} AND ${NO_PERIODO} ORDER BY h.created_at`,
+    )
+    .all(de, ate) as { quando: string; observacao: string | null; numero: number; cliente: string; cores: string | null; cores_desc: string | null; cores_arte: string | null; do_cartao: number }[])
+    .map((r) => {
+      /* com a prova lida, as cores da arte: são os clichês que existem */
+      const daArte = separarCores(r.cores_arte).length;
+      const numero = /^\s*(\d+)/.exec(String(r.cores ?? ""));
+      const escritas = daArte || (numero && Number(numero[1]) > 0 ? Number(numero[1]) : separarCores(r.cores_desc).length);
+      return {
+        quando: r.quando, numero: r.numero, cliente: r.cliente,
+        motivo: motivoDaRefacao(r.observacao, motivosDaLista) || "Sem motivo registrado",
+        cliches: Math.max(1, escritas), semCores: escritas === 0, doPedido: r.do_cartao !== 1,
+      };
+    });
   return {
     alteracoes,
     cancelados,
+    cartoesDeRefacao,
+    vendedoras,
+    refacoes,
     aprovacoes,
     chegadas: chegadas.map((c) => {
       let n = 0;

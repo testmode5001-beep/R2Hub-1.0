@@ -34,12 +34,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 
-import { AMARELO, BarraTopoHub10, FR, FUNDO_PAGINA, INTER, LINHA_DA_GRADE_HUB, NIVEL, PRETO, PalcoFixo, numeroPedido, useEscDoTopo } from "./ChromeHub10";
+import { AMARELO, BarraTopoHub10, FR, FUNDO_PAGINA, INTER, LINHA_DA_GRADE_HUB, NIVEL, PRETO, PalcoFixo, numeroPedido, useEscDoTopo, vigiarRolagem } from "./ChromeHub10";
 import { CAPA_V4, CartaoV4, RotuloV4, TrilhaV4, tituloDoPeV4 } from "./CapaV4Hub10";
 import { baseFraunces, baseInter, folgaFR, folgaIN } from "./grade-hub10";
 import { estiloDoStatus } from "./PedidoHub10";
 import type { ApontamentosDados } from "../v1a/ApontamentosV1a";
-import { separarCores } from "@/lib/cores";
+import { prefixoPantone, sugestoesPantone } from "../v1a/dados/pantone-busca";
+import { coresEfetivas, separarCores } from "@/lib/cores";
 import type { SessionUser } from "@/lib/session";
 import { PALETA } from "@/lib/paleta-hub";
 
@@ -85,6 +86,49 @@ function tom(hex: string, t: number): string {
   return `#${c((n >> 16) & 255)}${c((n >> 8) & 255)}${c(n & 255)}`;
 }
 
+/* O Pantone de uma cor do pedido, no jeito do hub.
+   A cor é Pantone quando a tabela do hub (a da busca de cores) tem o código:
+   "485C" e "485" viram "P 485 C"; "Orange 021 C" e "Cool Gray 11 C", com o P
+   na frente ou sem, viram "P Orange 021 C" e "P Cool Gray 11 C". Com o P (ou
+   "Pantone") na frente, um código que a tabela não tem (o U, por exemplo)
+   conta do mesmo jeito. A conta de antes só aceitava número puro ou nome só
+   de letras entre o P e o C (simulação 6, 07/10/2026). */
+const PREFIXO_PANTONE = /^(?:pantone|pms|p)\.?(?:\s+|(?=\d))/i;
+const NUMERO_PANTONE = /^(\d{2,5})\s*(cp|up|c|u)?$/i;
+const pantonesJaVistos = new Map<string, string | null>();
+function pantoneDoHub(cor: string): string | null {
+  const texto = cor.replace(/\s+/g, " ").trim();
+  const visto = pantonesJaVistos.get(texto);
+  if (visto !== undefined) return visto;
+  const comP = PREFIXO_PANTONE.test(texto);
+  let codigo = texto.replace(PREFIXO_PANTONE, "").trim();
+  const numero = NUMERO_PANTONE.exec(codigo);
+  if (numero) codigo = `${numero[1]} ${(numero[2] ?? "C").toUpperCase()}`;
+  const k = codigo.toLowerCase();
+  /* a busca também devolve as cores de nome ("Preto"), que não são Pantone */
+  const daTabela = codigo ? sugestoesPantone(codigo, 8).find((s) => String(s.codigo).toLowerCase() === k && s.nome === prefixoPantone(s.codigo)) : undefined;
+  const nome = daTabela ? daTabela.nome : comP && /\d/.test(codigo) ? prefixoPantone(codigo.replace(/\s(cp|up|c|u)$/i, (s) => s.toUpperCase())) : null;
+  pantonesJaVistos.set(texto, nome);
+  return nome;
+}
+/** Os Pantones das cores de um pedido, sem repetir. O separador de cores parte
+    "Orange 021 C" em "Orange" e "021 C": quando a tabela conhece o nome
+    inteiro, os dois pedaços voltam a ser um Pantone só. */
+function pantonesDoPedido(cores: string): string[] {
+  const pecas = separarCores(cores);
+  const achados = new Set<string>();
+  for (let i = 0; i < pecas.length; i++) {
+    const prox = pecas[i + 1];
+    if (prox && !/\d/.test(pecas[i]) && NUMERO_PANTONE.test(prox.replace(PREFIXO_PANTONE, "").trim())) {
+      const junto = pantoneDoHub(`${pecas[i]} ${prox}`);
+      if (junto) { achados.add(junto); i++; continue; }
+    }
+    const p = pantoneDoHub(pecas[i]);
+    if (p) achados.add(p);
+  }
+  return [...achados];
+}
+
 /* o que o servidor manda além do tipo da tela antiga */
 type Cartoes = {
   alteracoes: { quando: string; numero: number; cliente: string }[];
@@ -96,6 +140,12 @@ type Cartoes = {
   }[];
   refacoesPorCliente: { cliente: string; qtde: number }[];
   refacoesDesdeSempre: { cliente: string; qtde: number }[];
+  /* desde a simulação 6 (07/10/2026): os números dos cartões de Refazer clichê
+     que entraram no período (não são pedidos solicitados), as vendedoras sem
+     eles e cada refação com os clichês dela (cada cor é um clichê) */
+  cartoesDeRefacao?: number[];
+  vendedoras?: { nome: string; qtde: number }[];
+  refacoes?: { quando: string; numero: number; cliente: string; motivo: string; cliches: number; semCores: boolean; doPedido: boolean }[];
 };
 type DadosRelatorio = ApontamentosDados & {
   cliches: ApontamentosDados["cliches"] & { itens?: number };
@@ -260,8 +310,13 @@ function PainelAssunto({ a, aoFechar, aoNavegar, podeIr }: { a: Assunto; aoFecha
   });
   /* o ✕ no círculo branco: com tinta clara, ele vai na cor do fundo (como no pedido aberto) */
   const tintaDoX = /^#(?:fff|ffffff|5ffc3f)$/i.test(e.tinta) ? cor : e.tinta;
-  /* as listas na coluna do meio: com duas, cada uma mostra até seis linhas */
+  /* as listas na coluna do meio: com duas, cada uma mostra até cinco linhas;
+     o "e mais N" abre a lista inteira, que rola dentro da coluna (simulação 6,
+     07/10/2026: não havia como ver o resto) */
   const porLista = a.listas.length > 1 ? 5 : 12;
+  const [abertas, setAbertas] = useState<string[]>([]);
+  const alternarLista = (titulo: string) => setAbertas((v) => (v.includes(titulo) ? v.filter((t) => t !== titulo) : [...v, titulo]));
+  const topoDaColuna = 92 - baseInter(22, 30);
   return (
     <div role="region" aria-label={`${a.nome}: ${numero === "—" ? "" : numero + " "}${frase}`}
       style={{ position: "absolute", left: PAINEL.x, top: CAPA_V4.topo, width: PAINEL.largura, height: CAPA_V4.altura, borderRadius: CAPA_V4.raio, background: cor, color: e.tinta,
@@ -285,23 +340,39 @@ function PainelAssunto({ a, aoFechar, aoNavegar, podeIr }: { a: Assunto; aoFecha
             fontFamily: INTER, fontSize: 22, lineHeight: "30px", fontWeight: 600, color: e.tinta, textDecoration: "underline", textUnderlineOffset: 5 }}>Abrir {rotuloDaPagina(a.destino)} <span aria-hidden>→</span></button>
       )}
 
-      {/* a quebra: uma lista, ou duas empilhadas */}
-      <div style={{ position: "absolute", left: COL_QUEBRA.x, top: 92 - baseInter(22, 30), width: COL_QUEBRA.fim - COL_QUEBRA.x, display: "flex", flexDirection: "column", gap: 22 }}>
-        {a.listas.map((l) => (
-          <div key={l.titulo}>
-            <div style={{ fontFamily: INTER, fontSize: 22, lineHeight: "30px", fontWeight: 600, whiteSpace: "nowrap", marginLeft: -folgaIN(600, 22, l.titulo.charAt(0)) }}>{l.titulo}</div>
-            <ul style={{ margin: "4px 0 0", padding: 0, listStyle: "none" }}>
-              {l.linhas.slice(0, porLista).map((ln, k) => (
-                <li key={`${ln.rotulo}-${k}`} style={{ display: "flex", alignItems: "baseline", gap: 14, height: 44, borderBottom: `1px solid ${e.tinta}26`, fontFamily: INTER, fontSize: 21, lineHeight: "44px", letterSpacing: "-.015em" }}>
-                  <span title={ln.rotulo} style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ln.rotulo}</span>
-                  <span style={{ flex: "none", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{ln.valor}</span>
-                </li>
-              ))}
-              {l.linhas.length > porLista && <li style={{ fontFamily: INTER, fontSize: 18, lineHeight: "36px", opacity: 0.8 }}>e mais {l.linhas.length - porLista}</li>}
-              {!l.linhas.length && <li style={{ fontFamily: INTER, fontSize: 20, lineHeight: "30px", opacity: 0.8, paddingTop: 8 }}>{a.carregando ? "Carregando…" : l.vazia}</li>}
-            </ul>
-          </div>
-        ))}
+      {/* a quebra: uma lista, ou duas empilhadas; aberta pelo "e mais N", a
+          lista rola dentro da coluna (a barra fica escondida, como nos painéis
+          do pedido aberto, e o esmaecido com a seta avisa que há mais) */}
+      <div ref={vigiarRolagem} className="p10-rola"
+        style={{ position: "absolute", left: COL_QUEBRA.x, top: topoDaColuna, width: COL_QUEBRA.fim - COL_QUEBRA.x, maxHeight: CAPA_V4.altura - topoDaColuna - 40, overflowY: "auto", overscrollBehavior: "contain",
+          scrollbarWidth: "none", ["--fundo" as string]: cor } as CSSProperties}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
+          {a.listas.map((l) => {
+            const inteira = abertas.includes(l.titulo);
+            const mostra = inteira ? l.linhas : l.linhas.slice(0, porLista);
+            return (
+              <div key={l.titulo}>
+                <div style={{ fontFamily: INTER, fontSize: 22, lineHeight: "30px", fontWeight: 600, whiteSpace: "nowrap", marginLeft: -folgaIN(600, 22, l.titulo.charAt(0)) }}>{l.titulo}</div>
+                <ul style={{ margin: "4px 0 0", padding: 0, listStyle: "none" }}>
+                  {mostra.map((ln, k) => (
+                    <li key={`${ln.rotulo}-${k}`} style={{ display: "flex", alignItems: "baseline", gap: 14, height: 44, borderBottom: `1px solid ${e.tinta}26`, fontFamily: INTER, fontSize: 21, lineHeight: "44px", letterSpacing: "-.015em" }}>
+                      <span title={ln.rotulo} style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ln.rotulo}</span>
+                      <span style={{ flex: "none", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{ln.valor}</span>
+                    </li>
+                  ))}
+                  {l.linhas.length > porLista && (
+                    <li>
+                      <button type="button" onClick={() => alternarLista(l.titulo)} aria-expanded={inteira} className="p10-flat"
+                        style={{ padding: 0, border: "none", background: "none", cursor: "pointer", fontFamily: INTER, fontSize: 18, lineHeight: "36px", color: e.tinta, opacity: 0.8,
+                          textDecoration: "underline", textUnderlineOffset: 4 }}>{inteira ? "mostrar menos" : `e mais ${l.linhas.length - porLista}`}</button>
+                    </li>
+                  )}
+                  {!l.linhas.length && <li style={{ fontFamily: INTER, fontSize: 20, lineHeight: "30px", opacity: 0.8, paddingTop: 8 }}>{a.carregando ? "Carregando…" : l.vazia}</li>}
+                </ul>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {/* a grade grande: linha a linha, de cima para baixo, cada grupo na sua força de tinta */}
@@ -385,7 +456,12 @@ export function RelatoriosHub10({ profile, pedidos, aoNavegar, onNova, onLogout,
 
     /* ————— os pedidos que entraram no período ————— */
     const doPeriodo = pedidos.filter((p) => { const dia = diaDe(p.created_at); return !!dia && dia >= de && dia <= ate; });
-    const vendedoras = ((dados?.vendedoras ?? []) as { nome: string; qtde: number }[]).map((v) => ({ rotulo: v.nome, valor: f(Number(v.qtde) || 0) }));
+    /* o cartão de Refazer clichê de cliente antigo não é pedido solicitado: já
+       conta em Clichês refeitos, e quem cadastra (design, administração) não
+       é vendedora (simulação 6, 07/10/2026) */
+    const deRefacao = new Set(c?.cartoesDeRefacao ?? []);
+    const solicitados = doPeriodo.filter((p) => !deRefacao.has(Number(p.numero)));
+    const vendedoras = ((c?.vendedoras ?? dados?.vendedoras ?? []) as { nome: string; qtde: number }[]).map((v) => ({ rotulo: v.nome, valor: f(Number(v.qtde) || 0) }));
     const alteracoes = c?.alteracoes ?? [];
     const pedidosComAlteracao = new Set(alteracoes.map((x) => x.numero)).size;
     const cancelados = c?.cancelados ?? [];
@@ -406,21 +482,31 @@ export function RelatoriosHub10({ profile, pedidos, aoNavegar, onNova, onLogout,
     const gasto = porEsp.reduce((t, e) => t + e.total, 0);
     const esperas = chegadas.map((x) => ({ x, h: horas(x.aprovado, new Date(chegouEm(x)).toISOString()) })).filter((y) => y.h !== null) as { x: Cartoes["chegadas"][number]; h: number }[];
     const tEspera = media(esperas.map((y) => y.h));
-    const motivos = ((dados?.refacoesPorMotivo ?? []) as { motivo: string; qtde: number }[]);
-    const refeitos = motivos.reduce((t, m) => t + (Number(m.qtde) || 0), 0);
+    /* as refações do período, cada uma com os clichês dela (cada cor é um
+       clichê, como nos aprovados); os motivos também em clichês */
+    const refacoes = c?.refacoes ?? [];
+    const refeitos = refacoes.reduce((t, r) => t + (Number(r.cliches) || 0), 0);
+    const porMotivo: Record<string, number> = {};
+    refacoes.forEach((r) => { porMotivo[r.motivo] = (porMotivo[r.motivo] ?? 0) + (Number(r.cliches) || 0); });
+    const motivos = ordenar(porMotivo);
+    const refacaoNoPedido = refacoes.some((r) => r.doPedido);
+    const refacoesSemCores = refacoes.filter((r) => r.semCores).length;
     const valorRefeitos = chegadas.filter((x) => x.refacoes_antes > 0).reduce((t, x) => t + (Number(x.total) || 0), 0);
     const desdeSempre = new Map((c?.refacoesDesdeSempre ?? []).map((r) => [r.cliente, r.qtde]));
 
     /* ————— Pantones, facas e medidas dos pedidos do período ————— */
+    /* cada Pantone conta uma vez por pedido; "em N pedidos" são os pedidos com
+       algum Pantone (contava as vezes que um Pantone aparecia) */
     const pantones: string[] = [];
+    let pedidosComPantone = 0;
     const facas: string[] = [];
     const medidas: string[] = [];
     const facasNovas: any[] = [];
     doPeriodo.forEach((p) => {
-      for (const peca of separarCores(String(p.cores_desc ?? ""))) {
-        const m = /(?:^|\s)(?:pantone|p)\s*([0-9]{3,5}|[a-z][a-z ]*?)\s*c\b/i.exec(peca);
-        if (m) pantones.push(`P ${m[1].trim().replace(/\s+/g, " ").replace(/^./, (x) => x.toUpperCase())} C`);
-      }
+      /* as da arte quando a prova foi lida (o que virou clichê); senão as pedidas */
+      const doPedido = pantonesDoPedido(coresEfetivas(p));
+      if (doPedido.length) pedidosComPantone++;
+      pantones.push(...doPedido);
       const cod = String(p.faca_cod ?? "").trim();
       if (cod) facas.push(cod);
       if (Number(p.faca_nova) === 1) facasNovas.push(p);
@@ -442,10 +528,11 @@ export function RelatoriosHub10({ profile, pedidos, aoNavegar, onNova, onLogout,
       /* Pedidos: o ciano do Aguardando design. Na capa, o total solicitado; dentro,
          o que aconteceu no período (alterações e cancelados) e as vendedoras */
       {
-        id: "pedidos", nome: "Pedidos", status: "nova", tom: 0, numero: f(doPeriodo.length), temDado: doPeriodo.length > 0,
-        frase: doPeriodo.length === 1 ? "pedido solicitado no período" : "pedidos solicitados no período",
-        contexto: `${plural(doPeriodo.length, "pedido solicitado", "pedidos solicitados")} ${periodoTexto}. As alterações e os cancelados contam o que aconteceu no período.`,
-        vazio: "Nenhum pedido solicitado no período.", modo: "unidades", grupos: unidades("Pedidos", doPeriodo.length),
+        /* espera o servidor: é ele que diz quais cartões são de Refazer clichê */
+        id: "pedidos", nome: "Pedidos", status: "nova", tom: 0, numero: f(solicitados.length), temDado: solicitados.length > 0, carregando,
+        frase: solicitados.length === 1 ? "pedido solicitado no período" : "pedidos solicitados no período",
+        contexto: `${plural(solicitados.length, "pedido solicitado", "pedidos solicitados")} ${periodoTexto}. As alterações e os cancelados contam o que aconteceu no período.`,
+        vazio: "Nenhum pedido solicitado no período.", modo: "unidades", grupos: unidades("Pedidos", solicitados.length),
         listas: [
           { titulo: "No período", linhas: carregando ? [] : [
             { rotulo: "Alterações pedidas", valor: f(alteracoes.length) },
@@ -487,12 +574,18 @@ export function RelatoriosHub10({ profile, pedidos, aoNavegar, onNova, onLogout,
         destino: "Aprovação",
       },
       {
-        id: "cliches-refeitos", nome: "Clichês refeitos", status: "cliche", tom: 0.2, numero: f(refeitos), temDado: refeitos > 0, carregando,
+        id: "cliches-refeitos", nome: "Clichês refeitos", status: "cliche", tom: 0.2, numero: f(refeitos), temDado: refacoes.length > 0, carregando,
         frase: refeitos === 1 ? "clichê refeito no período" : "clichês refeitos no período",
-        contexto: `${plural(refeitos, "refação", "refações")} ${periodoTexto}. ${podeFinanceiro ? `Os refeitos que já chegaram custaram ${brl(valorRefeitos)}.` : ""}`.trim(),
+        /* a refação feita no pedido não guarda as cores marcadas: contam as do pedido, e o painel diz */
+        contexto: [
+          `${plural(refeitos, "clichê", "clichês")} em ${plural(refacoes.length, "refação", "refações")} ${periodoTexto}.`,
+          refacaoNoPedido ? "Na refação pelo pedido, contam as cores dele." : "",
+          refacoesSemCores ? `${plural(refacoesSemCores, "refação sem cores no pedido conta", "refações sem cores no pedido contam")} 1 clichê.` : "",
+          podeFinanceiro ? `Os que já chegaram custaram ${brl(valorRefeitos)}.` : "",
+        ].filter(Boolean).join(" "),
         vazio: "Nenhum clichê refeito no período.", modo: "unidades", grupos: unidades("Refeitos", refeitos),
         listas: [
-          { titulo: "Motivos", linhas: motivos.map((m) => ({ rotulo: m.motivo, valor: f(Number(m.qtde) || 0) })), vazia: "Nenhuma refação no período." },
+          { titulo: "Motivos", linhas: motivos.map(([m, n]) => ({ rotulo: m, valor: plural(n, "clichê", "clichês") })), vazia: "Nenhuma refação no período." },
           /* os clientes que refizeram no período, com as vezes que cada um já refez desde sempre */
           { titulo: "Vezes que o cliente já refez", linhas: (c?.refacoesPorCliente ?? []).map((r) => ({ rotulo: r.cliente || "—", valor: plural(desdeSempre.get(r.cliente) ?? r.qtde, "vez", "vezes") })), vazia: "Nenhuma refação no período." },
         ],
@@ -502,9 +595,9 @@ export function RelatoriosHub10({ profile, pedidos, aoNavegar, onNova, onLogout,
       {
         id: "pantones", nome: "Pantones", status: "criacao", tom: 0, numero: f(pantonesUnicos.length), temDado: pantonesUnicos.length > 0,
         frase: pantonesUnicos.length === 1 ? "Pantone pedido no período" : "Pantones diferentes pedidos no período",
-        contexto: `${plural(pantonesUnicos.length, "Pantone diferente", "Pantones diferentes")} em ${plural(pantones.length, "pedido de cor", "pedidos de cor")} ${periodoTexto}.`,
+        contexto: `${plural(pantonesUnicos.length, "Pantone diferente", "Pantones diferentes")} em ${plural(pedidosComPantone, "pedido", "pedidos")} ${periodoTexto}.`,
         vazio: "Nenhum Pantone pedido no período.", modo: "unidades", grupos: unidades("Pantones", pantonesUnicos.length),
-        listas: [{ titulo: "Os mais usados", linhas: pantonesUnicos.map(([nome, n]) => ({ rotulo: nome, valor: plural(n, "vez", "vezes") })), vazia: "Nenhum Pantone no período." }],
+        listas: [{ titulo: "Os mais usados", linhas: pantonesUnicos.map(([nome, n]) => ({ rotulo: nome, valor: plural(n, "pedido", "pedidos") })), vazia: "Nenhum Pantone no período." }],
         destino: "Pantone",
       },
       /* Facas e medidas: o verde-limão do Aprovado, em tons. As facas novas
@@ -528,12 +621,17 @@ export function RelatoriosHub10({ profile, pedidos, aoNavegar, onNova, onLogout,
         listas: [{ titulo: "As mais pedidas", linhas: medidasUnicas.map(([m, n]) => ({ rotulo: m, valor: plural(n, "pedido", "pedidos") })), vazia: "Nenhuma medida no período." }],
         destino: "Facas",
       },
-      /* Arquivo físico: o amarelo da Revisão */
+      /* Arquivo físico: o amarelo da Revisão. As bolinhas contam as vagas, como
+         nos outros cartões (Augusto, 07/10/2026: "represente melhor a quantidade
+         com os círculos, veja esse tem 362 itens e apenas duas colunas
+         preenchidas, use a maior parte dos círculos"): acima de 100, cada
+         bolinha vale várias pastas, e a frase diz quantas. Antes eram as partes
+         do todo, vagas contra ocupadas, e 362 vagas em 1.915 acendiam 19. */
       {
         id: "arquivo", nome: "Arquivo físico", status: "revisao", tom: 0, numero: f(vagas), temDado: lista.length > 0, carregando: pastas === null,
         frase: `pastas vagas no arquivo, de ${f(lista.length)}`,
         contexto: `${plural(lista.length, "pasta cadastrada", "pastas cadastradas")} hoje, ${plural(vagas, "vaga", "vagas")}. O arquivo não depende do período.`,
-        vazio: "Nenhuma pasta cadastrada no arquivo.", modo: "partes", grupos: [{ nome: "Vagas", n: vagas }, { nome: "Ocupadas", n: lista.length - vagas }],
+        vazio: "Nenhuma pasta cadastrada no arquivo.", modo: "unidades", grupos: unidades("Vagas", vagas),
         listas: [{ titulo: "Por gaveta", linhas: Object.entries(porGaveta).sort((a, b) => b[1].n - a[1].n).map(([g, v]) => ({ rotulo: g, valor: v.vagas ? `${f(v.n)} (${plural(v.vagas, "vaga", "vagas")})` : f(v.n) })), vazia: "Nenhuma pasta cadastrada." }],
         destino: "Arquivos",
       },
@@ -564,7 +662,7 @@ export function RelatoriosHub10({ profile, pedidos, aoNavegar, onNova, onLogout,
       <TrilhaV4 quantos={assuntos.length} oculta={!!assuntoAberto} rotulo="Relatórios">
         {assuntos.map((a, i) => <CartaoAssunto key={a.id} a={a} i={i} aoAbrir={() => setAberto(a.id)} />)}
       </TrilhaV4>
-      {assuntoAberto && <PainelAssunto a={assuntoAberto} aoFechar={fechar} aoNavegar={aoNavegar} podeIr={podeIr(assuntoAberto.destino)} />}
+      {assuntoAberto && <PainelAssunto key={assuntoAberto.id} a={assuntoAberto} aoFechar={fechar} aoNavegar={aoNavegar} podeIr={podeIr(assuntoAberto.destino)} />}
 
       {/* o pé */}
       <div ref={tituloRef} style={tituloDoPeV4("Relatórios")}>Relatórios</div>

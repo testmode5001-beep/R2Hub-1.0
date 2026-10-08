@@ -320,13 +320,242 @@
     linear-gradient(to bottom, color-mix(in srgb, var(--fundo, #fff) 0%, transparent), var(--fundo, #fff) 72%);
   animation: p10-tem-mais 1.6s ease-in-out infinite;
 }
-/* o carregando entre as telas: as faixas correm, a tela de trás esmaece */
-.h10-carregando { animation: h10-carregando 2.4s linear infinite; }
-/* a tela inteira abaixo da barra (05/10/2026): as mesmas faixas, mais devagar,
-   porque numa area grande o passo do cartao corria demais */
-.h10-carregando-tela { animation: h10-carregando 6s linear infinite; }
-@keyframes h10-carregando { from { background-position: 0% 0; } to { background-position: 100% 0; } }
+/* A paleta nova do hub (Augusto, 08/10/2026: "a paleta nova com certeza"):
+   o amarelo da marca (marca-texto do Novo pedido, botões) e a seleção no
+   roxo. Até então isso só entrava no hub de teste, por lib/paleta-hub. */
+:root { --amarelo-marca: #ffce22; --yellow: #ffce22; }
+::selection { background: #a66cff; color: #000; }
+/* a camada do carregamento entra num fade curto (as faixas amarelas de antes,
+   .h10-carregando, saíram em 08/10/2026 com a marca de registro aprovada) */
 @keyframes h10-carregando-entra { from { opacity: 0; } to { opacity: 1; } }
+/* O carregamento: a marca de registro (07-08/10/2026). Cada volta é
+   completa: cada cor aparece num fade in na sua partida, afastada e fora de
+   registro, uma logo depois da outra, e só então começa o acerto (Augusto,
+   08/10: "cada cor entrando com um fade in antes de começar o acerto"; depois
+   "faça o fade em toda volta"). O acerto vem em duas sessões ("duas sessões
+   de encaixe até ficarem 100% os registros"): na primeira, cada cor desliza
+   até perto do centro e para com um erro pequeno, deslocada na diagonal e
+   torta, cada uma para um lado; na segunda, mais curta, o acerto fino
+   endireita e encaixa até o registro ficar 100% (multiply: preta pura;
+   "no segundo encaixe faça o alinhamento fora de eixo também"). Encaixada,
+   a marca respira de leve e abre uma onda amarela suave; depois some num
+   fade out (as três cores primeiro e o preto por último: todas juntas, em
+   multiply, a marca passava por um marrom ao clarear) e a volta seguinte
+   começa noutro arranjo (três, 12 s no total; as cores vão para a
+   partida nova invisíveis). Também de 08/10: encaixe rápido ("o que dá
+   ansiedade era a lentidão onde as cores se encaixavam") e mais espaço no
+   começo. A opacidade de cada cor é uma animação à parte, na mesma regra
+   do movimento, separada por vírgula; cada `animation` vai inteiro, com o
+   nome: com o nome separado da duração, o processador de CSS do hub zera a
+   duração. A origem das transformações de SVG é o centro do viewBox (0 0).
+   Gerado por um script com os tempos em segundos (entrada: 0,35 s
+   por cor; sessão 1: 0,82 s; pausa 0,2 s; sessão 2: 0,5 s;
+   some em 0,45 s). */
+.h10-registro { overflow: visible; }
+.h10-registro-junto { animation: h10-registro-respira 12s cubic-bezier(.37,0,.63,1) infinite both; }
+.h10-registro-cor { fill: none; stroke-width: 3.4; stroke-linecap: round; mix-blend-mode: multiply; }
+.h10-registro-0 { animation: h10-registro-aparece-ciano 12s cubic-bezier(.37,0,.63,1) infinite both, h10-registro-ciano 12s cubic-bezier(.33,0,.2,1) infinite both; }
+.h10-registro-1 { animation: h10-registro-aparece-magenta 12s cubic-bezier(.37,0,.63,1) infinite both, h10-registro-magenta 12s cubic-bezier(.33,0,.2,1) infinite both; }
+.h10-registro-2 { animation: h10-registro-aparece-amarelo 12s cubic-bezier(.37,0,.63,1) infinite both, h10-registro-amarelo 12s cubic-bezier(.33,0,.2,1) infinite both; }
+.h10-registro-3 { animation: h10-registro-aparece-preto 12s cubic-bezier(.37,0,.63,1) infinite both, h10-registro-preto 12s cubic-bezier(.33,0,.2,1) infinite both; }
+/* cada volta: a cor aparece na partida, acerta em duas sessões e some encaixada */
+@keyframes h10-registro-aparece-ciano {
+  0% { opacity: 0; }
+  2.917% { opacity: 1; }
+  28.333% { opacity: 1; }
+  30.417% { opacity: 0; }
+  33.333% { opacity: 0; }
+  36.25% { opacity: 1; }
+  61.667% { opacity: 1; }
+  63.75% { opacity: 0; }
+  66.667% { opacity: 0; }
+  69.583% { opacity: 1; }
+  95% { opacity: 1; }
+  97.083% { opacity: 0; }
+  100% { opacity: 0; }
+}
+@keyframes h10-registro-ciano {
+  0% { transform: translate(-40px, -14px) rotate(0deg); }
+  2.917% { transform: translate(-40px, -14px) rotate(0deg); }
+  9.75% { transform: translate(-5px, -3px) rotate(-7deg); }
+  14.417% { transform: translate(-5px, -3px) rotate(-7deg); }
+  18.583% { transform: translate(0, 0) rotate(0deg); }
+  32.083% { transform: translate(0, 0) rotate(0deg); }
+  33.333% { transform: translate(36px, -28px) rotate(0deg); }
+  36.25% { transform: translate(36px, -28px) rotate(0deg); }
+  43.083% { transform: translate(5px, -3px) rotate(6deg); }
+  47.75% { transform: translate(5px, -3px) rotate(6deg); }
+  51.917% { transform: translate(0, 0) rotate(0deg); }
+  65.417% { transform: translate(0, 0) rotate(0deg); }
+  66.667% { transform: translate(-10px, 42px) rotate(0deg); }
+  69.583% { transform: translate(-10px, 42px) rotate(0deg); }
+  76.417% { transform: translate(-3px, 5px) rotate(-6deg); }
+  81.083% { transform: translate(-3px, 5px) rotate(-6deg); }
+  85.25% { transform: translate(0, 0) rotate(0deg); }
+  98.75% { transform: translate(0, 0) rotate(0deg); }
+  100% { transform: translate(-40px, -14px) rotate(0deg); }
+}
+@keyframes h10-registro-aparece-magenta {
+  0% { opacity: 0; }
+  1% { opacity: 0; }
+  3.917% { opacity: 1; }
+  28.333% { opacity: 1; }
+  30.417% { opacity: 0; }
+  33.333% { opacity: 0; }
+  34.333% { opacity: 0; }
+  37.25% { opacity: 1; }
+  61.667% { opacity: 1; }
+  63.75% { opacity: 0; }
+  66.667% { opacity: 0; }
+  67.667% { opacity: 0; }
+  70.583% { opacity: 1; }
+  95% { opacity: 1; }
+  97.083% { opacity: 0; }
+  100% { opacity: 0; }
+}
+@keyframes h10-registro-magenta {
+  0% { transform: translate(34px, 24px) rotate(0deg); }
+  3.917% { transform: translate(34px, 24px) rotate(0deg); }
+  10.75% { transform: translate(5px, 3px) rotate(6deg); }
+  15.083% { transform: translate(5px, 3px) rotate(6deg); }
+  19.25% { transform: translate(0, 0) rotate(0deg); }
+  32.083% { transform: translate(0, 0) rotate(0deg); }
+  33.333% { transform: translate(-38px, 8px) rotate(0deg); }
+  37.25% { transform: translate(-38px, 8px) rotate(0deg); }
+  44.083% { transform: translate(-5px, -3px) rotate(-7deg); }
+  48.417% { transform: translate(-5px, -3px) rotate(-7deg); }
+  52.583% { transform: translate(0, 0) rotate(0deg); }
+  65.417% { transform: translate(0, 0) rotate(0deg); }
+  66.667% { transform: translate(16px, -40px) rotate(0deg); }
+  70.583% { transform: translate(16px, -40px) rotate(0deg); }
+  77.417% { transform: translate(3px, -5px) rotate(7deg); }
+  81.75% { transform: translate(3px, -5px) rotate(7deg); }
+  85.917% { transform: translate(0, 0) rotate(0deg); }
+  98.75% { transform: translate(0, 0) rotate(0deg); }
+  100% { transform: translate(34px, 24px) rotate(0deg); }
+}
+@keyframes h10-registro-aparece-amarelo {
+  0% { opacity: 0; }
+  2% { opacity: 0; }
+  4.917% { opacity: 1; }
+  28.333% { opacity: 1; }
+  30.417% { opacity: 0; }
+  33.333% { opacity: 0; }
+  35.333% { opacity: 0; }
+  38.25% { opacity: 1; }
+  61.667% { opacity: 1; }
+  63.75% { opacity: 0; }
+  66.667% { opacity: 0; }
+  68.667% { opacity: 0; }
+  71.583% { opacity: 1; }
+  95% { opacity: 1; }
+  97.083% { opacity: 0; }
+  100% { opacity: 0; }
+}
+@keyframes h10-registro-amarelo {
+  0% { transform: translate(10px, -42px) rotate(18deg); }
+  4.917% { transform: translate(10px, -42px) rotate(18deg); }
+  11.75% { transform: translate(3px, -5px) rotate(7deg); }
+  15.75% { transform: translate(3px, -5px) rotate(7deg); }
+  19.917% { transform: translate(0, 0) rotate(0deg); }
+  32.083% { transform: translate(0, 0) rotate(0deg); }
+  33.333% { transform: translate(-14px, 40px) rotate(-16deg); }
+  38.25% { transform: translate(-14px, 40px) rotate(-16deg); }
+  45.083% { transform: translate(-3px, 5px) rotate(-7deg); }
+  49.083% { transform: translate(-3px, 5px) rotate(-7deg); }
+  53.25% { transform: translate(0, 0) rotate(0deg); }
+  65.417% { transform: translate(0, 0) rotate(0deg); }
+  66.667% { transform: translate(42px, 12px) rotate(22deg); }
+  71.583% { transform: translate(42px, 12px) rotate(22deg); }
+  78.417% { transform: translate(5px, 3px) rotate(7deg); }
+  82.417% { transform: translate(5px, 3px) rotate(7deg); }
+  86.583% { transform: translate(0, 0) rotate(0deg); }
+  98.75% { transform: translate(0, 0) rotate(0deg); }
+  100% { transform: translate(10px, -42px) rotate(18deg); }
+}
+@keyframes h10-registro-aparece-preto {
+  0% { opacity: 0; }
+  3% { opacity: 0; }
+  5.917% { opacity: 1; }
+  29.167% { opacity: 1; }
+  32.083% { opacity: 0; }
+  33.333% { opacity: 0; }
+  36.333% { opacity: 0; }
+  39.25% { opacity: 1; }
+  62.5% { opacity: 1; }
+  65.417% { opacity: 0; }
+  66.667% { opacity: 0; }
+  69.667% { opacity: 0; }
+  72.583% { opacity: 1; }
+  95.833% { opacity: 1; }
+  98.75% { opacity: 0; }
+  100% { opacity: 0; }
+}
+@keyframes h10-registro-preto {
+  0% { transform: translate(-20px, 34px) rotate(0deg); }
+  5.917% { transform: translate(-20px, 34px) rotate(0deg); }
+  12.75% { transform: translate(-3px, 5px) rotate(-6deg); }
+  16.417% { transform: translate(-3px, 5px) rotate(-6deg); }
+  20.583% { transform: translate(0, 0) rotate(0deg); }
+  32.083% { transform: translate(0, 0) rotate(0deg); }
+  33.333% { transform: translate(30px, 30px) rotate(0deg); }
+  39.25% { transform: translate(30px, 30px) rotate(0deg); }
+  46.083% { transform: translate(4px, 4px) rotate(7deg); }
+  49.75% { transform: translate(4px, 4px) rotate(7deg); }
+  53.917% { transform: translate(0, 0) rotate(0deg); }
+  65.417% { transform: translate(0, 0) rotate(0deg); }
+  66.667% { transform: translate(-40px, -18px) rotate(0deg); }
+  72.583% { transform: translate(-40px, -18px) rotate(0deg); }
+  79.417% { transform: translate(-5px, -3px) rotate(-7deg); }
+  83.083% { transform: translate(-5px, -3px) rotate(-7deg); }
+  87.25% { transform: translate(0, 0) rotate(0deg); }
+  98.75% { transform: translate(0, 0) rotate(0deg); }
+  100% { transform: translate(-20px, 34px) rotate(0deg); }
+}
+/* registro 100%: a marca respira de leve e abre a onda, em cada volta */
+@keyframes h10-registro-respira {
+  0% { transform: scale(1); }
+  20.583% { transform: scale(1); }
+  23.083% { transform: scale(1.035); }
+  26.083% { transform: scale(1); }
+  53.917% { transform: scale(1); }
+  56.417% { transform: scale(1.035); }
+  59.417% { transform: scale(1); }
+  87.25% { transform: scale(1); }
+  89.75% { transform: scale(1.035); }
+  92.75% { transform: scale(1); }
+  100% { transform: scale(1); }
+}
+.h10-registro-onda { fill: none; stroke: #ffce22; stroke-width: 4; opacity: 0; animation: h10-registro-onda 12s cubic-bezier(.22,.61,.36,1) infinite both; }
+@keyframes h10-registro-onda {
+  0% { transform: scale(1); opacity: 0; }
+  20.583% { transform: scale(1); opacity: 0; }
+  21.917% { opacity: .45; }
+  29.167% { transform: scale(1.9); opacity: 0; }
+  53.917% { transform: scale(1); opacity: 0; }
+  55.25% { opacity: .45; }
+  62.5% { transform: scale(1.9); opacity: 0; }
+  87.25% { transform: scale(1); opacity: 0; }
+  88.583% { opacity: .45; }
+  95.833% { transform: scale(1.9); opacity: 0; }
+  100% { transform: scale(1); opacity: 0; }
+}
+.h10-registro-texto { animation: h10-registro-texto 12s cubic-bezier(.37,0,.63,1) infinite both; }
+@keyframes h10-registro-texto {
+  0% { opacity: .6; }
+  21.917% { opacity: 1; }
+  32.083% { opacity: .6; }
+  33.333% { opacity: .6; }
+  55.25% { opacity: 1; }
+  65.417% { opacity: .6; }
+  66.667% { opacity: .6; }
+  88.583% { opacity: 1; }
+  98.75% { opacity: .6; }
+  100% { opacity: .6; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .h10-registro-junto, .h10-registro-cor, .h10-registro-onda, .h10-registro-texto { animation: none !important; }
+}
 /* a estrela do "Obrigado!" das Sugestões: entra girando e fica brilhando */
 .h10-estrela { display: inline-block; transform-origin: 50% 55%; animation: h10-estrela-entra .7s cubic-bezier(.34,1.56,.64,1) both, h10-estrela-brilha 2.2s ease-in-out .7s infinite; }
 @keyframes h10-estrela-entra { from { transform: scale(0) rotate(-180deg); opacity: 0; } to { transform: scale(1) rotate(0); opacity: 1; } }
@@ -562,8 +791,6 @@
   .pd4-fixo { transform: none; }
   .p10-rola.tem-mais::after { animation: none; }
   .h10-estrela { animation: none; }
-  .h10-carregando { animation-duration: 8s; }
-  .h10-carregando-tela { animation-duration: 20s; }
   .pd4-cartao:hover .pn10-seta, .pd4-cartao:focus-visible .pn10-seta { transform: none; }
   .np4-cartao { transition: none !important; }
   .np4-cartao:hover { transform: none; }

@@ -460,3 +460,23 @@ export async function lerCoresDaProva(arquivo: Blob, aoProgresso?: (pct: number)
     void tarefa.destroy();
   }
 }
+
+/** Só o jeito de exportar, sem o OCR (o demorado): para as provas anexadas
+    junto com a que já preencheu as cores (simulação 6, 07/10/2026: com duas
+    provas antigas, só a primeira avisava). Prova = A4 em pé; a arte final, no
+    tamanho da etiqueta, dá null e não avisa. */
+export async function provaEmCmykSemLer(arquivo: Blob): Promise<boolean | null> {
+  if (arquivo.size > LIMITE_BYTES) return null;
+  const bytes = new Uint8Array(await arquivo.arrayBuffer());
+  if (!new TextDecoder("latin1").decode(bytes.subarray(0, 1024)).includes("%PDF-")) return null;
+  const emCmyk = provaEmCmyk(await textosDoPdf(bytes));
+  const { libPdfJs } = await import("./pdf-preview");
+  const pdfjs = await libPdfJs();
+  const tarefa = pdfjs.getDocument({ data: bytes });
+  try {
+    const base = (await (await tarefa.promise).getPage(1)).getViewport({ scale: 1 });
+    return ehA4EmPe(base.width, base.height) ? emCmyk : null;
+  } finally {
+    void tarefa.destroy();
+  }
+}

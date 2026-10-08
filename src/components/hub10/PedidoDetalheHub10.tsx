@@ -9,19 +9,30 @@
 // Quem pode o quê vem das permissões do hub, não de um papel de três valores
 // como no protótipo — ver o cabeçalho de PedidoHub10.
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import type { CSSProperties } from "react";
+import { useQuery } from "@tanstack/react-query";
+import type { CSSProperties, PointerEvent as PointerEventReact } from "react";
 
-import { CampoHub10, FR, FUNDO_PAINEL, INTER, NIVEL, NomeDoCartaoV4, PE_CARTAO_V4, PRETO, PeDoCartaoV4, numeroPedido, useEscDoTopo } from "./ChromeHub10";
+import {
+  CampoHub10, FR, FUNDO_PAINEL, INTER, NIVEL, NOME_CARTAO_V4, NomeDoCartaoV4, PE_CARTAO_V4, PRETO, PeDoCartaoV4, corpoDoNome, entrelinhaDoNome,
+  numeroPedido, useEscDoTopo,
+} from "./ChromeHub10";
+import { LINHA_DA_GRADE, baseFraunces, baseInter } from "./grade-hub10";
+import { STATUS_LABELS } from "@/lib/api/pedidos.functions";
 import { corDoNome } from "../v1a/dados/pantone-busca";
 import type { RegistroCliche } from "../v1a/modais/ClicheChegouModalV1a";
 import { LOTTIE, LottieHub10, SetaDaTrilha } from "./LottieHub10";
 import { CAPA_V4 } from "./CapaV4Hub10";
+import { useEncaixeDaTrilha } from "./trilha-encaixe";
 import { facasPerto, formaDoSistema, medidaBonita, medidaEmLados, useFacasVivas } from "./facas-vivas";
 import { MEDIDAS } from "../v1a/dados/facas-cilindro";
 import { criarBusca } from "@/lib/busca";
 import { erroLegivel } from "@/lib/erro-legivel";
-import { separarCores } from "@/lib/cores";
+import { mesmasCores, numeroDeCores, separarCores } from "@/lib/cores";
 import { PALETA } from "@/lib/paleta-hub";
+import { chaveFaca } from "@/lib/chave-faca";
+import { listZDasFacas } from "@/lib/api/facas.functions";
+import { listPortaCliches } from "@/lib/api/porta-cliches.functions";
+import { avisoDaClicheria, type Espessura, type PortaCliche } from "@/lib/porta-cliches";
 
 const CINZA = "#8a8a8a";
 const CLARO = "#b3b1b3";
@@ -227,6 +238,14 @@ const OBS_PADRAO: Record<string, string> = {
    servidor, ESPERA_PERMITIDA_DE). */
 const ESPERA_PERMITIDA = ["nova", "criacao", "aguardando", "revisao", "aprovada"];
 
+/* As etapas com a prova pronta, em que ela é o que se vai olhar: do Design
+   criado em diante. A revisão fica de fora: ali o design trabalha com o que
+   foi pedido e com as referências que vieram junto, na aba Anexos. */
+const COM_PROVA = ["aguardando", "revisao", "aprovada", "cliche", "refazer_cliche", "concluido"];
+/* As etapas para onde a reativação pode voltar: as do servidor menos o
+   cancelado (reativarPedido, em pedidos.functions). */
+const ETAPAS_DE_VOLTA = Object.keys(STATUS_LABELS).filter((s) => s !== "cancelado");
+
 /* O que o Histórico escreve quando a linha veio sem texto, e o prefixo das
    linhas que guardam só o que a pessoa digitou. Antes aparecia a chave crua
    do banco ("concluido") e uma pergunta parecia um recado solto. */
@@ -265,9 +284,13 @@ function textoDoEvento(h: LinhaHistorico): string {
    histórico. Não são entrega de arte nem alteração pedida. */
 const ANOTACOES = ["Resposta ao cliente", "Prova de impressão", "Clichê chegou", "Valores do clichê", "Voltou para a clicheria"];
 const ehAnotacao = (h: LinhaHistorico) => ANOTACOES.some((a) => String(h.observacao ?? "").startsWith(a));
+/* A reativação grava a etapa para onde o pedido volta ("Pedido reativado.
+   Volta para Revisão."): não é versão nova nem alteração pedida (simulação 6,
+   07/10/2026; os Relatórios contam do mesmo jeito). */
+const ehReativacao = (h: LinhaHistorico) => String(h.observacao ?? "").startsWith("Pedido reativado");
 /** A linha do histórico que é uma entrega de arte (uma versão). */
-export const ehEntregaDeArte = (h: LinhaHistorico) => h.status === "aguardando" && !ehAnotacao(h);
-const ehAlteracaoPedida = (h: LinhaHistorico) => h.status === "revisao" && !ehAnotacao(h);
+export const ehEntregaDeArte = (h: LinhaHistorico) => h.status === "aguardando" && !ehAnotacao(h) && !ehReativacao(h);
+const ehAlteracaoPedida = (h: LinhaHistorico) => h.status === "revisao" && !ehAnotacao(h) && !ehReativacao(h);
 
 /** "50×30" e "30×50" são a mesma faca (ela roda deitada). */
 function mesmaMedida(a: string, b: string): boolean {
@@ -457,7 +480,7 @@ function ModalFaca({ atual, novaAtual, medida, ocupado, aoCancelar, aoSalvar }: 
   const OPCAO: CSSProperties = { display: "flex", alignItems: "center", gap: 10, background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: INTER, fontSize: 18, fontWeight: 600, color: PRETO };
   return (
     <div style={VEU}>
-      <div style={{ ...CARTAO_MODAL, width: 720 }}>
+      <div role="dialog" aria-modal="true" aria-label="Faca do pedido" style={{ ...CARTAO_MODAL, width: 720 }}>
         <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
           <div style={{ ...FR, fontSize: 38, letterSpacing: "-.02em" }}>Faca do pedido</div>
           <BotaoX aoClicar={aoCancelar} />
@@ -671,6 +694,152 @@ function luminancia(hex: string): number {
   return 0.2126 * f((n >> 16) & 255) + 0.7152 * f((n >> 8) & 255) + 0.0722 * f(n & 255);
 }
 
+/* O texto do alto do cartão (quem cuida, ou "Aguardando cliente") inteiro:
+   com cinco ícones ele virava "Ve…", com três "Vendas Simul…" (simulação 6,
+   07/10/2026). A ordem do que se tenta:
+   1. ao lado dos ícones, numa linha, como no desenho;
+   2. ao lado, em duas linhas (Augusto, 07/10/2026: "nesses casos que não
+      couber o nome, quebre em duas linhas"), em corpo 24 ou, se preciso, 20;
+   3. com a fileira curta: o balão e a urgência descem para uma segunda linha,
+      alinhados com o de pausar, e o nome fica ao lado dos que sobraram, em uma
+      ou duas linhas (Augusto, 08/10/2026: "coloque os ícones da mensagem e o
+      da urgência abaixo e alinhe com o de pausar"; antes o nome descia);
+   4. só se nem assim couber, ele desce para baixo da fileira, na largura do
+      cartão, com a base na linha 17 da grade (o cartão começa na linha 9).
+   As medidas são na letra de verdade, com offsetWidth e offsetHeight: a
+   escala do palco não entra. O cartão fica sabendo da fileira curta por
+   `aoMudarFileira`, para pôr os dois ícones embaixo. */
+const BASE_DO_ALTO_EMBAIXO = 8 * LINHA_DA_GRADE;
+const BASE_DO_ALTO_AO_LADO = 58 + baseInter(24, 29);
+type ArranjoDoAlto = { curta: boolean; duas: 0 | 20 | 24 };
+function TextoDoAlto({ valor, livre, livreCurto, aoMudarFileira }: {
+  valor: string; livre: number; livreCurto?: number; aoMudarFileira?: (curta: boolean) => void;
+}) {
+  const medidor = useRef<HTMLSpanElement | null>(null);
+  const medidor24 = useRef<HTMLDivElement | null>(null);
+  const medidor20 = useRef<HTMLDivElement | null>(null);
+  const medidor24c = useRef<HTMLDivElement | null>(null);
+  const medidor20c = useRef<HTMLDivElement | null>(null);
+  const [largura, setLargura] = useState(0);
+  const [arranjo, setArranjo] = useState<ArranjoDoAlto>({ curta: false, duas: 0 });
+  const curto = livreCurto && livreCurto > livre ? livreCurto : 0;
+  useLayoutEffect(() => {
+    const el = medidor.current;
+    if (!el) return;
+    /* cabe em duas linhas na largura dada: sem palavra passando da borda */
+    const emDuas = (m: HTMLDivElement | null, lh: number, w: number) => !!m && m.offsetHeight <= 2 * lh + 1 && m.scrollWidth <= w + 0.5;
+    const duasEm = (m24: HTMLDivElement | null, m20: HTMLDivElement | null, w: number): 0 | 20 | 24 =>
+      emDuas(m24, 29, w) ? 24 : emDuas(m20, 24, w) ? 20 : 0;
+    const medir = () => {
+      const w = el.offsetWidth;
+      setLargura(w);
+      let a: ArranjoDoAlto = { curta: false, duas: 0 };
+      if (w > livre) {
+        const d = duasEm(medidor24.current, medidor20.current, livre);
+        if (d) a = { curta: false, duas: d };
+        else if (curto && w <= curto) a = { curta: true, duas: 0 };
+        else if (curto) a = { curta: !!duasEm(medidor24c.current, medidor20c.current, curto), duas: duasEm(medidor24c.current, medidor20c.current, curto) };
+      }
+      setArranjo(a);
+      aoMudarFileira?.(a.curta);
+    };
+    medir();
+    let vivo = true;
+    void document.fonts?.ready.then(() => { if (vivo) medir(); });
+    return () => { vivo = false; };
+    // aoMudarFileira é o setState do cartão: estável
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [valor, livre, curto]);
+  const larguraToda = CAPA_V4.cartao - 2 * MARGEM_V4;
+  const letra: CSSProperties = { fontWeight: 500, letterSpacing: "-.02em", zIndex: 1 };
+  const aoLadoLivre = arranjo.curta ? curto : livre;
+  const aoLado = largura > 0 && !arranjo.duas && largura <= aoLadoLivre;
+  const duas = !aoLado && !arranjo.duas && largura > larguraToda;
+  const corpo = duas ? 20 : 24;
+  const lh = duas ? 22 : 29;
+  const medindo = (w: number): CSSProperties => ({ position: "absolute", left: 0, top: 0, visibility: "hidden", pointerEvents: "none", width: w, ...letra });
+  const corpoLado = arranjo.duas || 24, lhLado = arranjo.duas === 20 ? 24 : 29;
+  return (
+    <>
+      <span ref={medidor} aria-hidden style={{ position: "absolute", left: 0, top: 0, visibility: "hidden", pointerEvents: "none", whiteSpace: "nowrap", fontSize: 24, ...letra }}>{valor}</span>
+      <div ref={medidor24} aria-hidden style={{ ...medindo(livre), fontSize: 24, lineHeight: "29px" }}>{valor}</div>
+      <div ref={medidor20} aria-hidden style={{ ...medindo(livre), fontSize: 20, lineHeight: "24px" }}>{valor}</div>
+      {curto > 0 && <div ref={medidor24c} aria-hidden style={{ ...medindo(curto), fontSize: 24, lineHeight: "29px" }}>{valor}</div>}
+      {curto > 0 && <div ref={medidor20c} aria-hidden style={{ ...medindo(curto), fontSize: 20, lineHeight: "24px" }}>{valor}</div>}
+      {aoLado ? (
+        <span data-alto={arranjo.curta ? "lado-curta" : "lado"} style={{ position: "absolute", left: MARGEM_V4, top: 58, maxWidth: aoLadoLivre, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 24, ...letra }}>{valor}</span>
+      ) : largura > 0 && arranjo.duas ? (
+        <span data-alto={arranjo.curta ? "duas-curta" : "duas"} style={{ position: "absolute", left: MARGEM_V4, top: BASE_DO_ALTO_AO_LADO - baseInter(corpoLado, lhLado), width: aoLadoLivre,
+          fontSize: corpoLado, lineHeight: `${lhLado}px`, ...letra, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{valor}</span>
+      ) : (
+        <span data-alto="embaixo" title={duas ? valor : undefined}
+          style={{ position: "absolute", left: MARGEM_V4, top: BASE_DO_ALTO_EMBAIXO - baseInter(corpo, lh), width: larguraToda, fontSize: corpo, lineHeight: `${lh}px`, ...letra,
+            ...(duas ? { display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" } : { whiteSpace: "nowrap" }) }}>{valor}</span>
+      )}
+    </>
+  );
+}
+
+/* O nome do cliente cortado em menos de quatro linhas, com "…": a mesma
+   letra, posição e conta do NomeDoCartaoV4 (ChromeHub10), que corta sempre em
+   quatro. Aqui o corte acompanha a fileira de ações quando ela cresce para
+   cima (simulação 6: o nome comprido ficava atrás do Finalizar). */
+const NOMES_CORTADOS = new Map<string, string>();
+let medidorDoNomeAberto: HTMLDivElement | null = null;
+function nomeEmLinhas(nome: string, corpo: number, lh: number, linhas: number): string {
+  if (typeof document === "undefined" || !nome) return nome;
+  const chave = `${linhas}|${corpo}|${nome}`;
+  const guardado = NOMES_CORTADOS.get(chave);
+  if (guardado != null) return guardado;
+  if (!medidorDoNomeAberto) {
+    medidorDoNomeAberto = document.createElement("div");
+    medidorDoNomeAberto.setAttribute("aria-hidden", "true");
+    Object.assign(medidorDoNomeAberto.style, {
+      position: "absolute", left: "-10000px", top: "0", visibility: "hidden", pointerEvents: "none",
+      fontFamily: "Fraunces, serif", fontVariationSettings: "'SOFT' 100, 'opsz' 72", fontWeight: "600", letterSpacing: "-.02em", overflowWrap: "anywhere",
+    } satisfies Partial<CSSStyleDeclaration>);
+    document.body.appendChild(medidorDoNomeAberto);
+  }
+  const m = medidorDoNomeAberto;
+  Object.assign(m.style, { width: `${NOME_CARTAO_V4.largura}px`, fontSize: `${corpo}px`, lineHeight: `${lh}px` });
+  const limite = linhas * lh + 1;
+  const cabe = (t: string) => { m.textContent = t; return m.offsetHeight <= limite; };
+  let saida = nome;
+  if (!cabe(nome)) {
+    let lo = 0, hi = nome.length;
+    while (lo < hi) {
+      const meio = Math.ceil((lo + hi) / 2);
+      if (cabe(nome.slice(0, meio).trimEnd() + "…")) lo = meio; else hi = meio - 1;
+    }
+    /* corta numa palavra inteira quando dá (sem voltar mais que um terço) */
+    const espaco = nome.lastIndexOf(" ", lo);
+    saida = nome.slice(0, espaco > lo * 0.66 ? espaco : lo).trimEnd() + "…";
+  }
+  if (document.fonts?.check(`600 ${corpo}px Fraunces`)) NOMES_CORTADOS.set(chave, saida);
+  return saida;
+}
+function NomeDoCartaoAberto({ nome, linhas }: { nome: string; linhas: number }) {
+  if (linhas >= 4) return <NomeDoCartaoV4 nome={nome} />;
+  const n = NOME_CARTAO_V4;
+  const corpo = corpoDoNome(nome);
+  const lh = entrelinhaDoNome(corpo);
+  return (
+    <div title={nome || undefined} data-linhas-do-nome={linhas}
+      style={{ position: "absolute", left: n.x, top: n.base - baseFraunces(corpo, lh) - 14, width: n.largura,
+        ...FR, fontSize: corpo, lineHeight: `${lh}px`, letterSpacing: "-.02em", zIndex: 1, padding: "14px 0",
+        display: "-webkit-box", WebkitLineClamp: linhas, WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "anywhere" }}>{nomeEmLinhas(nome, corpo, lh, linhas)}</div>
+  );
+}
+/** o respiro entre a perna da última linha do nome e o alto dos botões */
+const FOLGA_NOME_ACOES = 8;
+
+/* A fileira de ícones do alto do cartão: o × a 36 da direita; o primeiro
+   ícone da fileira a 36 + 44 + 8 e cada um seguinte 52 depois (8 de ar entre
+   os círculos, como entre as duas linhas; Augusto, 08/10/2026: "diminua o
+   ar entre os cards"; eram 16). */
+const PRIMEIRO_ICONE = 36 + 44 + 8;
+const PASSO_DOS_ICONES = 44 + 8;
+
 export function PedidoDetalheHub10({ dados, cor, tinta, statusRotulo, temOndas, pode, acoes, aoFechar, souVendedor = false, souAdmin = false, euId, respostaNova = false }: {
   dados: DetalhePedido;
   cor: string; tinta: string; statusRotulo: string; temOndas?: string;
@@ -706,8 +875,31 @@ export function PedidoDetalheHub10({ dados, cor, tinta, statusRotulo, temOndas, 
      relatórios separam quantidade e valor de 1.14 e 1.70 (Augusto, 07/10/2026) */
   const [enviarClicheria, setEnviarClicheria] = useState<null | "enviar" | "reenviar">(null);
   const [espessura, setEspessura] = useState("");
+  /* Com a espessura escolhida, onde o pedido roda: o Z da faca (pastas "Facas
+     por Z"), as cores e o verniz contra os porta-clichês de cada máquina
+     (Augusto, 08/10/2026: "se gravamos o clichê para ela e a máquina não tem
+     o porta-clichê, não dá para rodar o pedido"). Lido só com a caixa aberta. */
+  const { data: zsFacas } = useQuery<{ zs: Record<string, { z: number }> }>({
+    queryKey: ["facas-z"], queryFn: () => listZDasFacas() as Promise<{ zs: Record<string, { z: number }> }>, staleTime: 5 * 60_000, enabled: !!enviarClicheria,
+  });
+  const { data: portasCliche } = useQuery<PortaCliche[]>({
+    queryKey: ["porta-cliches"], queryFn: () => listPortaCliches() as Promise<PortaCliche[]>, staleTime: 60_000, enabled: !!enviarClicheria,
+  });
+  const zDaFacaDoPedido = Number(p.faca_nova) === 1 || !p.faca_cod ? null : zsFacas?.zs?.[chaveFaca(String(p.faca_cod))]?.z ?? null;
+  const avisoClicheria = enviarClicheria && (espessura === "1.14" || espessura === "1.70") && zDaFacaDoPedido
+    ? avisoDaClicheria({ z: zDaFacaDoPedido, cores: Number(numeroDeCores(p)) || 0, verniz: ligado(p.verniz), espessura: espessura as Espessura }, portasCliche ?? [])
+    : null;
   /* a caixa do "Refazer clichê" e a lista de motivos, lida na primeira vez */
   const [refazendo, setRefazendo] = useState(false);
+  /* A etapa que a caixa viu ao abrir (revisão de código de 08/10/2026): o
+     painel recarrega ao voltar o foco para a aba, e o `de` lido na hora do
+     clique deixava passar a mudança que outra pessoa fez com a caixa aberta
+     (o Enviar p/ clicheria mandava para a clicheria um pedido que tinha
+     voltado para revisão). Sem caixa de etapa aberta, acompanha o status;
+     com uma aberta, fica parada. */
+  const caixaDeEtapaAberta = escrever === "revisao" || refazendo || !!enviarClicheria || confirmarAprovar || cancelar || confirmarReativar;
+  const etapaVista = useRef(status);
+  useEffect(() => { if (!caixaDeEtapaAberta) etapaVista.current = status; });
   const [motivosCliche, setMotivosCliche] = useState<{ id: string; nome: string }[] | null>(null);
   const abrirRefazer = () => {
     setRefazendo(true);
@@ -750,47 +942,118 @@ export function PedidoDetalheHub10({ dados, cor, tinta, statusRotulo, temOndas, 
   /* a janela dos painéis (v4): o que passa para baixo do cartão do pedido ou
      além da c23 some, como na trilha de Pedidos (sem cortar a sombra dos de
      dentro); direto no DOM, a rolagem dispara dezenas de vezes */
+  const janelaPronta = useRef(false);
   const atualizarJanela = useCallback(() => {
     const el = trilha.current;
     if (!el) return;
+    const primeira = !janelaPronta.current;
+    janelaPronta.current = true;
     el.querySelectorAll<HTMLElement>(".pdv4-painel").forEach((c) => {
       const meio = c.offsetLeft + c.offsetWidth / 2 - el.scrollLeft;
       const dentro = meio >= PAINEIS_X && meio <= 1840;
+      /* ao abrir, o painel de fora da janela já nasce apagado: com o
+         esmaecer de .25s do CSS ele aparecia na borda direita e sumia,
+         enquanto os outros subiam (transição dos cartões, 07/10/2026) */
+      const semEsmaecer = primeira && !dentro;
+      if (semEsmaecer) c.style.transition = "none";
       c.style.opacity = dentro ? "" : "0";
       c.style.pointerEvents = dentro ? "" : "none";
+      if (semEsmaecer) { void c.offsetWidth; c.style.transition = ""; }
     });
   }, []);
   useLayoutEffect(() => { atualizarJanela(); });
   /* Rodinha vertical vira rolagem horizontal nos painéis, um painel por giro
-     (a trilha tem scroll-snap, passo menor era desfeito), com a trava de
-     220 ms do trackpad, como na trilha de Pedidos. Sem isto, com um mouse
+     (o encaixe de trilha-encaixe.ts, mais abaixo). Sem isto, com um mouse
      comum, Anexos, Histórico e Conversa ficavam fora de alcance (simulação 4,
      02/10/2026). O que rola por dentro de um painel (briefing, histórico,
      conversa, campo em edição) rola primeiro. */
-  useEffect(() => {
+  const rolaPorDentro = (alvo: HTMLElement | null, dy: number) => {
+    for (let n = alvo; n && n !== trilha.current; n = n.parentElement) {
+      const oy = getComputedStyle(n).overflowY;
+      if ((oy === "auto" || oy === "scroll") && n.scrollHeight > n.clientHeight + 1
+        && (dy < 0 ? n.scrollTop > 0 : n.scrollTop + n.clientHeight < n.scrollHeight - 1)) return true;
+    }
+    return false;
+  };
+  /* Arrastar a fileira com o mouse rola os painéis, como nas trilhas de
+     Pedidos e das capas (simulação 6, 07/10/2026: arrastar não rolava e
+     pintava o texto de três painéis). Durante o arrasto a seleção não começa
+     e a fileira segue a mão; ao soltar, ela encaixa no painel mais perto. O
+     clique que fecha um arrasto
+     não fixa o painel. Dois e três cliques continuam selecionando a palavra e
+     o parágrafo (copiar o briefing), e nos campos a seleção é a de sempre. */
+  const arrasto = useRef({ ativo: false, x0: 0, scroll0: 0, escala: 1, andou: false });
+  /* Durante o arrasto a rolagem é instantânea (a suave da fileira atrasaria
+     a mão) e volta quando o ponteiro sai da fileira. O encaixe é sempre pela
+     conta (trilha-encaixe.ts): o scroll-snap do CSS media o painel em hover,
+     que cresce 3,5%, e a fileira parava 8 px fora da coluna (872 em vez de
+     880 no arrasto; 432 em vez de 440 com a roda, medido no teste). */
+  const rolagemTrocada = useRef(false);
+  const voltarRolagemSuave = useCallback(() => {
     const el = trilha.current;
-    if (!el) return;
-    let liberadoEm = 0;
-    const rolaPorDentro = (alvo: HTMLElement | null, dy: number) => {
-      for (let n = alvo; n && n !== el; n = n.parentElement) {
-        const oy = getComputedStyle(n).overflowY;
-        if ((oy === "auto" || oy === "scroll") && n.scrollHeight > n.clientHeight + 1
-          && (dy < 0 ? n.scrollTop > 0 : n.scrollTop + n.clientHeight < n.scrollHeight - 1)) return true;
+    if (!el || !rolagemTrocada.current || arrasto.current.ativo) return;
+    rolagemTrocada.current = false;
+    el.style.scrollBehavior = "";
+  }, []);
+  const aoApontar = (e: PointerEventReact<HTMLDivElement>) => {
+    const el = trilha.current;
+    if (!el || e.button !== 0) return;
+    if ((e.target as HTMLElement | null)?.closest?.("input, textarea, select, [contenteditable=true]")) return;
+    const escala = el.getBoundingClientRect().width / (el.offsetWidth || 1) || 1;
+    arrasto.current = { ativo: true, x0: e.clientX, scroll0: el.scrollLeft, escala, andou: false };
+  };
+  const encaixarPaineis = useEncaixeDaTrilha(trilha, {
+    seletor: ".pdv4-painel",
+    arrastando: () => arrasto.current.ativo,
+    podeGirar: (e) => !rolaPorDentro(e.target as HTMLElement | null, e.deltaY),
+  });
+  useEffect(() => {
+    /* ao soltar, a fileira anda até o painel mais perto */
+    const soltar = () => {
+      const a = arrasto.current, el = trilha.current;
+      if (!a.ativo) return;
+      a.ativo = false;
+      if (a.andou && el) { el.style.userSelect = ""; encaixarPaineis(); }
+      /* o clique que fecha o arrasto vem logo depois do pointerup e é engolido
+         (onClickCapture); soltando fora da fileira ele não vem, e a marca não
+         pode sobrar para o próximo clique (o Enter num botão, por exemplo) */
+      window.setTimeout(() => { if (!arrasto.current.ativo) arrasto.current.andou = false; }, 0);
+    };
+    const mover = (e: PointerEvent) => {
+      const a = arrasto.current, el = trilha.current;
+      if (!a.ativo || !el) return;
+      /* sem botão apertado o arrasto acabou, seja qual evento faltou (a caneta
+         nem sempre manda o pointerup; ver a trilha de Pedidos) */
+      if (e.buttons === 0) { soltar(); return; }
+      const d = e.clientX - a.x0;
+      if (!a.andou) {
+        if (Math.abs(d) <= 4) return;
+        a.andou = true;
+        rolagemTrocada.current = true;
+        el.style.scrollBehavior = "auto";
+        el.style.userSelect = "none";
       }
-      return false;
+      window.getSelection()?.removeAllRanges();
+      el.scrollLeft = a.scroll0 - d / a.escala;
     };
-    const aoRodar = (e: WheelEvent) => {
-      if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
-      if (rolaPorDentro(e.target as HTMLElement | null, e.deltaY)) return;
-      e.preventDefault();
-      const agora = performance.now();
-      if (agora < liberadoEm) return;
-      liberadoEm = agora + 220;
-      const passo = el.querySelector<HTMLElement>(".pdv4-painel")?.offsetWidth || CAPA_V4.cartao;
-      el.scrollBy({ left: Math.sign(e.deltaY) * passo, behavior: "smooth" });
+    const semSelecao = (e: Event) => { if (arrasto.current.ativo && arrasto.current.andou) e.preventDefault(); };
+    /* apertar em cima de um texto já selecionado e arrastar levaria o texto
+       (arrastar e soltar do navegador) em vez de rolar */
+    const semLevarTexto = (e: Event) => { if (arrasto.current.ativo) e.preventDefault(); };
+    document.addEventListener("pointermove", mover);
+    document.addEventListener("pointerup", soltar);
+    document.addEventListener("pointercancel", soltar);
+    document.addEventListener("selectstart", semSelecao);
+    document.addEventListener("dragstart", semLevarTexto);
+    window.addEventListener("blur", soltar);
+    return () => {
+      document.removeEventListener("pointermove", mover);
+      document.removeEventListener("pointerup", soltar);
+      document.removeEventListener("pointercancel", soltar);
+      document.removeEventListener("selectstart", semSelecao);
+      document.removeEventListener("dragstart", semLevarTexto);
+      window.removeEventListener("blur", soltar);
     };
-    el.addEventListener("wheel", aoRodar, { passive: false });
-    return () => el.removeEventListener("wheel", aoRodar);
   }, []);
   const entradaAnexo = useRef<HTMLInputElement | null>(null);
 
@@ -941,15 +1204,21 @@ export function PedidoDetalheHub10({ dados, cor, tinta, statusRotulo, temOndas, 
   const atendidas = alteracoes.filter((h) => marcando[h.id] ?? resolvidas.has(h.id)).length;
   const anexosPedido = dados.anexos.filter((a) => a.tipo !== "arte");
   const artes = dados.anexos.filter((a) => a.tipo === "arte");
-  /* Pedido com prova e sem anexo abre na aba Design: em "Design criado" o
-     painel abria na Anexos, vazia, e a prova ficava na outra aba (simulação
-     5, 05/10/2026). Escolhe uma vez por pedido; depois manda o clique. */
+  /* Com a prova pronta (do Design criado em diante, COM_PROVA), o painel abre
+     na aba Design mesmo que a solicitação tenha anexos: é a arte que se vai
+     ver e aprovar (simulação 6, 07/10/2026; o conserto da simulação 5 só valia
+     para o pedido sem anexo). A Revisão também: a prova é o que o designer
+     vai refazer (Augusto, 07/10/2026). Esperando o cliente, vale a etapa de
+     antes. Nas outras etapas, abre nela o pedido com prova e sem anexo, como
+     antes. Escolhe uma vez por pedido; depois manda o clique. */
   const abaDoPedido = useRef<string | null>(null);
   useEffect(() => {
     const id = String(p.id ?? "");
     if (!id || abaDoPedido.current === id) return;
     abaDoPedido.current = id;
-    setAba(artes.length > 0 && anexosPedido.length === 0 ? 1 : 0);
+    const etapa = status === "aguardando_cliente" ? String(p.status_anterior ?? "") : status;
+    setAba(artes.length > 0 && (COM_PROVA.includes(etapa) || anexosPedido.length === 0) ? 1 : 0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [p.id, artes.length, anexosPedido.length]);
 
   /* A aba Design conta a história da arte: cada entrega é uma versão, com os
@@ -993,6 +1262,17 @@ export function PedidoDetalheHub10({ dados, cor, tinta, statusRotulo, temOndas, 
     const t = String(h?.observacao ?? "").replace(/^Aguardando o cliente:\s*/, "").trim();
     return t.length > 220 ? `${t.slice(0, 220)}…` : t;
   }, [dados.historico]);
+  /* Para onde a reativação volta: a última etapa antes do cancelamento, a
+     mesma conta do servidor (reativarPedido; o histórico vem na ordem dele);
+     sem etapa no histórico, Aguardando design. A caixa dizia sempre
+     "Aguardando design", e o pedido voltava para a etapa em que estava
+     (simulação 6, 07/10/2026). */
+  const volta = useMemo(() => {
+    const cancelouEm = dados.historico.reduce((m, h) => (h.status === "cancelado" && h.created_at > m ? h.created_at : m), "");
+    let etapa: string | null = null;
+    if (cancelouEm) for (const h of dados.historico) if (h.created_at <= cancelouEm && ETAPAS_DE_VOLTA.includes(h.status)) etapa = h.status;
+    return { etapa: etapa ?? "nova", achou: !!etapa };
+  }, [dados.historico]);
   const perguntaAberta = dados.perguntas.find((q) => !q.respondida_em) ?? null;
   /* o balão aparece com pergunta aberta, e também com a resposta que chegou
      para você: fechada a caixa, é por ele que ela abre de novo */
@@ -1005,6 +1285,13 @@ export function PedidoDetalheHub10({ dados, cor, tinta, statusRotulo, temOndas, 
   const acabamentos = ACABAMENTOS.filter((a) => ligado(p[a.campo])).map((a) => a.nome);
   /* separadas pelos nomes ("Branco roxo" são duas cores, mesmo sem vírgula) */
   const cores = separarCores(p.cores_desc as string | null);
+  /* as da arte, lidas da prova no Design criado (Augusto, 07/10/2026:
+     "guarde as duas listas"). As pedidas ficam no Briefing; as da arte valem
+     nas Especificações, e a confirmação do Aprovar avisa quando as duas não
+     batem. Sem prova lida, as Especificações mostram as pedidas. */
+  const coresDaArte = separarCores(p.cores_arte as string | null);
+  const coresNaoBatem = cores.length > 0 && coresDaArte.length > 0 && !mesmasCores(p.cores_desc as string | null, p.cores_arte as string | null);
+  const coresDasEspecificacoes = coresDaArte.length ? coresDaArte : cores;
 
   /* "—" é campo sem dado (o cartão de refação de clichê): não vira "—×—" */
   const temValor = (v: unknown) => v != null && v !== "" && v !== "—";
@@ -1035,9 +1322,58 @@ export function PedidoDetalheHub10({ dados, cor, tinta, statusRotulo, temOndas, 
     ...(podeCancelarAqui ? ["cancelar"] : []), ...(podeEsperarAqui ? ["esperar"] : []),
     ...(mostraUrgencia ? ["urgencia"] : []), ...(mostraBalao ? ["balao"] : []),
   ];
-  const direitaDe = (qual: string) => 96 + 60 * fileira.indexOf(qual);
+  /* Fileira curta (ver TextoDoAlto): o nome não coube ao lado de todos, e o
+     balão e a urgência descem para uma segunda linha, alinhados com o de
+     pausar (o primeiro da esquerda que ficou em cima), na mesma ordem: o
+     balão embaixo da pausa e a urgência à direita dele. */
+  const [fileiraCurta, setFileiraCurta] = useState(false);
+  const descem = ["urgencia", "balao"].filter((q) => fileira.includes(q));
+  const curta = fileiraCurta && descem.length > 0;
+  const fileiraDeCima = curta ? fileira.filter((q) => !descem.includes(q)) : fileira;
+  const colunaDaPausa = fileiraDeCima.length ? PRIMEIRO_ICONE + PASSO_DOS_ICONES * (fileiraDeCima.length - 1) : 36;
+  const embaixoEmOrdem = ["balao", "urgencia"].filter((q) => descem.includes(q));
+  const direitaDe = (qual: string) => (curta && descem.includes(qual)
+    ? colunaDaPausa - PASSO_DOS_ICONES * embaixoEmOrdem.indexOf(qual)
+    : PRIMEIRO_ICONE + PASSO_DOS_ICONES * fileiraDeCima.indexOf(qual));
+  /* 8 de ar entre as duas linhas (Augusto, 08/10/2026: "diminua o ar entre
+     as linhas dos ícones"; eram 16, o mesmo vão que fica entre os ícones) */
+  const topoDe = (qual: string) => (curta && descem.includes(qual) ? 50 + 44 + 8 : 50);
   const icones = fileira.length;
-  const bordaDosIcones = icones ? CAPA_V4.cartao - (96 + 60 * (icones - 1) + 44) : CAPA_V4.cartao - 80;
+  const bordaDosIcones = icones ? CAPA_V4.cartao - (PRIMEIRO_ICONE + PASSO_DOS_ICONES * (icones - 1) + 44) : CAPA_V4.cartao - 80;
+  const ficam = fileira.length - descem.length;
+  const bordaDaCurta = ficam ? CAPA_V4.cartao - (PRIMEIRO_ICONE + PASSO_DOS_ICONES * (ficam - 1) + 44) : CAPA_V4.cartao - 80;
+  /* no alto do cartão: esperando o cliente, o cartão diz isso (o "Cliente
+     respondeu" sozinho parecia o status; simulação 3); senão, quem cuida: o
+     designer para a vendedora, a vendedora para os outros */
+  const quemCuida = status === "aguardando_cliente" ? "Aguardando cliente"
+    : souVendedor && p.tipo !== "cliche" ? texto(p.designer_nome ?? "A definir") : texto(p.vendedor_nome);
+
+  /* O nome do cliente não fica atrás dos botões: a fileira de ações cresce
+     para cima quando dois botões não cabem lado a lado (Finalizar e Refazer
+     clichê, na Clicheria), e a quarta linha de um nome comprido ficava atrás
+     do Finalizar (simulação 6, 07/10/2026). Mede onde a fileira começa e corta
+     o nome, com reticências, nas linhas que cabem acima dela. */
+  const acoesRef = useRef<HTMLDivElement | null>(null);
+  const [linhasDoNome, setLinhasDoNome] = useState(4);
+  const nomeCliente = texto(p.cliente);
+  useLayoutEffect(() => {
+    const el = acoesRef.current;
+    if (!el) return;
+    const medir = () => {
+      const corpo = corpoDoNome(nomeCliente);
+      const lh = entrelinhaDoNome(corpo);
+      const perna = Math.round(corpo * 0.259);
+      let n = 1;
+      while (n < 4 && NOME_CARTAO_V4.base + n * lh + perna + FOLGA_NOME_ACOES <= el.offsetTop) n++;
+      setLinhasDoNome(n);
+    };
+    medir();
+    const tamanho = typeof ResizeObserver !== "undefined" ? new ResizeObserver(medir) : null;
+    tamanho?.observe(el);
+    let vivo = true;
+    void document.fonts?.ready.then(() => { if (vivo) medir(); });
+    return () => { vivo = false; tamanho?.disconnect(); };
+  }, [nomeCliente]);
 
   /* A altura é 616, e não 617: a tarja preta começa em 726 e vai até o fim do
      palco, mas este contêiner está num z-index bem acima dela. Com 617 o fundo
@@ -1046,8 +1382,10 @@ export function PedidoDetalheHub10({ dados, cor, tinta, statusRotulo, temOndas, 
      termina em 728, e a tarja recebe os cards encostados. */
   return (
     <>
-    <div style={{ position: "absolute", left: 0, top: TOPO_DETALHE, width: 1920, height: ALTURA_DETALHE, zIndex: 38, overflow: "hidden" }}>
-      <div ref={trilha} className="p10-trilha" onScroll={(e) => {
+    <div data-pedido-aberto="" style={{ position: "absolute", left: 0, top: TOPO_DETALHE, width: 1920, height: ALTURA_DETALHE, zIndex: 38, overflow: "hidden" }}>
+      <div ref={trilha} className="p10-trilha" onPointerDown={aoApontar} onPointerLeave={voltarRolagemSuave}
+        onClickCapture={(e) => { if (arrasto.current.andou) { e.stopPropagation(); e.preventDefault(); arrasto.current.andou = false; } }}
+        onScroll={(e) => {
         const el = e.currentTarget;
         setMaisDir(el.scrollLeft + el.clientWidth < el.scrollWidth - 8);
         atualizarJanela();
@@ -1058,12 +1396,12 @@ export function PedidoDetalheHub10({ dados, cor, tinta, statusRotulo, temOndas, 
         <div className={fixado === "pedido" ? "pd4-cartao pd4-fixo" : "pd4-cartao"} onClick={fixar("pedido")} style={{ position: "absolute", left: 80, top: CAPA_V4.topo - TOPO_DETALHE, width: CAPA_V4.cartao, height: CAPA_V4.altura, zIndex: Z_CARTAO_DO_PEDIDO, background: cor, color: tinta,
           borderRadius: CAPA_V4.raio, boxShadow: CAPA_V4.sombra }}>
           {temOndas && <LottieHub10 src={temOndas} encaixe="slice" style={{ position: "absolute", inset: 0, zIndex: 0, pointerEvents: "none", overflow: "hidden", borderRadius: CAPA_V4.raio }} />}
-          {/* o nome inteiro no title: com três botões na fileira ele corta
-              ("De…"; simulação 5, 05/10/2026) */}
-          <span title={status === "aguardando_cliente" ? "Aguardando cliente" : souVendedor && p.tipo !== "cliche" ? texto(p.designer_nome ?? "A definir") : texto(p.vendedor_nome)}
-            style={{ position: "absolute", left: MARGEM_V4, top: 58, maxWidth: bordaDosIcones - MARGEM_V4 - 14, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 24, fontWeight: 500, letterSpacing: "-.02em", zIndex: 1 }}>{/* esperando o cliente, o cartão diz isso no alto (o
-            "Cliente respondeu" sozinho parecia o status; simulação 3) */}
-            {status === "aguardando_cliente" ? "Aguardando cliente" : souVendedor && p.tipo !== "cliche" ? texto(p.designer_nome ?? "A definir") : texto(p.vendedor_nome)}</span>
+          {/* inteiro: ao lado dos ícones, em uma ou duas linhas; com a fileira
+              curta (balão e urgência embaixo) se precisar; embaixo deles só se
+              nem assim couber (TextoDoAlto; com três botões ele cortava,
+              simulações 5 e 6) */}
+          <TextoDoAlto valor={quemCuida} livre={bordaDosIcones - MARGEM_V4 - 14}
+            livreCurto={descem.length ? bordaDaCurta - MARGEM_V4 - 14 : undefined} aoMudarFileira={setFileiraCurta} />
 
           {/* Urgência: o mesmo círculo com "!" do card, na fileira de ícones.
               Preto e pulsando quando o pedido é urgente; contornado para quem
@@ -1073,7 +1411,7 @@ export function PedidoDetalheHub10({ dados, cor, tinta, statusRotulo, temOndas, 
               className={urgente ? "p10-urgente" : "p10-flat"}
               aria-pressed={urgente} aria-label={urgente ? "Pedido urgente" : "Marcar como urgente"}
               title={urgente ? (podeUrgenciaAqui ? "Pedido urgente. Clique para tirar a urgência" : "Pedido urgente") : "Marcar como urgente"}
-              style={{ position: "absolute", right: direitaDe("urgencia"), top: 50, width: 44, height: 44, borderRadius: 999, border: `2px solid ${urgente ? PRETO : tinta}`, background: urgente ? PRETO : "none", color: urgente ? "#fff" : tinta,
+              style={{ position: "absolute", right: direitaDe("urgencia"), top: topoDe("urgencia"), width: 44, height: 44, borderRadius: 999, border: `2px solid ${urgente ? PRETO : tinta}`, background: urgente ? PRETO : "none", color: urgente ? "#fff" : tinta,
                 display: "flex", alignItems: "center", justifyContent: "center", padding: 0, zIndex: 2, fontFamily: INTER, fontSize: 22, fontWeight: 900, lineHeight: 1, cursor: podeUrgenciaAqui ? "pointer" : "default" }}>
               <span>!</span>
             </button>
@@ -1089,9 +1427,13 @@ export function PedidoDetalheHub10({ dados, cor, tinta, statusRotulo, temOndas, 
           </button>
 
           {podeCancelarAqui && (
+            /* na tinta do cartão, como os ícones vizinhos: o lilás do perigo
+               quase sumia nos cartões coloridos (1,21:1 no azul do Design
+               criado; simulação 6, 07/10/2026). O perigo fica na caixa que
+               confirma o cancelamento. */
             <button onClick={() => setCancelar(true)} className="p10-flat" title="Cancelar pedido" aria-label="Cancelar pedido"
-              style={{ position: "absolute", right: 96, top: 50, width: 44, height: 44, borderRadius: 999, border: `2px solid ${VERMELHO}`, background: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0, zIndex: 2 }}>
-              <svg viewBox="0 0 24 24" width={20} height={20} fill="none" stroke={VERMELHO} strokeWidth={2.1} strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" /></svg>
+              style={{ position: "absolute", right: PRIMEIRO_ICONE, top: 50, width: 44, height: 44, borderRadius: 999, border: `2px solid ${tinta}`, background: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0, zIndex: 2 }}>
+              <svg viewBox="0 0 24 24" width={20} height={20} fill="none" stroke={tinta} strokeWidth={2.1} strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" /></svg>
             </button>
           )}
 
@@ -1118,7 +1460,7 @@ export function PedidoDetalheHub10({ dados, cor, tinta, statusRotulo, temOndas, 
                  transborda 0,2 de cada lado), o que deixava o vão até a
                  lixeira em 14,1 contra os 17 que a lixeira tem até o fechar.
                  Os 3px empatam os dois vãos. */
-              style={{ position: "absolute", right: fileira.indexOf("balao") === 0 ? 99 : direitaDe("balao") - 1, top: 50, width: 44, height: 44, display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2, background: "none", border: "none", padding: 0, cursor: "pointer" }}>
+              style={{ position: "absolute", right: !curta && fileira.indexOf("balao") === 0 ? PRIMEIRO_ICONE + 3 : direitaDe("balao") - 1, top: topoDe("balao"), width: 44, height: 44, display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2, background: "none", border: "none", padding: 0, cursor: "pointer" }}>
               {/* 53, e não 44: a Lottie reserva margem própria, então numa
                   caixa de 40 o balão saía com 33,5 de largura e parecia menor
                   que os círculos de 44 ao lado. 53 × (33,5/40) = 44,4 — mesmo
@@ -1132,17 +1474,18 @@ export function PedidoDetalheHub10({ dados, cor, tinta, statusRotulo, temOndas, 
             </button>
           )}
 
-          {/* o nome: o mesmo do cartão da trilha de Pedidos (ChromeHub10) */}
-          <NomeDoCartaoV4 nome={texto(p.cliente)} />
+          {/* o nome: o mesmo do cartão da trilha de Pedidos (ChromeHub10),
+              com menos linhas quando a fileira de ações sobe até ele */}
+          <NomeDoCartaoAberto nome={nomeCliente} linhas={linhasDoNome} />
 
           {/* a fileira de ações termina onde a pílula de status da trilha
               termina; com dois botões que não cabem lado a lado, cresce para
               cima, sem descer no pé */}
-          <div style={{ position: "absolute", left: MARGEM_V4 - 4, bottom: CAPA_V4.altura - (PE_CARTAO_V4.pilulaTopo + PE_CARTAO_V4.pilulaAltura), right: 36, zIndex: 8,
+          <div ref={acoesRef} style={{ position: "absolute", left: MARGEM_V4 - 4, bottom: CAPA_V4.altura - (PE_CARTAO_V4.pilulaTopo + PE_CARTAO_V4.pilulaAltura), right: 36, zIndex: 8,
             display: "flex", flexWrap: "wrap", alignContent: "flex-end", gap: 12 }}>
             {pode.iniciar && status === "nova" && (
               /* sem pasta confirmada, antes de iniciar o designer escolhe a pasta */
-              <button onClick={() => (dados.pasta ? rodar(() => acoes.mudarStatus("criacao", OBS_PADRAO.criacao)) : acoes.pedirPasta())} className="p10-flat" style={{ ...BOTAO_ESCURO, fontSize: 22 }}>
+              <button onClick={() => (dados.pasta ? rodar(() => acoes.mudarStatus("criacao", OBS_PADRAO.criacao, status)) : acoes.pedirPasta())} className="p10-flat" style={{ ...BOTAO_ESCURO, fontSize: 22 }}>
                 <svg width={19} height={19} viewBox="0 0 24 24" fill="#f1f1f1"><polygon points="6 4 20 12 6 20 6 4" /></svg>Iniciar criação
               </button>
             )}
@@ -1210,7 +1553,7 @@ export function PedidoDetalheHub10({ dados, cor, tinta, statusRotulo, temOndas, 
               02/10/2026: "o alinhamento nos cards que fizemos em aprovação,
               estenda para pedidos"); antes o substrato de duas linhas acabava
               a 4 px da borda */}
-          <PeDoCartaoV4 entrada={quando(String(p.created_at)).split(" ·")[0]} cores={texto(p.cores)} medida={medida} substrato={texto(p.materia)} />
+          <PeDoCartaoV4 entrada={quando(String(p.created_at)).split(" ·")[0]} cores={texto(numeroDeCores(p))} medida={medida} substrato={texto(p.materia)} />
         </div>
 
         {/* ————— 1. Briefing ————— */}
@@ -1443,14 +1786,22 @@ export function PedidoDetalheHub10({ dados, cor, tinta, statusRotulo, temOndas, 
                   {dados.pasta ? texto(dados.pasta.nome) : "o design escolhe ao iniciar"}
                 </div></div>
               </div>
-              {!!cores.length && (
+              {/* a espessura pedida à clicheria (1.14 ou 1.70), escolhida no
+                  Enviar p/ clicheria: só o Histórico dizia (simulação 6,
+                  07/10/2026) */}
+              {temValor(p.cliche_espessura) && (
+                <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: "0 16px" }}>
+                  <div><div style={ROTULO_PEQ}>Clichê:</div><div style={VALOR}>{String(p.cliche_espessura)}</div></div>
+                </div>
+              )}
+              {!!coresDasEspecificacoes.length && (
                 <div>
-                  <div style={{ ...ROTULO_PEQ, marginBottom: 6 }}>Cores:</div>
+                  <div style={{ ...ROTULO_PEQ, marginBottom: 6 }}>{coresDaArte.length ? "Cores da arte:" : "Cores:"}</div>
                   {/* pílulas que quebram sozinhas em vez de duas colunas
                       fixas: cinco cores ocupavam três fileiras, e nomes
                       curtos deixavam meia coluna vazia */}
                   <div style={{ display: "flex", flexWrap: "wrap", gap: "8px 16px" }}>
-                    {cores.map((c, i) => (
+                    {coresDasEspecificacoes.map((c, i) => (
                       <div key={c + i} style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         {/* a bolinha mostra a cor de verdade quando o nome é
                             uma cor conhecida; cinza só quando não dá para
@@ -1460,6 +1811,7 @@ export function PedidoDetalheHub10({ dados, cor, tinta, statusRotulo, temOndas, 
                       </div>
                     ))}
                   </div>
+                  {coresNaoBatem && <div style={{ marginTop: 8, fontSize: 14, color: CINZA }}>Diferentes das solicitadas no Briefing.</div>}
                 </div>
               )}
             </div>
@@ -1624,7 +1976,7 @@ export function PedidoDetalheHub10({ dados, cor, tinta, statusRotulo, temOndas, 
         <ModalEscrever titulo="Pedir revisão" sub="Descreva o que deve mudar na arte. Anexe referências se precisar."
           marcador="Ex.: Aumentar o logo, trocar o dourado por um tom mais claro..." rotuloBotao="Enviar revisão" ocupado={ocupado} podeAnexar={pode.subirArquivo}
           aoCancelar={() => setEscrever(null)}
-          aoConfirmar={(t, fs) => rodar(() => comAnexos(fs, () => acoes.mudarStatus("revisao", t)), () => setEscrever(null))} />
+          aoConfirmar={(t, fs) => rodar(() => comAnexos(fs, () => acoes.mudarStatus("revisao", t, etapaVista.current)), () => setEscrever(null))} />
       )}
       {escrever === "espera" && (
         <ModalEscrever titulo="Aguardar o cliente"
@@ -1723,7 +2075,7 @@ export function PedidoDetalheHub10({ dados, cor, tinta, statusRotulo, temOndas, 
           vínculo com este pedido. */}
       {desvincular && (
         <div style={VEU}>
-          <div style={{ ...CARTAO_MODAL, width: 480, padding: "40px 44px", gap: 14 }}>
+          <div role="dialog" aria-modal="true" aria-label="Tirar este anexo do pedido?" style={{ ...CARTAO_MODAL, width: 480, padding: "40px 44px", gap: 14 }}>
             <div style={{ ...FR, fontSize: 34, letterSpacing: "-.02em" }}>Tirar este anexo do pedido?</div>
             <div style={{ fontSize: 17, lineHeight: 1.5, color: CINZA }}>
               {/* Sem pasta confirmada, o anexo ainda espera na pasta do HUB e
@@ -1762,22 +2114,36 @@ export function PedidoDetalheHub10({ dados, cor, tinta, statusRotulo, temOndas, 
         <ModalRefazerCliche motivos={motivosCliche} ocupado={ocupado}
           aoCancelar={() => setRefazendo(false)}
           aoConfirmar={(motivo, observacao) => rodar(
-            () => acoes.mudarStatus("refazer_cliche", `Clichê marcado para refação. Motivo: ${motivo}${observacao ? ` (${observacao})` : ""}`),
+            () => acoes.mudarStatus("refazer_cliche", `Clichê marcado para refação. Motivo: ${motivo}${observacao ? ` (${observacao})` : ""}`, etapaVista.current),
             () => setRefazendo(false),
           )} />
       )}
       {confirmarAprovar && (
         <div style={VEU}>
-          <div role="dialog" aria-label={entregaSemArquivo ? "Aprovar sem ver a arte?" : "Aprovar a arte?"} style={{ ...CARTAO_MODAL, width: 520, padding: "40px 44px", gap: 14 }}>
+          <div role="dialog" aria-modal="true" aria-label={entregaSemArquivo ? "Aprovar sem ver a arte?" : "Aprovar a arte?"} style={{ ...CARTAO_MODAL, width: 520, padding: "40px 44px", gap: 14 }}>
             <div style={{ ...FR, fontSize: 34, letterSpacing: "-.02em" }}>{entregaSemArquivo ? "Aprovar sem ver a arte?" : "Aprovar a arte?"}</div>
             <div style={{ fontSize: 17, lineHeight: 1.5, color: CINZA }}>
               {entregaSemArquivo
                 ? "A última versão chegou sem arquivo de arte. Confira com o design antes de aprovar."
                 : `A ${String(ultimaEntrega?.titulo ?? "versão").toLowerCase()} passa para Aprovado e o design é avisado. Se precisar mudar algo depois, peça em Alterações.`}
             </div>
+            {/* as duas listas não batem: avisa, não impede (Augusto,
+                07/10/2026: "guarde as duas listas") */}
+            {coresNaoBatem && (
+              <div role="note" style={{ display: "flex", alignItems: "flex-start", gap: 9, background: PALETA.amarelo, border: `1px solid ${PRETO}`, borderRadius: 12, padding: "12px 16px", font: `500 15px/1.45 ${INTER}`, color: PRETO }}>
+                <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke={PRETO} strokeWidth={2.4} strokeLinecap="round" style={{ flex: "none", marginTop: 2 }}>
+                  <path d="M12 4 2.5 20h19z" /><line x1="12" y1="10" x2="12" y2="14" /><line x1="12" y1="17" x2="12" y2="17" />
+                </svg>
+                <div>
+                  <div style={{ fontWeight: 700 }}>As cores da arte não são as pedidas. Confira antes de aprovar.</div>
+                  <div style={{ marginTop: 4 }}>Pedidas: {cores.join(", ")}</div>
+                  <div>Na arte: {coresDaArte.join(", ")}</div>
+                </div>
+              </div>
+            )}
             <div style={{ display: "flex", justifyContent: "space-between", gap: 12, marginTop: 12 }}>
               <button onClick={() => setConfirmarAprovar(false)} className="p10-flat" style={{ ...BOTAO_VAZADO, height: 50, fontSize: 18 }}>Voltar</button>
-              <button onClick={() => rodar(() => acoes.mudarStatus("aprovada", OBS_PADRAO.aprovada, status), () => setConfirmarAprovar(false))} className="p10-flat"
+              <button onClick={() => rodar(() => acoes.mudarStatus("aprovada", OBS_PADRAO.aprovada, etapaVista.current), () => setConfirmarAprovar(false))} className="p10-flat"
                 style={{ ...BOTAO_ESCURO, height: 50, fontSize: 18, padding: "0 28px" }}>{entregaSemArquivo ? "Aprovar assim mesmo" : "Aprovar arte"}</button>
             </div>
           </div>
@@ -1786,12 +2152,16 @@ export function PedidoDetalheHub10({ dados, cor, tinta, statusRotulo, temOndas, 
 
       {confirmarReativar && (
         <div style={VEU}>
-          <div role="dialog" aria-label="Reativar este pedido?" style={{ ...CARTAO_MODAL, width: 520, padding: "40px 44px", gap: 14 }}>
+          <div role="dialog" aria-modal="true" aria-label="Reativar este pedido?" style={{ ...CARTAO_MODAL, width: 520, padding: "40px 44px", gap: 14 }}>
             <div style={{ ...FR, fontSize: 34, letterSpacing: "-.02em" }}>Reativar este pedido?</div>
-            <div style={{ fontSize: 17, lineHeight: 1.5, color: CINZA }}>O pedido volta para Aguardando design, e o histórico registra a reativação.</div>
+            <div style={{ fontSize: 17, lineHeight: 1.5, color: CINZA }}>
+              {volta.achou
+                ? `O pedido volta para ${STATUS_LABELS[volta.etapa] ?? volta.etapa}, a etapa em que estava quando foi cancelado. O histórico registra a reativação.`
+                : "O pedido volta para Aguardando design. O histórico registra a reativação."}
+            </div>
             <div style={{ display: "flex", justifyContent: "space-between", gap: 12, marginTop: 12 }}>
               <button onClick={() => setConfirmarReativar(false)} className="p10-flat" style={{ ...BOTAO_VAZADO, height: 50, fontSize: 18 }}>Voltar</button>
-              <button onClick={() => rodar(() => acoes.mudarStatus("nova", "Pedido reativado"), () => setConfirmarReativar(false))} className="p10-flat"
+              <button onClick={() => rodar(() => acoes.mudarStatus("nova", "Pedido reativado", etapaVista.current), () => setConfirmarReativar(false))} className="p10-flat"
                 style={{ ...BOTAO_ESCURO, height: 50, fontSize: 18, padding: "0 28px" }}>Reativar pedido</button>
             </div>
           </div>
@@ -1800,7 +2170,7 @@ export function PedidoDetalheHub10({ dados, cor, tinta, statusRotulo, temOndas, 
 
       {enviarClicheria && (
         <div style={VEU}>
-          <div role="dialog" aria-label={enviarClicheria === "reenviar" ? "Reenviar para a clicheria" : "Enviar para a clicheria"} style={{ ...CARTAO_MODAL, width: 520, padding: "40px 44px", gap: 14 }}>
+          <div role="dialog" aria-modal="true" aria-label={enviarClicheria === "reenviar" ? "Reenviar para a clicheria" : "Enviar para a clicheria"} style={{ ...CARTAO_MODAL, width: 520, padding: "40px 44px", gap: 14 }}>
             <div style={{ ...FR, fontSize: 34, letterSpacing: "-.02em" }}>{enviarClicheria === "reenviar" ? "Reenviar para a clicheria" : "Enviar para a clicheria"}</div>
             <div style={{ fontSize: 17, lineHeight: 1.5, color: CINZA }}>Qual a espessura do clichê? Os relatórios separam a quantidade e o valor de cada uma.</div>
             <div role="radiogroup" aria-label="Espessura do clichê" style={{ display: "flex", gap: 12, marginTop: 4 }}>
@@ -1809,10 +2179,16 @@ export function PedidoDetalheHub10({ dados, cor, tinta, statusRotulo, temOndas, 
                   style={{ ...(espessura === e ? BOTAO_ESCURO : BOTAO_VAZADO), height: 56, minWidth: 140, justifyContent: "center", fontSize: 22, fontWeight: 600 }}>{e}</button>
               ))}
             </div>
+            {/* onde roda com a espessura escolhida; nenhuma máquina, no marca-texto */}
+            {avisoClicheria && (
+              <div role="status" data-aviso-clicheria style={{ fontSize: 16, lineHeight: 1.5, color: avisoClicheria.alerta ? PRETO : "#5b595b", marginTop: 2 }}>
+                {avisoClicheria.alerta ? <span className="np10-falta">{avisoClicheria.texto}</span> : avisoClicheria.texto}
+              </div>
+            )}
             <div style={{ display: "flex", justifyContent: "space-between", gap: 12, marginTop: 12 }}>
               <button onClick={() => setEnviarClicheria(null)} className="p10-flat" style={{ ...BOTAO_VAZADO, height: 50, fontSize: 18 }}>Voltar</button>
               <button disabled={!espessura} onClick={() => rodar(
-                () => acoes.mudarStatus("cliche", `${enviarClicheria === "reenviar" ? "Reenviado para a clicheria" : OBS_PADRAO.cliche}, clichê ${espessura}`, undefined, espessura),
+                () => acoes.mudarStatus("cliche", `${enviarClicheria === "reenviar" ? "Reenviado para a clicheria" : OBS_PADRAO.cliche}, clichê ${espessura}`, etapaVista.current, espessura),
                 () => setEnviarClicheria(null),
               )} className="p10-flat"
                 style={{ ...BOTAO_ESCURO, height: 50, fontSize: 18, padding: "0 28px", opacity: espessura ? 1 : 0.4, cursor: espessura ? "pointer" : "default" }}>{enviarClicheria === "reenviar" ? "Reenviar" : "Enviar p/ clicheria"}</button>
@@ -1823,12 +2199,14 @@ export function PedidoDetalheHub10({ dados, cor, tinta, statusRotulo, temOndas, 
 
       {cancelar && (
         <div style={VEU}>
-          <div style={{ ...CARTAO_MODAL, width: 480, padding: "40px 44px", gap: 14 }}>
+          {/* diálogo com nome, como as outras confirmações: o leitor de tela
+              não anunciava a caixa (simulação 6, 07/10/2026) */}
+          <div role="dialog" aria-modal="true" aria-label="Cancelar este pedido?" style={{ ...CARTAO_MODAL, width: 480, padding: "40px 44px", gap: 14 }}>
             <div style={{ ...FR, fontSize: 34, letterSpacing: "-.02em" }}>Cancelar este pedido?</div>
             <div style={{ fontSize: 17, lineHeight: 1.5, color: CINZA }}>Use apenas quando o cliente desistir. O pedido sai do fluxo de produção; um administrador pode reativá-lo depois.</div>
             <div style={{ display: "flex", justifyContent: "space-between", gap: 12, marginTop: 12 }}>
               <button onClick={() => setCancelar(false)} className="p10-flat" style={{ ...BOTAO_VAZADO, height: 50, fontSize: 18 }}>Voltar</button>
-              <button onClick={() => rodar(() => acoes.mudarStatus("cancelado", OBS_PADRAO.cancelado), () => { setCancelar(false); aoFechar(); })} className="p10-flat"
+              <button onClick={() => rodar(() => acoes.mudarStatus("cancelado", OBS_PADRAO.cancelado, etapaVista.current), () => { setCancelar(false); aoFechar(); })} className="p10-flat"
                 style={{ ...BOTAO_ESCURO, height: 50, fontSize: 18, padding: "0 28px", background: VERMELHO, color: PALETA.perigoTinta }}>Sim, cancelar pedido</button>
             </div>
           </div>

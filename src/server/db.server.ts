@@ -9,6 +9,7 @@ import path from "node:path";
 import process from "node:process";
 
 import { hashPassword } from "./password.server";
+import { SEMENTE_PORTA_CLICHES } from "./porta-cliches-semente";
 
 // Permissões das calculadoras (mapeadas para as abas do FlexoFaca no frontend).
 export const CALC_PERMISSIONS = [
@@ -1315,6 +1316,49 @@ function migrate(db: DatabaseSync) {
        A chegada herda do pedido. NULL = sem espessura (o que foi antes). */
     db.exec("ALTER TABLE pedidos ADD COLUMN cliche_espessura TEXT");
     db.exec("PRAGMA user_version = 52");
+  }
+
+  if (user_version < 53) {
+    /* As cores da arte, lidas da prova no Design criado, ficam ao lado das
+       que a vendedora pediu (Augusto, 07/10/2026: "guarde as duas listas").
+       A prova gravava por cima de cores_desc e o pedido sumia. NULL = sem
+       prova desde então (no que veio antes, a prova já está em cores_desc). */
+    db.exec("ALTER TABLE pedidos ADD COLUMN cores_arte TEXT");
+    db.exec("PRAGMA user_version = 53");
+  }
+
+  if (user_version < 54) {
+    /* Os porta-clichês de cada máquina (Augusto, 08/10/2026: "as facas e porta
+       clichê são um conjunto, e cada máquina tem os seus; se uma máquina não
+       tem um porta clichê de tamanho x e gravamos o clichê para ela, não dá
+       para rodar o pedido"). Uma linha por tamanho: máquina, Z da engrenagem,
+       espessura do clichê, diâmetro do cilindro e quantidade. A semente são
+       as tabelas "Cilindros" dele (porta-cliches-semente.ts); daqui em diante
+       vale o banco. Numa transação, com o user_version dentro: se falhar no
+       meio, nada fica pela metade (revisão de 08/10/2026). */
+    db.exec("BEGIN");
+    try {
+      db.exec(`CREATE TABLE porta_cliches (
+        id TEXT PRIMARY KEY,
+        maquina TEXT NOT NULL,
+        z INTEGER NOT NULL,
+        espessura TEXT NOT NULL,
+        diametro REAL,
+        quantidade INTEGER NOT NULL,
+        criado_em TEXT NOT NULL,
+        atualizado_em TEXT,
+        atualizado_por TEXT
+      )`);
+      db.exec("CREATE INDEX idx_porta_cliches_z ON porta_cliches(z)");
+      const inserir = db.prepare("INSERT INTO porta_cliches (id, maquina, z, espessura, diametro, quantidade, criado_em) VALUES (?, ?, ?, ?, ?, ?, ?)");
+      const quando = new Date().toISOString();
+      for (const s of SEMENTE_PORTA_CLICHES) inserir.run(randomUUID(), s.maquina, s.z, s.espessura, s.diametro, s.quantidade, quando);
+      db.exec("PRAGMA user_version = 54");
+      db.exec("COMMIT");
+    } catch (e) {
+      db.exec("ROLLBACK");
+      throw e;
+    }
   }
 }
 

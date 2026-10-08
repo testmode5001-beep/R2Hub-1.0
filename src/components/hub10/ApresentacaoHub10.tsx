@@ -24,6 +24,7 @@
 // passo de "Próximo", as boas-vindas e o cartão caem na grade.
 import { createContext, useCallback, useContext, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, MutableRefObject, ReactNode } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 import { AMARELO, FR, FUNDO_PAGINA, INTER, NIVEL, PRETO, useEscDoTopo } from "./ChromeHub10";
 import { AvisoV1a } from "../v1a/HubV1a";
@@ -67,6 +68,30 @@ function acharAlvo(alvo: Alvo): HTMLElement[] {
   }
   return alvo.todos || alvo.textos ? lista : lista.slice(0, 1);
 }
+/** o alvo existe na tela, mesmo fora da janela (o cartão da capa que só
+    aparece rolando a trilha fica com opacidade 0): é o que a novidade usa
+    para saber se a pessoa tem aquilo */
+function existeNaTela(alvo: Alvo): HTMLElement[] {
+  let lista = [...document.querySelectorAll<HTMLElement>(alvo.sel)].filter((el) => !el.closest("[data-apresentacao]"));
+  if (alvo.texto) lista = lista.filter((el) => textoDe(el) === alvo.texto);
+  if (alvo.textos) lista = lista.filter((el) => alvo.textos!.includes(textoDe(el)));
+  if (alvo.contem) lista = lista.filter((el) => textoDe(el).includes(alvo.contem!));
+  return lista;
+}
+/** O quadro de Pedidos vai ter cartão: um pedido em aberto, ou fechado neste
+    mês (o período que a tela abre, "Esse mês", vale só para o que fechou, pela
+    data em que fechou, como em PedidoHub10). */
+type PedidoDaLista = { status?: string; cliche_concluido_em?: string | null; cancelado_em?: string | null; updated_at?: string | null; created_at?: string | null };
+function temPedidoNoQuadro(pedidos: PedidoDaLista[]): boolean {
+  const hoje = new Date();
+  return pedidos.some((p) => {
+    const quando = p.status === "concluido" ? (p.cliche_concluido_em || p.updated_at || p.created_at)
+      : p.status === "cancelado" ? (p.cancelado_em || p.updated_at || p.created_at) : null;
+    if (!quando) return true;
+    const d = new Date(quando);
+    return Number.isNaN(d.getTime()) || (d.getFullYear() === hoje.getFullYear() && d.getMonth() === hoje.getMonth());
+  });
+}
 /** o texto como literal de XPath (com os dois tipos de aspas, vira concat) */
 function literalXPath(s: string): string {
   if (!s.includes('"')) return `"${s}"`;
@@ -86,7 +111,7 @@ function temTexto(texto: string): boolean {
   }
   return false;
 }
-/** as faixas amarelas do hub (CarregandoHub10) estão por cima: a tela ainda não chegou */
+/** o carregamento do hub (CarregandoHub10) está por cima: a tela ainda não chegou */
 const carregandoNaTela = () => !!document.querySelector('[role="status"][aria-label="Carregando"]');
 
 /* ————— o palco: a mesma escala do PalcoFixo ————— */
@@ -256,23 +281,35 @@ export function ApresentacaoHub10({ profile, tela, estado, aoSalvar, irPara, ped
   const salvar = useCallback((novo: EstadoApresentacao) => { salvo.current = novo; aoSalvar(novo); }, [aoSalvar]);
 
   /* ————— começar ————— */
+  /* os pedidos da pessoa, os mesmos que a rota já leu (a apresentação só
+     olha, não lê de novo): sem pedido no quadro, os passos do pedido aberto
+     saem do roteiro */
+  const pedidosQ = useQuery<PedidoDaLista[]>({ queryKey: ["pedidos"], enabled: false, staleTime: Infinity });
+  const pedidosRef = useRef<PedidoDaLista[] | undefined>(undefined);
+  pedidosRef.current = pedidosQ.data;
+  /* a lista já chegou (ou falhou: aí o roteiro vai inteiro, e o passo sem cartão é pulado) */
+  const pedidosProntos = pedidosQ.isFetched;
+  const [temPedido, setTemPedido] = useState(true);
   /* o roteiro do papel, sem os passos de algo que a pessoa não tem (o + de
-     quem não cria pedido, o menu que ela não vê): a contagem e a lista das
-     boas-vindas batem com o que ela vai ver */
+     quem não cria pedido, o menu que ela não vê, o pedido aberto de quem não
+     tem pedido): a contagem e a lista das boas-vindas batem com o que ela vai ver */
   const [principal, setPrincipal] = useState<Passo[]>([]);
   const jaComecou = useRef(false);
   const comecar = useCallback((deNovo: boolean) => {
     jaComecou.current = true;
-    setPrincipal([BOAS_VINDAS, ...roteiroDe(papel).filter((p) => !p.soSe || acharAlvo(p.soSe).length > 0), FIM]);
+    const lidos = pedidosRef.current;
+    const comPedido = !lidos || temPedidoNoQuadro(lidos);
+    setTemPedido(comPedido);
+    setPrincipal([BOAS_VINDAS, ...roteiroDe(papel).filter((p) => (!p.soSe || acharAlvo(p.soSe).length > 0) && (!p.soComPedido || comPedido)), FIM]);
     setViaFaca(false);
     setModo({ tipo: "principal", i: 0, deNovo });
   }, [papel]);
   useEffect(() => {
-    if (jaComecou.current || modo || estado.principal || !TELAS_1_0.has(tela)) return;
+    if (jaComecou.current || modo || estado.principal || !TELAS_1_0.has(tela) || !pedidosProntos) return;
     /* um instante para a tela se assentar (a barra e o menu já no lugar) */
     const t = window.setTimeout(() => { if (!jaComecou.current) comecar(false); }, 400);
     return () => window.clearTimeout(t);
-  }, [estado.principal, tela, modo, comecar]);
+  }, [estado.principal, tela, modo, comecar, pedidosProntos]);
   /* ver de novo */
   const ultimoPedido = useRef(pedido);
   useEffect(() => {
@@ -284,15 +321,32 @@ export function ApresentacaoHub10({ profile, tela, estado, aoSalvar, irPara, ped
      apresentação, na primeira visita à tela até a data final dela. A
      apresentação não marca as novidades como vistas: ela não as mostra, e a
      equipe que já usava o hub é justamente quem precisa delas. */
+  /* Só os passos do que a pessoa tem na tela, com o texto do que ela vê
+     (simulação 6, 07/10/2026: a vendedora, sem a calculadora de Substrato,
+     ficava 3 s com a tela escura e sem cartão, lia sobre a de Etiqueta, que
+     ela não tem, e o Voltar repetia o escuro). Sem nenhum passo, a novidade
+     não aparece. */
+  const [passosNovidade, setPassosNovidade] = useState<Passo[]>([]);
   useEffect(() => {
     if (modo || !estado.principal) return;
     const n = NOVIDADES.find((x) => x.tela === tela && !estado.novidades.includes(x.id) && hoje() <= x.ate);
     if (!n) return;
-    const t = window.setTimeout(() => { if (telaRef.current === n.tela) setModo({ tipo: "novidade", id: n.id, i: 0 }); }, 900);
+    const t = window.setTimeout(() => {
+      if (telaRef.current !== n.tela) return;
+      const passos = n.passos.flatMap((p): Passo[] => {
+        if (!p.alvo) return [p];
+        const achados = existeNaTela(p.alvo);
+        if (!achados.length) return [];
+        return [p.doAlvo ? { ...p, ...p.doAlvo(achados.map((el) => el.getAttribute("aria-label") || textoDe(el))) } : p];
+      });
+      if (!passos.length) return;
+      setPassosNovidade(passos);
+      setModo({ tipo: "novidade", id: n.id, i: 0 });
+    }, 900);
     return () => window.clearTimeout(t);
   }, [tela, modo, estado]);
 
-  const lista: Passo[] = !modo ? [] : modo.tipo === "principal" ? principal : NOVIDADES.find((n) => n.id === modo.id)?.passos ?? [];
+  const lista: Passo[] = !modo ? [] : modo.tipo === "principal" ? principal : passosNovidade;
   const passo = modo ? lista[modo.i] : undefined;
   const modoRef = useRef<Modo>(null);
   modoRef.current = modo;
@@ -388,8 +442,8 @@ export function ApresentacaoHub10({ profile, tela, estado, aoSalvar, irPara, ped
         return;
       }
       /* a tela acabou de mudar ou ainda carrega: espera, sem contar o tempo (o
-         cartão do tour sumia embaixo das faixas amarelas, e com o servidor
-         lento o passo era pulado) */
+         cartão do tour sumia embaixo do carregamento, e com o servidor lento
+         o passo era pulado) */
       if (agora - telaMudouEm.current < 400 || carregandoNaTela()) { parada = 0; tm = window.setTimeout(procurar, 120); return; }
       if (!parada) parada = agora;
       /* falta o que o passo explica (o pedido aberto, depois de pular o clique no cartão): segue na hora */
@@ -606,7 +660,7 @@ export function ApresentacaoHub10({ profile, tela, estado, aoSalvar, irPara, ped
         </svg>
 
         {passo === BOAS_VINDAS ? (
-          <BoasVindas nome={profile.nome} papel={papel} deNovo={ePrincipal && modo.deNovo} curtos={lista.filter((p) => p.curto).map((p) => p.curto!)}
+          <BoasVindas nome={profile.nome} papel={papel} temPedido={temPedido} deNovo={ePrincipal && modo.deNovo} curtos={lista.filter((p) => p.curto).map((p) => p.curto!)}
             aoComecar={() => avancar()} aoAdiar={() => terminar("adiada")} cartaoRef={cartaoRef} />
         ) : mostraCartao && (
           /* no "faça você" o gesto é fora do cartão: ele não é modal ali */
@@ -686,12 +740,12 @@ const yLinha = (linha: number) => linha * LG - BV.topo;
 const CINZA_TEXTO = "#5b595b";
 const FR_96: CSSProperties = { ...FR, fontVariationSettings: "'SOFT' 100, 'opsz' 96" };
 
-function BoasVindas({ nome, papel, deNovo, curtos, aoComecar, aoAdiar, cartaoRef }: {
-  nome: string; papel: string; deNovo: boolean; curtos: string[]; aoComecar: () => void; aoAdiar: () => void; cartaoRef: MutableRefObject<HTMLDivElement | null>;
+function BoasVindas({ nome, papel, temPedido, deNovo, curtos, aoComecar, aoAdiar, cartaoRef }: {
+  nome: string; papel: string; temPedido: boolean; deNovo: boolean; curtos: string[]; aoComecar: () => void; aoAdiar: () => void; cartaoRef: MutableRefObject<HTMLDivElement | null>;
 }) {
   const primeiro = (nome || "").trim().split(/\s+/)[0] || "";
   const sobrancelha = deNovo ? "Apresentação do R2 Hub" : "Primeira vez no R2 Hub";
-  const promessa = promessaDe(papel);
+  const promessa = promessaDe(papel, temPedido);
   const linha1 = primeiro ? "Boas-vindas," : "Boas-vindas";
   /* a base de cada texto numa linha da grade: top = linha − a base dentro da caixa da linha */
   const naBase = (linha: number, corpo: number, lh: number, fraunces = false) => yLinha(linha) - (fraunces ? baseFraunces(corpo, lh) : baseInter(corpo, lh));

@@ -16,6 +16,7 @@ import type { CSSProperties, KeyboardEvent as KeyboardEventReact, PointerEvent a
 import { FR, INTER, LINHA_DA_GRADE_HUB, PRETO } from "./ChromeHub10";
 import { baseFraunces, baseInter, folgaDireitaInter, folgaFR, folgaIN } from "./grade-hub10";
 import { SetaDaTrilha } from "./LottieHub10";
+import { useEncaixeDaTrilha } from "./trilha-encaixe";
 
 const LG = LINHA_DA_GRADE_HUB;
 
@@ -85,26 +86,6 @@ export function TrilhaV4({ quantos, oculta = false, inicio = 80, largura = CAPA_
   const [rolou, setRolou] = useState(false);
   const rola = quantos * largura > 1840 - inicio + 0.5;
 
-  /* a roda vertical anda um cartão (a trilha tem snap: passo menor que meio
-     cartão era desfeito); a trava de 220 ms segura o trackpad */
-  useEffect(() => {
-    const el = trilha.current;
-    if (!el) return;
-    let liberadoEm = 0;
-    const aoRodar = (e: WheelEvent) => {
-      if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
-      e.preventDefault();
-      const agora = performance.now();
-      if (agora < liberadoEm) return;
-      liberadoEm = agora + 220;
-      const card = el.querySelector<HTMLElement>(".pd4-cartao");
-      el.scrollBy({ left: Math.sign(e.deltaY) * (card?.offsetWidth || el.clientWidth / 4), behavior: "smooth" });
-      setRolou(true);
-    };
-    el.addEventListener("wheel", aoRodar, { passive: false });
-    return () => el.removeEventListener("wheel", aoRodar);
-  }, []);
-
   /* a janela de c1 a c23, direto no DOM (a rolagem dispara dezenas de vezes) */
   const atualizarJanela = useCallback(() => {
     const el = trilha.current;
@@ -125,21 +106,33 @@ export function TrilhaV4({ quantos, oculta = false, inicio = 80, largura = CAPA_
   };
 
   /* arrastar com o ponteiro; o clique que fecha um arrasto não abre o cartão */
-  const arrasto = useRef({ ativo: false, x0: 0, scroll0: 0, andou: false });
+  const arrasto = useRef({ ativo: false, x0: 0, scroll0: 0, escala: 1, andou: false });
   const aoApontar = (e: PointerEventReact<HTMLDivElement>) => {
     const el = trilha.current;
     if (!el || e.button !== 0) return;
-    arrasto.current = { ativo: true, x0: e.clientX, scroll0: el.scrollLeft, andou: false };
+    /* com o palco em escala, a trilha anda o que a mão andou */
+    const escala = el.getBoundingClientRect().width / (el.offsetWidth || 1) || 1;
+    arrasto.current = { ativo: true, x0: e.clientX, scroll0: el.scrollLeft, escala, andou: false };
   };
+  /* a roda anda um cartão por giro, e o encaixe no cartão é pela conta
+     (trilha-encaixe.ts): o scroll-snap do CSS media o cartão em hover e
+     deixava a trilha 8 px fora da coluna, e prendia o arrasto */
+  const encaixar = useEncaixeDaTrilha(trilha, { seletor: ".pd4-cartao", arrastando: () => arrasto.current.ativo });
   useEffect(() => {
-    const soltar = () => { arrasto.current.ativo = false; };
+    /* soltou depois de arrastar: a trilha anda até o cartão mais perto */
+    const soltar = () => {
+      const a = arrasto.current;
+      if (!a.ativo) return;
+      a.ativo = false;
+      if (a.andou) encaixar();
+    };
     const mover = (e: PointerEvent) => {
       const a = arrasto.current, el = trilha.current;
       if (!a.ativo || !el) return;
       if (e.buttons === 0) { soltar(); return; }
       const d = e.clientX - a.x0;
       if (Math.abs(d) > 4) { a.andou = true; setRolou(true); }
-      el.scrollLeft = a.scroll0 - d;
+      el.scrollLeft = a.scroll0 - d / a.escala;
     };
     /* com o botão apertado na trilha, arrastar é rolar: a seleção de texto não
        começa (o mesmo conserto da trilha de Pedidos, 06/10/2026) */

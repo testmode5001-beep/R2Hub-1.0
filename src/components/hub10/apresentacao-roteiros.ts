@@ -8,7 +8,11 @@
 //
 // O alvo de cada passo é achado na tela pelo seletor (e pelo texto, quando o
 // seletor sozinho não basta). Se o alvo não aparecer (a pessoa não tem acesso
-// àquela página, o quadro dela está vazio), o passo é pulado sem aviso.
+// àquela página), o passo é pulado sem aviso. O que dá para saber antes sai do
+// roteiro já no começo, para a contagem e a lista das boas-vindas baterem com
+// o que a pessoa vai ver: o que ela não tem no menu (soSe) e, para quem não
+// tem pedido no quadro de Pedidos, os passos do pedido aberto (soComPedido;
+// simulação 6, 07/10/2026: a contagem saltava do passo 4 para o 8).
 
 /** O que fica aceso. `texto`: o texto exato do elemento; `textos`: vários,
     cada um com o seu furo (os itens do menu, que têm outros no meio);
@@ -33,6 +37,13 @@ export type Passo = {
   /** o passo só acontece se isto estiver na tela na hora dele (o pedido
       aberto, que não abre se a pessoa pulou o clique no cartão) */
   precisa?: Alvo;
+  /** o passo só entra no roteiro de quem tem pedido no quadro de Pedidos (o
+      quadro vazio da vendedora nova não tem cartão para abrir) */
+  soComPedido?: boolean;
+  /** o título e o texto conforme o que a pessoa tem na tela: recebe o
+      aria-label (ou o texto) de cada alvo achado (a vendedora só tem a
+      calculadora de Clichê, não a de Etiqueta) */
+  doAlvo?: (rotulos: string[]) => { titulo: string; texto: string };
   alvo?: Alvo;
   titulo: string;
   texto: string;
@@ -84,7 +95,7 @@ const menuPedidos = (texto: string): Passo => ({
 });
 
 const FECHAR_PEDIDO: Passo = {
-  id: "fechar", tela: "pedidos10", soSe: NO_MENU("PEDIDOS"), precisa: PEDIDO_ABERTO, alvo: { sel: 'button[aria-label="Fechar"]' }, folga: 8,
+  id: "fechar", tela: "pedidos10", soSe: NO_MENU("PEDIDOS"), soComPedido: true, precisa: PEDIDO_ABERTO, alvo: { sel: 'button[aria-label="Fechar"]' }, folga: 8,
   titulo: "O ✕ fecha o pedido",
   texto: "O ESC também fecha. Clique no ✕ para voltar à área de Pedidos.",
   faca: { semTexto: "Especificações" }, escPassa: true, acao: "clique no ✕ ou aperte ESC",
@@ -111,7 +122,7 @@ const VENDAS: Passo[] = [
   },
   menuPedidos("Para sair da solicitação, é pelo menu do topo. Clique em PEDIDOS para abrir a área de Pedidos."),
   {
-    id: "cartao", curto: "O pedido aberto", tela: "pedidos10", soSe: NO_MENU("PEDIDOS"), alvo: { sel: ".p10-trilha .pd4-cartao" }, folga: 10,
+    id: "cartao", curto: "O pedido aberto", tela: "pedidos10", soSe: NO_MENU("PEDIDOS"), soComPedido: true, alvo: { sel: ".p10-trilha .pd4-cartao" }, folga: 10,
     titulo: "Cada cartão é um pedido",
     texto: "A cor mostra a etapa e, no alto, quem faz a arte. Clique no cartão para abrir o pedido.",
     faca: { texto: "Especificações" }, acao: "clique no cartão",
@@ -119,7 +130,7 @@ const VENDAS: Passo[] = [
   {
     /* o cartão do pedido e os painéis que estão na janela (os de fora ficam
        com opacidade 0; o quadro, por baixo, fica hidden) */
-    id: "paineis", tela: "pedidos10", soSe: NO_MENU("PEDIDOS"), precisa: PEDIDO_ABERTO, alvo: { sel: ".pd4-cartao, .pdv4-painel", todos: true }, folga: 8,
+    id: "paineis", tela: "pedidos10", soSe: NO_MENU("PEDIDOS"), soComPedido: true, precisa: PEDIDO_ABERTO, alvo: { sel: ".pd4-cartao, .pdv4-painel", todos: true }, folga: 8,
     titulo: "Tudo do pedido, lado a lado",
     texto: "Briefing, especificações, a arte, o histórico e a conversa. Quando o design manda a arte, aparecem aqui o Aprovar e o Pedir revisão.",
   },
@@ -136,18 +147,18 @@ const DESIGN: Passo[] = [
   HOME,
   menuPedidos("Clique em PEDIDOS, no menu, para abrir a área de Pedidos."),
   {
-    id: "fila", curto: "A fila", tela: "pedidos10", soSe: NO_MENU("PEDIDOS"), alvo: { sel: ".p10-trilha .pd4-cartao" }, folga: 10,
+    id: "fila", curto: "A fila", tela: "pedidos10", soSe: NO_MENU("PEDIDOS"), soComPedido: true, alvo: { sel: ".p10-trilha .pd4-cartao" }, folga: 10,
     titulo: "A fila do design",
     texto: "Os pedidos em Aguardando design vêm na frente, na ordem da fila, e o selo 01 DA FILA marca o próximo. Clique no cartão para abrir.",
     faca: { texto: "Especificações" }, acao: "clique no cartão",
   },
   {
-    id: "acoes", curto: "Criar e enviar", tela: "pedidos10", soSe: NO_MENU("PEDIDOS"), precisa: PEDIDO_ABERTO, alvo: { sel: ".pd4-cartao" }, folga: 8,
+    id: "acoes", curto: "Criar e enviar", tela: "pedidos10", soSe: NO_MENU("PEDIDOS"), soComPedido: true, precisa: PEDIDO_ABERTO, alvo: { sel: ".pd4-cartao" }, folga: 8,
     titulo: "Os botões da etapa ficam no cartão",
     texto: "Iniciar criação: você confirma a pasta do cliente, e ela nasce ali. Enviar arte: a vendedora recebe o aviso para aprovar.",
   },
   {
-    id: "perguntas", tela: "pedidos10", soSe: NO_MENU("PEDIDOS"), precisa: PEDIDO_ABERTO, alvo: { sel: "button", texto: "Perguntas" }, folga: 10,
+    id: "perguntas", tela: "pedidos10", soSe: NO_MENU("PEDIDOS"), soComPedido: true, precisa: PEDIDO_ABERTO, alvo: { sel: "button", texto: "Perguntas" }, folga: 10,
     titulo: "Dúvida? Pergunte no pedido",
     texto: "A pergunta fica na conversa do pedido, e quem recebe ganha um aviso no sino.",
   },
@@ -180,11 +191,19 @@ export function roteiroDe(papel: string): Passo[] {
   return VENDAS;
 }
 
-/** O que cada roteiro diz nas boas-vindas. */
-export function promessaDe(papel: string): string {
-  if (papel === "designer") return "Em dois minutos você conhece o que usa no dia a dia: a fila do design, o pedido aberto e as consultas.";
+/** O que cada roteiro diz nas boas-vindas. Sem pedido no quadro, os passos
+    do pedido aberto saem do roteiro, e a frase não promete o que ele mostrava
+    (a fila do design, aprovar a arte). */
+export function promessaDe(papel: string, temPedido = true): string {
+  if (papel === "designer") {
+    return temPedido
+      ? "Em dois minutos você conhece o que usa no dia a dia: a fila do design, o pedido aberto e as consultas."
+      : "Em dois minutos você conhece o que usa no dia a dia: a área de Pedidos, os avisos e as consultas.";
+  }
   if (papel === "admin") return "Em dois minutos você conhece o que usa no dia a dia: as solicitações, os pedidos e a gestão.";
-  return "Em dois minutos você conhece o que usa no dia a dia: abrir uma solicitação, acompanhar os pedidos e aprovar a arte.";
+  return temPedido
+    ? "Em dois minutos você conhece o que usa no dia a dia: abrir uma solicitação, acompanhar os pedidos e aprovar a arte."
+    : "Em dois minutos você conhece o que usa no dia a dia: abrir uma solicitação, a área de Pedidos e os avisos.";
 }
 
 /** As novidades: cada mudança grande ganha um tour curto, na tela dela. Cada
@@ -204,6 +223,14 @@ export const NOVIDADES: Novidade[] = [
         id: "em-breve", antes: "rolar-trilha-inicio", alvo: { sel: 'button[aria-label$="em breve"]', todos: true }, folga: 8,
         titulo: "Clichê e Etiqueta: em breve",
         texto: "As contas dessas duas estão sendo revistas. Por enquanto, os cartões só avisam.",
+        /* fala só das calculadoras que a pessoa tem (a vendedora tem a de
+           Clichê e não a de Etiqueta); o rótulo do cartão é "Calcular X, em breve" */
+        doAlvo: (rotulos) => {
+          const nomes = rotulos.map((r) => r.replace(/^Calcular\s+/i, "").replace(/,\s*em breve$/i, "").trim()).filter(Boolean);
+          if (nomes.length === 1) return { titulo: `${nomes[0]}: em breve`, texto: "As contas desta calculadora estão sendo revistas. Por enquanto, o cartão só avisa." };
+          const juntos = nomes.length > 1 ? `${nomes.slice(0, -1).join(", ")} e ${nomes[nomes.length - 1]}` : "Clichê e Etiqueta";
+          return { titulo: `${juntos}: em breve`, texto: `As contas ${nomes.length === 2 ? "dessas duas" : "dessas calculadoras"} estão sendo revistas. Por enquanto, os cartões só avisam.` };
+        },
       },
     ],
   },

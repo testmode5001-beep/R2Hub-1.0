@@ -1,29 +1,16 @@
-// A paleta do hub 1.0 e o teste da paleta nova.
+// A paleta do hub 1.0.
 //
 // Augusto, 05/10/2026: "as cores do hub serão as que seguem na ilustração em
 // anexo", "veja as cores que o formfrom design usa, vamos testá-las nos cards
-// do hub" e "vamos testar com a nova paleta de cores". As cores novas saíram
-// dos pixels: fundo, amarelo e roxo da ilustração que ele mandou (a "Crypto
+// do hub" e "vamos testar com a nova paleta de cores". As cores saíram dos
+// pixels: fundo, amarelo e roxo da ilustração que ele mandou (a "Crypto
 // insights" da FormFrom, na versão amarela e roxa); as dos cartões de status,
 // das outras ilustrações da FormFrom (formfrom.design).
 //
-// Só no hub de teste (vite dev): abre na paleta nova e Alt+C alterna com a de
-// hoje (a página recarrega). A produção segue com a de hoje até ele aprovar;
-// aprovando, a nova vira a única e o teste sai.
-
-export type NomePaleta = "hoje" | "nova";
-
-const CHAVE = "r2hub.teste.paleta";
-
-/* O servidor de teste também responde "nova": era "hoje" no servidor e "nova"
-   no navegador, e o React acusava hidratação diferente a cada carregamento
-   (achado do agente de buscas, 05/10/2026). Só quem escolheu "hoje" no Alt+C
-   ainda difere do servidor, e só no hub de teste. */
-export function paletaEmTeste(): NomePaleta {
-  if (!import.meta.env.DEV) return "hoje";
-  if (typeof window === "undefined") return "nova";
-  try { return localStorage.getItem(CHAVE) === "hoje" ? "hoje" : "nova"; } catch { return "nova"; }
-}
+// Ficou em teste de 05 a 08/10/2026: o hub de teste abria nela e o Alt+C
+// alternava com a de antes. Aprovada em 08/10/2026 ("a paleta nova com
+// certeza"), virou a única e o teste saiu. O amarelo da marca e a cor da
+// seleção, que o CSS também usa, estão no styles.css.
 
 type Paleta = {
   /** fundo das páginas v4 */
@@ -54,26 +41,10 @@ type Paleta = {
   sinoTinta: string;
 };
 
-const HOJE: Paleta = {
-  fundo: "#ece9ea",
-  amarelo: "#fff079",
-  amareloForte: "#FFE815",
-  lilas: "#aba9fc",
-  azulCartao: "#79cdf4",
-  espectro: ["#fff079", "#e2ec7c", "#c5e980", "#a8e583", "#8be287", "#6ede8a", "#70db9f", "#72d7b4",
-    "#75d4ca", "#77d0df", "#79cdf4", "#83c6f6", "#8dbff7", "#97b7f9", "#a1b0fa", "#aba9fc"],
-  perigo: "#b3352f",
-  perigoTinta: "#ffffff",
-  confere: "#000000",
-  confereTraco: "#ffffff",
-  sino: "#f96767",
-  sinoTinta: "#ffffff",
-};
-
 /* o amarelo é um só na ilustração (#ffce22), e o "+" fica com ele; o degradê
    de Arquivos passa pelas cores novas dos cartões (amarelo, lima, ciano e
    roxo), em passos iguais de OKLab, como o de hoje */
-const NOVA: Paleta = {
+export const PALETA: Paleta = {
   fundo: "#f3f0f1",
   amarelo: "#ffce22",
   amareloForte: "#ffce22",
@@ -90,27 +61,3 @@ const NOVA: Paleta = {
   sino: "#a66cff",
   sinoTinta: "#000000",
 };
-
-export const PALETA: Paleta = paletaEmTeste() === "nova" ? NOVA : HOJE;
-
-if (import.meta.env.DEV && typeof window !== "undefined") {
-  /* o CSS também tem amarelo (marca-texto do Novo pedido, botão da entrada).
-     Vai numa <style> do <head>, não no atributo style do <html>: o React
-     confere o <html> na hidratação e pula o que entra a mais no <head>. */
-  if (paletaEmTeste() === "nova" && !document.getElementById("r2-paleta-teste")) {
-    const s = document.createElement("style");
-    s.id = "r2-paleta-teste";
-    s.textContent = `:root{--amarelo-marca:${NOVA.amarelo};--yellow:${NOVA.amarelo}}::selection{background:${NOVA.lilas};color:#000}`;
-    document.head.appendChild(s);
-  }
-  const w = window as unknown as { __r2PaletaTeste?: boolean };
-  if (!w.__r2PaletaTeste) {
-    w.__r2PaletaTeste = true;
-    window.addEventListener("keydown", (ev) => {
-      if (!ev.altKey || ev.ctrlKey || ev.metaKey || ev.code !== "KeyC") return;
-      ev.preventDefault();
-      try { localStorage.setItem(CHAVE, paletaEmTeste() === "nova" ? "hoje" : "nova"); } catch { return; }
-      window.location.reload();
-    });
-  }
-}

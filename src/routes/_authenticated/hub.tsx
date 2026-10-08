@@ -4,7 +4,7 @@
 // Ações reais já ligadas: criar pedido (NovaArte → createPedido) e registro
 // de chegada de clichê (Aprovação → registrarCliche). O restante (mensagens,
 // anotações, notificações) segue demo até o back-end correspondente.
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useIsFetching, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -30,7 +30,8 @@ import { EquipeHub10 } from "@/components/hub10/EquipeHub10";
 import { RelatoriosHub10 } from "@/components/hub10/RelatoriosHub10";
 import { ClientesHub10 } from "@/components/hub10/ClientesHub10";
 import { HomeHub10 } from "@/components/hub10/HomeHub10";
-import { CarregandoHub10 } from "@/components/hub10/ChromeHub10";
+import { CarregandoDeTesteHub10, CarregandoHub10, NIVEL, useEscDoTopo } from "@/components/hub10/ChromeHub10";
+import { EspessuraDoClicheHub10 } from "@/components/hub10/ClicheChegouHub10";
 import { ApresentacaoHub10, ProvedorApresentacao } from "@/components/hub10/ApresentacaoHub10";
 import { NovoPedidoHub10, type DadosNovoPedido } from "@/components/hub10/NovoPedidoHub10";
 import { PedidoHub10, rotuloDoStatus } from "@/components/hub10/PedidoHub10";
@@ -95,8 +96,12 @@ export const Route = createFileRoute("/_authenticated/hub")({
   ssr: false,
   head: () => ({ meta: [{ title: "R2 Hub" }] }),
   // `pedido` abre a modal direto — é para onde /pedido/<id> redireciona.
+  /* Sem ?tela= é entrada genérica, como o login: vale a tela inicial das
+     Preferências ("inicio"). Era "home", e o roteador reescrevia o endereço
+     para ?tela=home antes de as preferências chegarem, então /hub abria sempre
+     a Home (simulação 6, 07/10/2026). */
   validateSearch: (s: Record<string, unknown>): { tela: string; pedido?: string } => ({
-    tela: typeof s.tela === "string" ? s.tela : "home",
+    tela: typeof s.tela === "string" ? s.tela : "inicio",
     ...(typeof s.pedido === "string" && s.pedido ? { pedido: s.pedido } : {}),
   }),
   component: HubPage,
@@ -116,6 +121,13 @@ function quandoLeitura(iso: string): string {
   const mesmoDia = d.getFullYear() === hoje.getFullYear() && d.getMonth() === hoje.getMonth() && d.getDate() === hoje.getDate();
   return mesmoDia ? `${hm} · hoje` : `${hm} · ${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
+
+/** O pedido que não existe, ou que não é da carteira de quem abriu: o
+    servidor recusa sempre do mesmo jeito, e tentar de novo só prendia a tela
+    no "Carregando" (três tentativas, uns sete segundos; simulação 6). */
+const pedidoForaDoAlcance = (e: unknown) => /não encontrado|sem acesso/i.test(e instanceof Error ? e.message : String(e ?? ""));
+const tentarDeNovo = (falhas: number, e: unknown) => falhas < 3 && !pedidoForaDoAlcance(e);
+const AVISO_PEDIDO_FORA = "Não achei esse pedido, ou ele não está na sua carteira.";
 
 const PERM_DA_PAGINA: Record<string, string> = {
   "Aprovação": "tab.cliches",
@@ -283,24 +295,18 @@ function HubPage() {
   }, [qc]);
 
   /* Tela inicial escolhida nas Preferências. As entradas genéricas (o login,
-     a raiz "/" e a troca de senha) chegam com ?tela=inicio, que vira a tela
-     escolhida (ou a Home, se a pessoa não pode abrir a escolhida); link
-     direto, com outra ?tela=, continua mandando. Sem ?tela= nenhuma, vale uma
-     vez por sessão, como antes. Até 05/10/2026 as entradas mandavam
-     ?tela=home e a escolha nunca valia (simulação 5, os três agentes). */
-  const telaInicialAplicada = useRef(false);
+     a raiz "/", a troca de senha e o /hub sem ?tela=) chegam com ?tela=inicio,
+     que vira a tela escolhida (ou a Home, se a pessoa não pode abrir a
+     escolhida); link direto, com outra ?tela=, continua mandando. Até
+     05/10/2026 as entradas mandavam ?tela=home e a escolha nunca valia
+     (simulação 5, os três agentes); o /hub sem ?tela= abriu a Home até
+     07/10/2026 (simulação 6, ver o validateSearch). */
   useEffect(() => {
-    if (!prefs) return;
-    if (tela !== "inicio") {
-      if (telaInicialAplicada.current) return;
-      const urlTemTela = typeof window !== "undefined" && new URLSearchParams(window.location.search).has("tela");
-      if (urlTemTela) { telaInicialAplicada.current = true; return; }
-    }
-    telaInicialAplicada.current = true;
+    if (!prefs || tela !== "inicio") return;
     const escolhida = String(prefs.telaInicial || "");
     const t = escolhida && escolhida !== "Home" ? LABEL_PARA_TELA[escolhida] : undefined;
     const destino = t && paginasLiberadas.some((label) => LABEL_PARA_TELA[label] === t) ? t : "home";
-    if (destino !== tela) navigate({ to: "/hub", search: { tela: destino }, replace: true });
+    navigate({ to: "/hub", search: { tela: destino }, replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prefs, tela]);
 
@@ -344,6 +350,10 @@ function HubPage() {
   /* o recado do envio do Novo pedido quando a tela já saiu: fica por cima de
      qualquer tela (o avisoGeral só aparece nas V1a, dentro de `modais`) */
   const [recadoDoEnvio, setRecadoDoEnvio] = useState("");
+  /* o aviso do pedido que não abriu (pelo link, pela busca ou pelo sino,
+     recusado pelo servidor): também fica por cima de qualquer tela
+     (simulação 6) */
+  const [avisoDoPedido, setAvisoDoPedido] = useState("");
   /* O carregando entre as telas: aparece quando, logo depois de mudar de
      tela (ou na primeira carga), alguma consulta ainda não tem dado nenhum
      por mais de 300 ms; e fica até o dado chegar. Recarga em segundo plano
@@ -351,6 +361,13 @@ function HubPage() {
   const semDado = useIsFetching({ predicate: (q) => q.state.status === "pending" });
   const [acabouDeMudar, setAcabouDeMudar] = useState(true);
   const [carregando, setCarregando] = useState(false);
+  /* Clicar no item do menu da página em que já se está volta ao começo dela
+     (Augusto, 08/10/2026: "ao clicar no botão Calc's no rail do menu deve
+     levar para a ver todas as calculadoras, isso deve ser o mesmo para as
+     respectivas páginas"): a página monta de novo (a chave em volta da
+     tela, no fim), sem a calculadora, a família, a gaveta ou o pedido que
+     estavam abertos. */
+  const [voltaAoComeco, setVoltaAoComeco] = useState(0);
   useEffect(() => {
     setAcabouDeMudar(true);
     const t = setTimeout(() => setAcabouDeMudar(false), 6000);
@@ -378,6 +395,7 @@ function HubPage() {
     queryKey: ["pedido", pedidoId],
     queryFn: () => getPedido({ data: { id: pedidoId! } }) as Promise<any>,
     enabled: !!pedidoId,
+    retry: tentarDeNovo,
   });
 
   /* Pedido aberto no painel 1.0. É um estado à PARTE do `pedidoId` da ficha
@@ -385,11 +403,27 @@ function HubPage() {
      também a modal antiga, que é hospedada junto dos outros modais. Mesma
      chave de cache, então os dois aproveitam a mesma leitura. */
   const [pedido10Id, setPedido10Id] = useState<string | null>(null);
-  const { data: detalhe10 } = useQuery<any>({
+  const { data: detalhe10, error: erroDetalhe10 } = useQuery<any>({
     queryKey: ["pedido", pedido10Id],
     queryFn: () => getPedido({ data: { id: pedido10Id! } }) as Promise<any>,
     enabled: !!pedido10Id,
+    retry: tentarDeNovo,
   });
+  /* O pedido aberto pelo link (ou pela busca, ou por um aviso) que o servidor
+     recusa: o pedido pendurado sai e a trilha volta, com o motivo na tela.
+     Antes Pedidos ficava em branco, sem aviso, e nem o ESC nem o menu
+     devolviam a trilha (simulação 6, 07/10/2026). */
+  useEffect(() => {
+    if (!pedido10Id || !erroDetalhe10 || detalhe10) return;
+    setPedido10Id(null);
+    setAvisoDoPedido(pedidoForaDoAlcance(erroDetalhe10)
+      ? AVISO_PEDIDO_FORA
+      : `Não deu para abrir o pedido. ${erroLegivel(erroDetalhe10, "Tente de novo.")}`);
+  }, [pedido10Id, erroDetalhe10, detalhe10]);
+  /* o ESC também solta o pedido que ainda não abriu: o painel, que tem o ESC
+     dele, só aparece quando o detalhe chega */
+  const soltarPedidoPendente = useCallback(() => setPedido10Id(null), []);
+  useEscDoTopo(!!pedido10Id && !detalhe10, NIVEL.painel, soltarPedidoPendente);
   /* Abrir um pedido no painel 1.0. Abrir também marca as respostas como
      vistas — é isso que apaga o aviso de resposta nova no card. */
   const abrirDetalhe10 = (id: string) => {
@@ -397,7 +431,12 @@ function HubPage() {
     /* "Abrir o último pedido" (Preferências): só a lista antiga guardava o
        pedido aberto, e no 1.0 a opção não fazia nada (revisão de 02/10/2026) */
     try { localStorage.setItem("r2hub.ultimoPedido", id); } catch { /* modo restrito */ }
-    void marcarPedidoVisto({ data: { id } }).then(() => qc.invalidateQueries({ queryKey: ["pedidos"] }));
+    /* o visto é secundário: o pedido que o servidor recusa não marca nada, e
+       a recusa aparece pelo detalhe (o efeito do erro, acima). Sem o catch, o
+       link com id que não existe soltava o erro do banco na página. */
+    void marcarPedidoVisto({ data: { id } })
+      .then(() => qc.invalidateQueries({ queryKey: ["pedidos"] }))
+      .catch(() => { /* idem */ });
   };
   /* Vir de fora (busca global, notificação, chat) e cair no pedido: leva para
      a tela 1.0, que é o que o menu "Pedidos" abre. */
@@ -435,6 +474,8 @@ function HubPage() {
     setPedido10Id(null);
     /* a modal V1a fica hospedada em TODAS as telas, então ela viajava junto */
     setPedidoId(null);
+    /* a mesma página: volta ao começo dela (ver voltaAoComeco) */
+    if (t === tela) { setVoltaAoComeco((n) => n + 1); return; }
     navigate({ to: "/hub", search: { tela: t } });
   };
 
@@ -700,7 +741,20 @@ function HubPage() {
       const pedidoDoLink = url.match(/^\/pedido\/([^/?#]+)/);
       if (pedidoDoLink) {
         const alvo = pedidoDoLink[1];
-        if (!pedidos.some((x: any) => x.id === alvo)) { setAvisoGeral("Esse pedido não está mais no sistema."); return; }
+        /* fora da lista de quem clicou (de outra carteira): o aviso do link,
+           por cima de qualquer tela (o avisoGeral só aparecia nas telas V1a e
+           na Home). Com a lista ainda chegando, quem decide é o servidor. */
+        if (pedidosEm > 0 && !pedidos.some((x: any) => x.id === alvo)) {
+          /* a lista atualiza a cada 5 s e o sino a cada 20 s: o pedido que
+             acabou de nascer pode ainda não estar nela. Atualiza antes de
+             dizer que ele não é de quem clicou (revisão de 07/10/2026). */
+          void qc.refetchQueries({ queryKey: ["pedidos"] }).then(() => {
+            const lista = (qc.getQueryData(["pedidos"]) as any[] | undefined) ?? [];
+            if (lista.some((x: any) => x.id === alvo)) irParaPedido10(alvo);
+            else setAvisoDoPedido(AVISO_PEDIDO_FORA);
+          });
+          return;
+        }
         /* Antes isto chamava a modal V1a: quem clicasse numa notificação
            estando na Home 1.0 caía na tela antiga sem ter pedido por ela. */
         irParaPedido10(alvo);
@@ -1279,10 +1333,13 @@ function HubPage() {
   return (
     <HubDadosV1aProvider valor={hubDados}>
       <ProvedorApresentacao verDeNovo={verApresentacao}>
-        {telaAtual()}
+        <Fragment key={voltaAoComeco}>{telaAtual()}</Fragment>
       </ProvedorApresentacao>
       {recadoDoEnvio && <AvisoV1a texto={recadoDoEnvio} tipo="alerta" onFechar={() => setRecadoDoEnvio("")} />}
+      {avisoDoPedido && <AvisoV1a texto={avisoDoPedido} tipo="alerta" onFechar={() => setAvisoDoPedido("")} />}
       {carregando && <CarregandoHub10 />}
+      {/* só no hub de teste: Alt+L mostra o carregamento (e em câmera lenta) */}
+      {import.meta.env.DEV && <CarregandoDeTesteHub10 />}
       {/* a apresentação do hub, por cima de todas as telas */}
       {profile && apresentacao && (
         <ApresentacaoHub10 profile={profile} tela={tela} estado={apresentacao} aoSalvar={salvarApresentacao}
@@ -1318,6 +1375,10 @@ function HubPage() {
         }
       };
       return (
+        /* a caixa "Clichê chegou" é da tela de Pedidos e mostra no alto a
+           espessura pedida à clicheria (simulação 6); quem tem o detalhe é
+           a rota */
+        <EspessuraDoClicheHub10.Provider value={String(detalhe10?.pedido?.cliche_espessura ?? "")}>
         <PedidoHub10 profile={profile!} pedidos={pedidos} aoNavegar={aoNavegar}
           onNova={hasPerm(profile, "pedidos.criar") ? abrirNova : undefined}
           onLogout={doLogout} disponiveis={comuns.disponiveis}
@@ -1370,7 +1431,15 @@ function HubPage() {
           acoesPedido={{
             mudarStatus: (status, observacao, de, espessura) =>
               changeStatus({ data: { id: pedido10Id!, status, observacao: observacao ?? "", de,
-                ...(espessura === "1.14" || espessura === "1.70" ? { espessura } : {}) } }).then(recarregar10),
+                ...(espessura === "1.14" || espessura === "1.70" ? { espessura } : {}) } }).then((r) => {
+                recarregar10();
+                /* "Nada a mudar": outra pessoa já tinha levado o pedido para essa
+                   etapa. A caixa fica aberta com o texto, em vez de fechar como
+                   se tivesse gravado (revisão de código de 08/10/2026). */
+                if ((r as unknown as { semMudanca?: boolean } | undefined)?.semMudanca) {
+                  throw new Error("Este pedido já estava nessa etapa: outra pessoa mudou antes. Atualize a página.");
+                }
+              }),
             perguntar: (texto) => perguntarNoPedido({ data: { pedidoId: pedido10Id!, texto } }).then(recarregar10),
             responder: (perguntaId, texto) => responderPergunta({ data: { perguntaId, texto } }).then(recarregar10),
             /* as cores separadas pelos nomes ("Branco roxo" são duas, mesmo
@@ -1484,6 +1553,7 @@ function HubPage() {
             />
           )}
         </PedidoHub10>
+        </EspessuraDoClicheHub10.Provider>
       );
     }
     case "novo-pedido":

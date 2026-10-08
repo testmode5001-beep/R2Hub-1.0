@@ -15,14 +15,14 @@
 //    tabela Pantone do hub usa, e o botão redondo abre essa tabela.
 //  · Anexar a prova em PDF preenche as cores com a legenda "Cores" dela
 //    (cores-da-prova.ts), com volta para o que estava.
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 
-import { juntarCores, lerCoresDaProva, type LeituraDaProva } from "@/lib/cores-da-prova";
+import { juntarCores, lerCoresDaProva, provaEmCmykSemLer, type LeituraDaProva } from "@/lib/cores-da-prova";
 import { de2000, nomeDaBusca, tipoDoCodigo } from "@/lib/nomes-de-cor";
 import { PANTONE_SC } from "../v1a/dados/pantone";
 import { corDoNome, prefixoPantone, sugestoesPantone } from "../v1a/dados/pantone-busca";
-import { FR, INTER, NIVEL, PRETO, useEscDoTopo } from "./ChromeHub10";
+import { FR, INTER, NIVEL, PRETO, PerguntaDescartar, useEscDoTopo } from "./ChromeHub10";
 import { PantoneHub10 } from "./PantoneHub10";
 import { PALETA } from "@/lib/paleta-hub";
 
@@ -103,6 +103,9 @@ function Aviso({ texto, primeiro = false }: { texto: string; primeiro?: boolean 
     </div>
   );
 }
+
+/** o arquivo exato: o mesmo nome pode ser outra versão da prova */
+const chaveDoArquivo = (f: File) => `${f.name}|${f.size}|${f.lastModified}`;
 
 /* A leitura da prova tem prazo: se o OCR travar (idioma que não carrega), a
    caixa avisa em vez de ficar "lendo" para sempre. */
@@ -203,7 +206,18 @@ export function DesignCriadoHub10({ pedido, versaoSugerida = "v1", fechar, onEnv
   /* As provas anexadas que saíram no jeito antigo, em CMYK ou PDF/X: no
      celular e no WhatsApp a cor muda (Augusto, 07/10/2026). Avisa, não trava;
      a mesma prova lida de novo em sRGB, ou tirada da lista, apaga o aviso. */
-  const [provasEmCmyk, setProvasEmCmyk] = useState<string[]>([]);
+  /* pelo arquivo exato (nome, tamanho e data), não só pelo nome: a prova
+     exportada de novo com o mesmo nome apagava o aviso da antiga, que seguia
+     anexada (revisão de código de 07/10/2026) */
+  const [provasEmCmyk, setProvasEmCmyk] = useState<{ chave: string; nome: string }[]>([]);
+  const arquivosAtuais = useRef(arquivos);
+  useEffect(() => { arquivosAtuais.current = arquivos; });
+  const marcarCmyk = (f: File, emCmyk: boolean) => {
+    const chave = chaveDoArquivo(f);
+    /* tirado da lista enquanto lia: não volta para o aviso */
+    if (!arquivosAtuais.current.some((a) => chaveDoArquivo(a) === chave)) return;
+    setProvasEmCmyk((xs) => (emCmyk ? (xs.some((x) => x.chave === chave) ? xs : [...xs, { chave, nome: f.name }]) : xs.filter((x) => x.chave !== chave)));
+  };
   /* A leitura leva alguns segundos e dá para anexar de novo no meio. Cada
      leitura tem um número; uma mais velha só não preenche se uma mais nova
      JÁ preencheu. Anexar a arte final durante a leitura da prova não joga a
@@ -222,9 +236,18 @@ export function DesignCriadoHub10({ pedido, versaoSugerida = "v1", fechar, onEnv
     lendoAgora.current++;
     setAvisoLeitura("");
     let aviso = "";
+    /* a primeira prova lida preenche as cores; das outras anexadas juntas só se
+       confere o jeito de exportar, sem o OCR (com duas provas antigas, só a
+       primeira avisava: simulação 6, 07/10/2026) */
+    let preencheu = false;
     try {
       for (const f of pdfs) {
         setLendoCores(f.name);
+        if (preencheu) {
+          const emCmyk = await provaEmCmykSemLer(f).catch(() => null);
+          if (emCmyk !== null) marcarCmyk(f, emCmyk);
+          continue;
+        }
         let r: LeituraDaProva;
         try {
           r = await comPrazo(lerCoresDaProva(f), PRAZO_DA_LEITURA);
@@ -233,13 +256,11 @@ export function DesignCriadoHub10({ pedido, versaoSugerida = "v1", fechar, onEnv
           aviso = `Não consegui ler as cores de ${f.name}. Preencha as cores à mão.`;
           continue;
         }
-        if (r.ok || r.motivo === "sem-legenda") {
-          const nome = f.name, emCmyk = !!r.emCmyk;
-          setProvasEmCmyk((xs) => (emCmyk ? (xs.includes(nome) ? xs : [...xs, nome]) : xs.filter((x) => x !== nome)));
-        }
+        if (r.ok || r.motivo === "sem-legenda") marcarCmyk(f, !!r.emCmyk);
         if (r.ok) {
+          preencheu = true;
           /* uma leitura mais nova já preencheu, ou o design já está indo */
-          if (vez < vezAplicada.current || emVoo.current) return;
+          if (vez < vezAplicada.current || emVoo.current) continue;
           vezAplicada.current = vez;
           const novos: Record<number, string> = {};
           r.cores.forEach((nome, i) => { const h = corDoNome(nome); if (h) novos[i] = h; });
@@ -252,11 +273,11 @@ export function DesignCriadoHub10({ pedido, versaoSugerida = "v1", fechar, onEnv
           setLeitura({ arquivo: f.name, conferir: r.conferir, foraDaLegenda: r.foraDaLegenda });
           setAvisoLeitura("");
           setSecao("cores");
-          return;
+          continue;
         }
         if (r.motivo === "sem-legenda") aviso = `Não achei a legenda de cores em ${f.name}. Preencha as cores à mão.`;
       }
-      if (aviso && vez > vezAplicada.current) setAvisoLeitura(aviso);
+      if (aviso && !preencheu && vez > vezAplicada.current) setAvisoLeitura(aviso);
     } finally {
       lendoAgora.current--;
       if (lendoAgora.current === 0) setLendoCores(null);
@@ -274,9 +295,26 @@ export function DesignCriadoHub10({ pedido, versaoSugerida = "v1", fechar, onEnv
      a caixa trocaria a lista depois do clique (revisão de 30/09/2026). */
   const valido = preenchidas.length > 0 && !enviando && !lendoCores;
 
-  /* Esc fecha, como em toda caixa do hub. */
-  /* ESC fecha só esta caixa — não o painel do pedido atrás dela. */
-  useEscDoTopo(true, NIVEL.caixa, fechar);
+  const preenchido = arquivos.length > 0 || obs.trim() !== "" || versao !== versaoSugerida
+    || cores.join("\u0001") !== coresIniciais.join("\u0001") || !!leitura;
+  /* Fechar sem perder o preenchido (revisão de 08/10/2026): o clique fora, o
+     Esc, o × e o Cancelar descartavam tudo sem perguntar. Com algo
+     preenchido, a caixa pergunta antes; o Esc com a pergunta aberta volta a
+     editar. O clique só conta como "fora" quando começou no véu: selecionar
+     um texto e soltar o mouse fora da caixa não fecha mais. */
+  const [descartar, setDescartar] = useState(false);
+  const pedirParaFechar = () => {
+    if (enviando) return;
+    if (descartar) { setDescartar(false); return; }
+    if (preenchido) setDescartar(true); else fechar();
+  };
+  const fecharRef = useRef(pedirParaFechar);
+  fecharRef.current = pedirParaFechar;
+  const aoEsc = useCallback(() => fecharRef.current(), []);
+  const veuPressionado = useRef(false);
+  /* ESC fecha só esta caixa (perguntando, se houver algo preenchido), não o
+     painel do pedido atrás dela. */
+  useEscDoTopo(true, NIVEL.caixa, aoEsc);
 
   /* Ref, não estado: `setEnviando` só vale no render seguinte, e dois
      cliques colados mandavam duas vezes. */
@@ -327,12 +365,15 @@ export function DesignCriadoHub10({ pedido, versaoSugerida = "v1", fechar, onEnv
   const previaRecado = obs.trim()
     ? (obs.trim().length > 46 ? `${obs.trim().slice(0, 46)}…` : obs.trim())
     : "opcional";
-  const avisoCmyk = provasEmCmyk.length
-    ? `${provasEmCmyk.length === 1 ? `A prova ${provasEmCmyk[0]} saiu` : `As provas ${juntarCores(provasEmCmyk)} saíram`} em CMYK: no celular e no WhatsApp as cores mudam. Exporte de novo em sRGB (Converter em destino, sRGB IEC61966-2.1).`
+  const leituraSemArquivo = !!leitura && !arquivos.some((a) => a.name === leitura.arquivo);
+  const nomesEmCmyk = [...new Set(provasEmCmyk.map((x) => x.nome))];
+  const avisoCmyk = nomesEmCmyk.length
+    ? `${nomesEmCmyk.length === 1 ? `A prova ${nomesEmCmyk[0]} foi exportada` : `As provas ${juntarCores(nomesEmCmyk)} foram exportadas`} para impressão: no celular e no WhatsApp as cores mudam. Exporte de novo para tela, em sRGB (Converter em destino, sRGB IEC61966-2.1).`
     : "";
 
   return (
-    <div onClick={fechar} ref={veuRef}
+    <div onMouseDown={(e) => { veuPressionado.current = e.target === e.currentTarget; }}
+      onClick={(e) => { if (e.target === e.currentTarget && veuPressionado.current) pedirParaFechar(); }} ref={veuRef}
       /* O véu cobre o PALCO INTEIRO (1920×1080), não só a faixa do
          detalhe: estas caixas são filhas do palco, e com 616 sobrava a barra
          do topo e a faixa preta de baixo acesas — e o cartão, centrado em
@@ -367,6 +408,10 @@ export function DesignCriadoHub10({ pedido, versaoSugerida = "v1", fechar, onEnv
       <div onClick={(e) => e.stopPropagation()}
         style={{ boxSizing: "border-box", position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 720, maxHeight: ALTURA_MAXIMA, overflow: "hidden", display: "flex", flexDirection: "column", background: "#fff", border: `1.5px solid ${PRETO}`, borderRadius: 22, boxShadow: "0 50px 110px -28px rgba(0,0,0,.62)", fontFamily: INTER, color: PRETO }}>
 
+        {descartar && (
+          <PerguntaDescartar texto="As cores, os arquivos e a observação que você pôs aqui se perdem."
+            aoContinuar={() => setDescartar(false)} aoDescartar={fechar} />
+        )}
         {/* ————— cabeçalho ————— */}
         <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 24, padding: "26px 42px 20px", flex: "none" }}>
           <div style={{ minWidth: 0 }}>
@@ -381,7 +426,7 @@ export function DesignCriadoHub10({ pedido, versaoSugerida = "v1", fechar, onEnv
               <input value={versao} onChange={(e) => setVersao(e.target.value)} placeholder="v3" aria-label="Versão da arte"
                 style={{ width: 40, textAlign: "left", boxSizing: "border-box", padding: 0, border: "none", background: "none", font: `800 18px/1 ${INTER}`, color: PRETO, outline: "none" }} />
             </div>
-            <button onClick={fechar} className="p10-flat" aria-label="Fechar"
+            <button onClick={pedirParaFechar} className="p10-flat" aria-label="Fechar"
               style={{ width: 46, height: 46, display: "grid", placeItems: "center", background: "none", border: `1.5px solid ${PRETO}`, borderRadius: 999, cursor: "pointer" }}>
               <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={PRETO} strokeWidth={2.4} strokeLinecap="round"><path d="M6 6l12 12" /><path d="M18 6L6 18" /></svg>
             </button>
@@ -428,18 +473,20 @@ export function DesignCriadoHub10({ pedido, versaoSugerida = "v1", fechar, onEnv
                 {leitura && (
                   <div style={{ marginBottom: 16 }}>
                     <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 16 }}>
-                      <span style={{ minWidth: 0, font: `600 15px/1.4 ${INTER}`, color: CINZA, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                        Lidas da legenda de {leitura.arquivo}.
+                      {/* tirada a prova da lista, a caixa não finge que ela continua
+                          anexada; as cores lidas ficam, com o "Voltar" à mão (simulação 6) */}
+                      <span title={leitura.arquivo} style={{ minWidth: 0, font: `600 15px/1.4 ${INTER}`, color: CINZA, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                        Lidas da legenda de {leitura.arquivo}{leituraSemArquivo ? ", que saiu da lista" : ""}.
                       </span>
                       <button onClick={desfazerLeitura} className="p10-flat"
                         style={{ flex: "none", background: "none", border: "none", padding: 0, cursor: "pointer", font: `600 15px/1 ${INTER}`, color: CINZA, textDecoration: "underline" }}>
                         Voltar às cores de antes
                       </button>
                     </div>
-                    {leitura.conferir.length > 0 && (
+                    {!leituraSemArquivo && leitura.conferir.length > 0 && (
                       <Aviso texto={`Leitura incerta: ${juntarCores(leitura.conferir)}. Confira na prova.`} />
                     )}
-                    {leitura.foraDaLegenda.length > 0 && (
+                    {!leituraSemArquivo && leitura.foraDaLegenda.length > 0 && (
                       <Aviso texto={`O arquivo também tem ${juntarCores(leitura.foraDaLegenda)}, que não ${leitura.foraDaLegenda.length === 1 ? "está" : "estão"} na legenda.`} />
                     )}
                     {avisoCmyk && <Aviso texto={avisoCmyk} />}
@@ -536,7 +583,7 @@ export function DesignCriadoHub10({ pedido, versaoSugerida = "v1", fechar, onEnv
                       <button onClick={() => {
                         const resta = arquivos.filter((_, j) => j !== i);
                         setArquivos(resta);
-                        setProvasEmCmyk((xs) => xs.filter((x) => resta.some((a) => a.name === x)));
+                        setProvasEmCmyk((xs) => xs.filter((x) => resta.some((a) => chaveDoArquivo(a) === x.chave)));
                       }} className="p10-flat" aria-label={`Tirar ${f.name}`}
                         style={{ flex: "none", width: 24, height: 24, display: "grid", placeItems: "center", background: "none", border: "none", padding: 0, cursor: "pointer" }}>
                         <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke={PRETO} strokeWidth={2.6} strokeLinecap="round"><path d="M6 6l12 12" /><path d="M18 6L6 18" /></svg>
@@ -562,9 +609,19 @@ export function DesignCriadoHub10({ pedido, versaoSugerida = "v1", fechar, onEnv
           onChange={(e) => {
             const fs = Array.from(e.target.files ?? []); e.target.value = "";
             if (!fs.length) return;
-            /* o mesmo arquivo de novo (para reler as cores) não vira um segundo anexo */
-            const novos = fs.filter((f) => !arquivos.some((a) => a.name === f.name && a.size === f.size && a.lastModified === f.lastModified));
-            setArquivos([...arquivos, ...novos]); setSemArte(false); void lerCores(fs);
+            /* o mesmo arquivo de novo (para reler as cores) não vira um segundo
+               anexo; um arquivo novo com o nome de um que já está na lista (a
+               prova exportada de novo) toma o lugar dele: senão a antiga, em
+               CMYK, seguia junto no envio (revisão de código de 07/10/2026) */
+            const lista = [...arquivos];
+            for (const f of fs) {
+              if (lista.some((a) => chaveDoArquivo(a) === chaveDoArquivo(f))) continue;
+              const mesmoNome = lista.findIndex((a) => a.name === f.name);
+              if (mesmoNome >= 0) lista[mesmoNome] = f; else lista.push(f);
+            }
+            setArquivos(lista);
+            setProvasEmCmyk((xs) => xs.filter((x) => lista.some((a) => chaveDoArquivo(a) === x.chave)));
+            setSemArte(false); void lerCores(fs);
           }} />
 
         {erroEnvio && (
@@ -589,7 +646,7 @@ export function DesignCriadoHub10({ pedido, versaoSugerida = "v1", fechar, onEnv
             <>
               <div style={{ minWidth: 0, font: `600 16px/1.45 ${INTER}`, color: "#c9c8c6", marginLeft: 20 }}>{resumo}</div>
               <div style={{ display: "flex", alignItems: "center", gap: 11, flex: "none" }}>
-                <button onClick={fechar} className="p10-flat"
+                <button onClick={pedirParaFechar} className="p10-flat"
                   style={{ border: "1.5px solid #555355", borderRadius: 999, padding: "14px 24px", cursor: "pointer", font: `700 17px/1 ${INTER}`, background: "none", color: "#f1f1f1" }}>Cancelar</button>
                 <button onClick={() => enviar()} disabled={!valido}
                   style={{ border: `1.5px solid ${valido ? PRETO : "#4a484a"}`, borderRadius: 999, padding: "14px 28px", cursor: valido ? "pointer" : "not-allowed", font: `800 17px/1 ${INTER}`, whiteSpace: "nowrap", background: valido ? AMARELO : "#4a484a", color: valido ? PRETO : CINZA }}>

@@ -87,9 +87,10 @@ export function useFacasVivas() {
   };
 }
 
-/** Uma faca perto da medida pedida: a diferença de cada lado (faca − pedido)
-    e se ela serve DEITADA. */
-export type FacaPerto = { faca: FacaViva; dl: number; da: number; deitada: boolean; dist: number };
+/** Uma faca perto da medida pedida: a diferença de cada lado (faca − pedido),
+    se ela serve DEITADA e se é de um lado só (as de gap e corte, com só a
+    altura: o outro lado entra pela largura digitada). */
+export type FacaPerto = { faca: FacaViva; dl: number; da: number; deitada: boolean; dist: number; umLado: boolean };
 
 /** As facas até `tolerancia` mm da medida em CADA lado, da mais perto para a
     mais longe. A faca vale nas duas orientações: uma 43×82 corta a etiqueta
@@ -106,11 +107,14 @@ export function facasPerto(vivas: FacaViva[], largura: number, altura: number, t
     const outra = { dl: h - largura, da: w - altura, deitada: true };
     const d = Math.hypot(outra.dl, outra.da) < Math.hypot(reta.dl, reta.da) - 1e-9 ? outra : reta;
     if (Math.abs(d.dl) <= tolerancia + 1e-9 && Math.abs(d.da) <= tolerancia + 1e-9) {
-      achadas.push({ faca: f, ...d, dist: Math.hypot(d.dl, d.da) });
+      achadas.push({ faca: f, ...d, dist: Math.hypot(d.dl, d.da), umLado: n.length === 1 });
     }
   }
   /* empate de distância (100x50 e 50x100 casam as duas em 0): a da medida
      como foi digitada vem antes da deitada (simulação 4: três pedidos saíram
-     com a deitada, a primeira pílula) */
-  return achadas.sort((a, b) => a.dist - b.dist || Number(a.deitada) - Number(b.deitada)).slice(0, limite);
+     com a deitada, a primeira pílula). A de um lado só conta como quadrada
+     ("50mm" casa com 50x50 em 0) e vinha antes das 50×50 exatas, na ordem da
+     lista (simulação 6, 07/10/2026): no empate, as de dois lados primeiro, a
+     reta e depois a deitada, e só então as de um lado só. */
+  return achadas.sort((a, b) => a.dist - b.dist || Number(a.umLado) - Number(b.umLado) || Number(a.deitada) - Number(b.deitada)).slice(0, limite);
 }

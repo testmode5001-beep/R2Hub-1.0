@@ -28,14 +28,16 @@
 // no servidor) e "Histórico" (as solicitações anteriores da vendedora, com a
 // opção de copiar uma delas).
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { CSSProperties, DragEvent as ArrastoReact, KeyboardEvent as TeclaReact } from "react";
+import { useQuery } from "@tanstack/react-query";
+import type { CSSProperties, DragEvent as ArrastoReact, KeyboardEvent as TeclaReact, Ref } from "react";
 
 import { MEDIDAS, PDF_DE } from "../v1a/dados/facas-cilindro";
 import { PANTONE_SC } from "../v1a/dados/pantone";
 import { prefixoPantone } from "../v1a/dados/pantone-busca";
 import { AvisoV1a } from "../v1a/HubV1a";
 import { criarBusca } from "@/lib/busca";
-import { separarCores } from "@/lib/cores";
+import { coresEfetivas, separarCores } from "@/lib/cores";
+import { sugestoesDeCor, trocarPalavra, type SugestaoDeCor } from "@/lib/sugestao-de-cor";
 import type { CadastrosV1a } from "../v1a/dados/cadastros";
 import type { NovaSolicitacaoDados } from "../v1a/modais/NovaArteModalV1a";
 import {
@@ -49,6 +51,12 @@ import { erroLegivel } from "@/lib/erro-legivel";
 import type { SessionUser } from "@/lib/session";
 import { pantonesPeloNome } from "./PantoneHub10";
 import { PALETA } from "@/lib/paleta-hub";
+import { listZDasFacas } from "@/lib/api/facas.functions";
+/* a chave das pastas "Facas por Z" (sem os zeros: FAC0004.03 é FAC4.03),
+   não a de facas-vivas */
+import { chaveFaca as chaveDoZ } from "@/lib/chave-faca";
+import { listPortaCliches } from "@/lib/api/porta-cliches.functions";
+import { avisoDaFaca, type PortaCliche } from "@/lib/porta-cliches";
 
 /** O que a rota recebe: os campos de sempre, a urgência e a faca nova. */
 export type DadosNovoPedido = NovaSolicitacaoDados & { urgente?: boolean; facaNova?: boolean };
@@ -56,7 +64,7 @@ export type DadosNovoPedido = NovaSolicitacaoDados & { urgente?: boolean; facaNo
 /** Um pedido da lista do hub, no que o Histórico e os Pantones usam. */
 type PedidoDaLista = {
   id?: string; numero?: number; cliente?: string | null; vendedor_id?: string | null; created_at?: string | null;
-  largura?: string | null; altura?: string | null; materia?: string | null; cores_desc?: string | null; faca_cod?: string | null;
+  largura?: string | null; altura?: string | null; materia?: string | null; cores_desc?: string | null; cores_arte?: string | null; faca_cod?: string | null;
 };
 
 /* Rascunho do formulário nesta aba do navegador: sair para outra tela (o
@@ -101,7 +109,10 @@ const ACABAMENTOS: { nome: string; desc: string; campo?: "picote" | "tarjaVerso"
   { nome: "Laminação brilho", desc: "Película brilhante que intensifica as cores." },
 ];
 
-const PANTONE_PADRAO = ["485 C", "185 C", "300 C", "877 C", "355 C", "021 C", "2945 C", "032 C", "1235 C", "476 C", "Black 6 C", "424 C"];
+/* com o nome como a tabela escreve: "021 C" e "032 C" não casavam com a
+   "Orange 021 C" e a "Red 032 C" e saíam com a bolinha cinza (simulação 6,
+   07/10/2026) */
+const PANTONE_PADRAO = ["485 C", "185 C", "300 C", "877 C", "355 C", "Orange 021 C", "2945 C", "Red 032 C", "1235 C", "476 C", "Black 6 C", "424 C"];
 
 /** hex de um código Pantone, ou cinza quando não está na tabela */
 const hexPant = (cod: string) => PANTONE_SC.find((p) => p.c.toLowerCase() === cod.toLowerCase())?.h ?? "#d9d9d9";
@@ -320,25 +331,45 @@ function linhasNoCampo(texto: string, corpo: number, ls: number, largura: number
     nomes que não cabem na linha ficam em duas linhas"), o que não cabe numa
     linha passa para a segunda no tamanho cheio, e só encolhe se nem em duas
     couber. Faltando depois de tentar concluir, a dica ganha o marca-texto,
-    por uma cópia dela em letra transparente atrás do campo. */
-function CampoGrande({ valor, aoMudar, dica, corpo, ls, x, base, largura, rotulo, falta, autoFocus, inputMode, aoTeclar, linhas = 1, minimo }: {
+    por uma cópia dela em letra transparente atrás do campo.
+    Com `encolherAntes` (a revisão), o nome encolhe numa linha até o mínimo e
+    só então passa para duas, no mínimo, crescendo para cima. */
+function CampoGrande({ valor, aoMudar, dica, corpo, ls, x, base, largura, rotulo, falta, autoFocus, inputMode, aoTeclar, linhas = 1, minimo, encolherAntes, campoRef, marcar }: {
   valor: string; aoMudar: (v: string) => void; dica: string; corpo: number; ls: number; x: number; base: number; largura: number;
   rotulo: string; falta?: boolean; autoFocus?: boolean; inputMode?: "decimal" | "text"; aoTeclar?: (e: TeclaReact<HTMLInputElement>) => void;
-  linhas?: 1 | 2; minimo?: number;
+  linhas?: 1 | 2; minimo?: number; encolherAntes?: boolean; campoRef?: Ref<HTMLInputElement>;
+  /* um trecho do que foi escrito com o marca-texto atrás (a cor escrita errado) */
+  marcar?: { inicio: number; fim: number } | null;
 }) {
   const piso = minimo ?? Math.round(corpo / 2);
   let c = corpo, n = 1;
-  if (linhas === 2 && valor && larguraNoCampo(valor, corpo, ls) > largura + 24) {
+  if (linhas === 2 && encolherAntes) {
+    /* A revisão (simulação 6, 07/10/2026): o nome comprido encolhia até o
+       mínimo e era cortado no fim, sem reticências ("...Representações Ltd").
+       Encolhe numa linha como antes e, se nem no mínimo couber, vai para duas
+       linhas no mínimo, crescendo para cima: Briefing, Medida e Cores, logo
+       embaixo, ficam onde estão. */
+    const w = larguraNoCampo(valor || dica, corpo, ls);
+    c = w > largura ? Math.max(Math.floor((corpo * largura) / w), piso) : corpo;
+    if (valor && larguraNoCampo(valor, c, ls) > largura + 24) n = 2;
+  } else if (linhas === 2 && valor && larguraNoCampo(valor, corpo, ls) > largura + 24) {
     n = 2;
     while (c > piso && linhasNoCampo(valor, c, ls, largura + 24, Math.round(c * 1.05)) > 2) c -= 2;
   } else if (linhas === 1) {
     const w = larguraNoCampo(valor || dica, corpo, ls);
     c = w > largura ? Math.max(Math.floor((corpo * largura) / w), piso) : corpo;
   }
-  /* duas linhas com a entrelinha fechada de título; a 1ª linha fica na mesma base */
-  const lh = n === 2 ? Math.round(c * 1.05) : Math.round(c * 1.3);
+  /* duas linhas com a entrelinha fechada de título; a 1ª linha fica na mesma
+     base. Crescendo para cima, a última fica na base e a entrelinha é de
+     linhas inteiras da grade, para as duas bases caírem nela. */
+  const lh = n === 2
+    ? (encolherAntes ? Math.ceil((c * 1.05) / LINHA_DA_GRADE_HUB) * LINHA_DA_GRADE_HUB : Math.round(c * 1.05))
+    : Math.round(c * 1.3);
   const esq = x - folgaFraunces(600, c, dica.charAt(0)) - ((ACERTO_FR[`${corpo}${dica.charAt(0)}`] ?? 0.7) * c) / corpo;
-  const topo = base - baseFraunces(c, lh);
+  const topo = base - (encolherAntes ? (n - 1) * lh : 0) - baseFraunces(c, lh);
+  /* nem em duas linhas no mínimo coube (nome de mais de uns 160 caracteres):
+     o nome inteiro fica no title */
+  const cortado = n === 2 && linhasNoCampo(valor, c, ls, largura + 24, lh) > 2;
   const letra: CSSProperties = { ...FR, fontSize: c, lineHeight: `${lh}px`, letterSpacing: `${ls}em`, whiteSpace: "nowrap" };
   const caixa: CSSProperties = { ...letra, position: "absolute", left: esq, top: topo, width: largura + 24, height: lh * n, boxSizing: "border-box", padding: 0, border: "none", outline: "none", background: "transparent", color: PRETO, zIndex: 3 };
   /* Na entrelinha fechada das duas linhas, a letra passa da linha em cima e
@@ -352,13 +383,20 @@ function CampoGrande({ valor, aoMudar, dica, corpo, ls, x, base, largura, rotulo
           <span className="np10-falta">{dica}</span>
         </span>
       )}
+      {/* o marca-texto atrás da palavra: a mesma letra do campo, transparente,
+          com o texto até ela antes ("pre" mantém os espaços como o input) */}
+      {marcar && valor && linhas === 1 && (
+        <span aria-hidden data-marca-campo style={{ ...letra, whiteSpace: "pre", position: "absolute", left: esq, top: topo, height: lh, color: "transparent", pointerEvents: "none", zIndex: 2 }}>
+          {valor.slice(0, marcar.inicio)}<span className="np10-falta">{valor.slice(marcar.inicio, marcar.fim)}</span>
+        </span>
+      )}
       {linhas === 2 ? (
         /* duas linhas: textarea sem Enter (o nome é uma linha só que quebra) */
-        <textarea value={valor} onChange={(e) => aoMudar(e.target.value.replace(/\s*\n\s*/g, " "))} placeholder={dica} aria-label={rotulo} autoFocus={autoFocus}
+        <textarea value={valor} onChange={(e) => aoMudar(e.target.value.replace(/\s*\n\s*/g, " "))} placeholder={dica} aria-label={rotulo} autoFocus={autoFocus} title={cortado ? valor : undefined}
           onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }} spellCheck={false} autoComplete="off" rows={n} className="np4-campo"
           style={{ ...caixa, top: topo - folga, height: lh * n + 2 * folga, padding: `${folga}px 0`, whiteSpace: "pre-wrap", overflowWrap: "anywhere", overflow: "hidden", resize: "none" }} />
       ) : (
-        <input value={valor} onChange={(e) => aoMudar(e.target.value)} placeholder={dica} aria-label={rotulo} autoFocus={autoFocus} inputMode={inputMode}
+        <input ref={campoRef} value={valor} onChange={(e) => aoMudar(e.target.value)} placeholder={dica} aria-label={rotulo} autoFocus={autoFocus} inputMode={inputMode}
           onKeyDown={aoTeclar} spellCheck={false} autoComplete="off" className="np4-campo" style={caixa} />
       )}
     </>
@@ -453,6 +491,7 @@ export function NovoPedidoHub10({ profile, aoNavegar, onLogout, disponiveis, cad
 
   const [qtdCores, setQtdCores] = useState("");
   const [coresTexto, setCoresTexto] = useState("");
+  const coresRef = useRef<HTMLInputElement>(null);
   const [buscaPant, setBuscaPant] = useState("");
   /* a caixa de Pantone: aberta pela "Ver paleta de cores" (busca na tabela)
      ou pela "Cores de outros clientes" (as mais usadas nos pedidos) */
@@ -831,27 +870,40 @@ export function NovoPedidoHub10({ profile, aoNavegar, onLogout, disponiveis, cad
   }, [etapa]);
 
   /* ————— Pantone ————— */
+  /* As cores das artes aprovadas em TODO o hub, não só da carteira de quem
+     pede (Augusto, 07/10/2026: "mostra todas as cores aprovadas no hub"; a
+     vendedora nova via "nenhum pedido usou Pantone"). Vem só o texto das
+     cores, sem cliente. null = ainda carregando. */
+  const [coresAprovadas, setCoresAprovadas] = useState<string[] | null>(null);
+  useEffect(() => {
+    let vivo = true;
+    void import("@/lib/api/pantone.functions")
+      .then((m) => m.listCoresAprovadas())
+      .then((r) => { if (vivo) setCoresAprovadas(Array.isArray(r) ? (r as string[]) : []); })
+      .catch(() => { if (vivo) setCoresAprovadas([]); });
+    return () => { vivo = false; };
+  }, []);
   const usadosPorClientes = useMemo(() => {
     /* só Pantone de verdade: "Preto" e "Vermelho" não são cor da tabela e
        entravam na lista com a bolinha cinza */
     const codigos = new Map(PANTONE_SC.map((p) => [p.c.toLowerCase(), p.c]));
     const conta: Record<string, number> = {};
-    for (const p of pedidos) {
-      for (const c of separarCores(p.cores_desc)) {
+    for (const desc of coresAprovadas ?? []) {
+      for (const c of separarCores(desc)) {
         const cod = codigos.get(c.trim().replace(/^(pantone|p)\s+/i, "").toLowerCase());
         if (cod) conta[cod] = (conta[cod] ?? 0) + 1;
       }
     }
     const ordenados = Object.keys(conta).sort((a, b) => conta[b] - conta[a]);
     return (ordenados.length ? ordenados : PANTONE_PADRAO).slice(0, 12);
-  }, [pedidos]);
+  }, [coresAprovadas]);
   /* sem Pantone nos pedidos, a lista é a fixa: é sugestão, não "a mais usada"
      (a dica ao lado diz que a usada tem amostra na produção) */
   const usadosSaoDosPedidos = useMemo(() => {
     const codigos = new Set(PANTONE_SC.map((p) => p.c.toLowerCase()));
-    return pedidos.some((p) => separarCores(p.cores_desc)
+    return (coresAprovadas ?? []).some((desc) => separarCores(desc)
       .some((c) => codigos.has(c.trim().replace(/^(pantone|p)\s+/i, "").toLowerCase())));
-  }, [pedidos]);
+  }, [coresAprovadas]);
 
   const pantResultados = useMemo(() => {
     if (verUsados) return usadosPorClientes.map((c) => ({ c, h: hexPant(c) }));
@@ -1005,6 +1057,35 @@ export function NovoPedidoHub10({ profile, aoNavegar, onLogout, disponiveis, cad
   const avisoCores = qtdCores && coresLista.length && Number(qtdCores) !== coresLista.length
     ? `${qtdCores === "1" ? "1 cor marcada" : `${qtdCores} cores marcadas`} e ${coresLista.length} ${coresLista.length === 1 ? "listada" : "listadas"}. Confira.`
     : "";
+  /* Cor escrita errado ("preot"): a tela pergunta "Você quis dizer preto?" e
+     troca com um clique (Augusto, 08/10/2026: "conseguimos avisar o usuário
+     de erros de ortografia?"). Não é só grafia: as cores são separadas pelos
+     nomes, e "Laranja preot rosa" contava duas cores. Uma palavra por vez, a
+     primeira do campo; a conta está em lib/sugestao-de-cor.ts. */
+  const sugestaoCor = useMemo(() => sugestoesDeCor(coresTexto)[0] ?? null, [coresTexto]);
+  /* A faca e os porta-clichês (Augusto, 08/10/2026: "se uma máquina não tem
+     um porta-clichê de tamanho x e gravamos o clichê para ela, não dá para
+     rodar o pedido"): com o Z da faca (pastas "Facas por Z" da Relação) e as
+     cores já ditas, onde roda; nenhuma máquina, no marca-texto. A conta é a
+     de lib/porta-cliches.ts, a mesma da área dos porta-clichês em Facas. */
+  const { data: zsFacas } = useQuery<{ zs: Record<string, { z: number }> }>({
+    queryKey: ["facas-z"], queryFn: () => listZDasFacas() as Promise<{ zs: Record<string, { z: number }> }>, staleTime: 5 * 60_000,
+  });
+  const { data: portasCliche } = useQuery<PortaCliche[]>({
+    queryKey: ["porta-cliches"], queryFn: () => listPortaCliches() as Promise<PortaCliche[]>, staleTime: 60_000,
+  });
+  const zDaFaca = !facaNova && faca ? zsFacas?.zs?.[chaveDoZ(faca.cod)]?.z ?? null : null;
+  const avisoFaca = zDaFaca ? avisoDaFaca({ z: zDaFaca, cores: Number(qtdCores) || coresLista.length, verniz: !!acab["Verniz"] }, portasCliche ?? []) : null;
+  const trocarCor = (sug: SugestaoDeCor, opcao: string) => {
+    setCoresTexto(trocarPalavra(coresTexto, sug, opcao));
+    /* o foco volta ao campo, com o cursor logo depois da palavra trocada */
+    requestAnimationFrame(() => {
+      const el = coresRef.current;
+      if (!el) return;
+      el.focus();
+      el.setSelectionRange(sug.inicio + opcao.length, sug.inicio + opcao.length);
+    });
+  };
 
   const enviar = () => {
     /* ref e não estado: dois cliques no mesmo instante criavam dois pedidos */
@@ -1171,7 +1252,10 @@ export function NovoPedidoHub10({ profile, aoNavegar, onLogout, disponiveis, cad
         setLarguraExtra(txt("largura"));
       }
       setMateria(txt("materia")); setLargura(txt("larg_materia")); setCarreiras(txt("carreiras"));
-      setQtdCores(txt("cores")); setCoresTexto(txt("cores_desc"));
+      /* as cores da arte, quando a prova foi lida: repetir o pedido é
+         imprimir a mesma etiqueta (as pedidas podem ter mudado na arte) */
+      const daArte = separarCores(txt("cores_arte"));
+      setQtdCores(daArte.length ? String(daArte.length) : txt("cores")); setCoresTexto(daArte.length ? txt("cores_arte") : txt("cores_desc"));
       setAcab(ac);
       setHistoricoAberto(false);
       const n = p.numero != null ? numeroPedido(p.numero) : "anterior";
@@ -1314,7 +1398,7 @@ export function NovoPedidoHub10({ profile, aoNavegar, onLogout, disponiveis, cad
         </label>
       ) : (
         <div style={{ padding: "6px 8px 8px", fontFamily: INTER, fontSize: 13, fontWeight: 600, color: CINZA }}>
-          {!pedidosProntos ? "Carregando os pedidos…" : usadosSaoDosPedidos ? "As mais usadas nos pedidos" : "Sugestões: nenhum pedido usou Pantone ainda"}
+          {coresAprovadas === null ? "Carregando as cores aprovadas…" : usadosSaoDosPedidos ? "As mais usadas nas artes aprovadas do hub" : "Sugestões: nenhuma arte aprovada usou Pantone ainda"}
         </div>
       )}
       <div className="np4-rolagem" style={{ display: "flex", flexDirection: "column", gap: 2, maxHeight: 300, overflowY: "auto" }}>
@@ -1414,7 +1498,7 @@ export function NovoPedidoHub10({ profile, aoNavegar, onLogout, disponiveis, cad
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontFamily: INTER, fontSize: 13, color: CINZA }}>{[p.numero != null ? numeroPedido(p.numero) : "", data].filter(Boolean).join(" · ")}</div>
                           <div style={{ fontFamily: "Fraunces, serif", fontVariationSettings: "'SOFT' 100", fontWeight: 700, fontSize: 21, letterSpacing: "-.03em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.cliente || "Sem nome"}</div>
-                          <div style={{ fontFamily: INTER, fontSize: 14, color: CINZA, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{[medida, p.materia, p.cores_desc].filter(Boolean).join(" · ")}</div>
+                          <div style={{ fontFamily: INTER, fontSize: 14, color: CINZA, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{[medida, p.materia, coresEfetivas(p)].filter(Boolean).join(" · ")}</div>
                         </div>
                         <button onClick={() => pedirCopia(p)} disabled={!!copiando} className="np4-pilula"
                           aria-label={`Copiar o pedido ${p.numero != null ? numeroPedido(p.numero) : ""} de ${p.cliente || "sem nome"}`}
@@ -1459,7 +1543,9 @@ export function NovoPedidoHub10({ profile, aoNavegar, onLogout, disponiveis, cad
           {/* ——— etapa 1: briefing e anexos ——— */}
           {etapa === 0 && (
             <>
-              <CampoGrande valor={nome} aoMudar={setNome} dica="Nome do cliente" corpo={104} ls={-0.02} x={160} base={V4.baseCampo} largura={1120} linhas={2}
+              {/* o piso é o da revisão: no de 52 (a metade), nome de mais de uns 95
+                  caracteres ia para a 3ª linha, que some (simulação 6, 07/10/2026) */}
+              <CampoGrande valor={nome} aoMudar={setNome} dica="Nome do cliente" corpo={104} ls={-0.02} x={160} base={V4.baseCampo} largura={1120} linhas={2} minimo={28}
                 rotulo="Nome do cliente" falta={destacar("Nome do cliente")} autoFocus={!nome.trim()} />
               <div style={frEm("Boas práticas na solicitação", 24, 160, 588.66)}>Boas práticas na solicitação</div>
               <div style={{ ...interEm("D", 18, 160, 620.3, 30), width: 560, letterSpacing: "-.035em" }}>
@@ -1527,6 +1613,14 @@ export function NovoPedidoHub10({ profile, aoNavegar, onLogout, disponiveis, cad
                       ...FR, fontSize: 40, lineHeight: "52px", letterSpacing: "-.02em", color: PRETO, zIndex: 3 }} />
                 </>
               )}
+              {/* a faca escolhida e os porta-clichês, no vão entre as pílulas e
+                  o "Ver catálogo de facas" (na faca de uma medida só, o vão é
+                  da largura: o aviso fica para o Enviar p/ clicheria) */}
+              {!facaNova && !umLado && avisoFaca && (
+                <div role="status" data-aviso-faca style={{ ...interEm(avisoFaca.texto, 16, 160, 42 * LG, 22), width: 480, letterSpacing: "-.01em", color: avisoFaca.alerta ? PRETO : "#5b595b" }}>
+                  {avisoFaca.alerta ? <span className="np10-falta">{avisoFaca.texto}</span> : avisoFaca.texto}
+                </div>
+              )}
               <button onClick={() => setCatalogoAberto(true)} title="Abre o catálogo por cima do pedido" aria-haspopup="dialog" className="np4-opcao"
                 style={{ ...BOTAO_LIMPO, ...frEm("Ver catálogo de facas", 32, 160, 47 * LG), zIndex: 3 }}>Ver catálogo de facas</button>
               {/* Faca nova: a medida não está no catálogo. O campo grande vira a
@@ -1591,7 +1685,7 @@ export function NovoPedidoHub10({ profile, aoNavegar, onLogout, disponiveis, cad
           {etapa === 2 && (
             <>
               <CampoGrande valor={coresTexto} aoMudar={setCoresTexto} dica="Laranja, preto, rosa" corpo={72} ls={-0.02} x={160} base={V4.baseCampo} largura={1080}
-                rotulo="Cores" falta={destacar("Cores")} />
+                rotulo="Cores" falta={destacar("Cores")} campoRef={coresRef} marcar={sugestaoCor} />
               {/* quantas cores: os círculos do desenho, de 01 a 07; o escolhido acende */}
               {QTD_CORES.map((q, i) => {
                 const on = qtdCores === String(q);
@@ -1607,7 +1701,26 @@ export function NovoPedidoHub10({ profile, aoNavegar, onLogout, disponiveis, cad
                   </button>
                 );
               })}
-              {avisoCores && <div style={{ ...interEm(avisoCores, 16, 160, 456, 20), color: "#5b595b", whiteSpace: "nowrap" }}>{avisoCores}</div>}
+              {/* embaixo dos círculos: a sugestão de grafia e o aviso da conta;
+                  com os dois, a sugestão em cima (trocar a palavra costuma
+                  desfazer o aviso) e os dois centrados no vão */}
+              <div role="status" aria-live="polite" style={{ ...interEm("Você", 16, 160, avisoCores ? 446 : 456, 20), color: "#5b595b", whiteSpace: "nowrap", zIndex: 4 }}>
+                {sugestaoCor && (
+                  <>
+                    Você quis dizer{" "}
+                    {sugestaoCor.opcoes.map((op, i) => (
+                      <span key={op}>
+                        {i > 0 && " ou "}
+                        <button type="button" onClick={() => trocarCor(sugestaoCor, op)} className="np10-falta np4-opcao" title={`Trocar “${sugestaoCor.palavra}” por “${op}”`}
+                          aria-label={`Trocar ${sugestaoCor.palavra} por ${op}`}
+                          style={{ border: "none", cursor: "pointer", font: "inherit", fontWeight: 600, color: PRETO }}>{op}</button>
+                      </span>
+                    ))}
+                    ?
+                  </>
+                )}
+              </div>
+              {avisoCores && <div style={{ ...interEm(avisoCores, 16, 160, sugestaoCor ? 470 : 456, 20), color: "#5b595b", whiteSpace: "nowrap" }}>{avisoCores}</div>}
               <button data-pop onClick={() => setPantPop((v) => (v === "paleta" ? null : "paleta"))} aria-expanded={pantPop === "paleta"} className="np4-opcao"
                 style={{ ...BOTAO_LIMPO, ...frEm("Ver paleta de cores", 32, 160, 32 * LG), zIndex: 3 }}>Ver paleta de cores</button>
               <button data-pop onClick={() => setPantPop((v) => (v === "outros" ? null : "outros"))} aria-expanded={pantPop === "outros"} className="np4-opcao"
@@ -1662,7 +1775,7 @@ export function NovoPedidoHub10({ profile, aoNavegar, onLogout, disponiveis, cad
           {etapa === 3 && (
             <>
               <CampoGrande valor={nome} aoMudar={setNome} dica="Nome do cliente" corpo={104} ls={-0.02} x={160} base={V4.baseCampo} largura={1120} minimo={28}
-                rotulo="Nome do cliente" falta={destacar("Nome do cliente")} />
+                linhas={2} encolherAntes rotulo="Nome do cliente" falta={destacar("Nome do cliente")} />
 
               {/* cada bloco leva à etapa dele; o que falta diz "Falta", com o marca-texto */}
               <div style={frEm("Briefing", 32, 160, 24 * LG)}>Briefing</div>

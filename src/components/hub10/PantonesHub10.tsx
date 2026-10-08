@@ -41,6 +41,7 @@ import { colherBusca, espiarBusca, semearBusca } from "@/lib/busca-semente";
 import { hasPerm } from "@/lib/session";
 import type { SessionUser } from "@/lib/session";
 import { PALETA } from "@/lib/paleta-hub";
+import { coresEfetivas } from "@/lib/cores";
 
 /* ————— medidas e tintas (as de Ferramentais, copiadas — ela está finalizada) ————— */
 const CINZA = "#8f8f8f";
@@ -482,7 +483,8 @@ export function PantonesHub10({ profile, pedidos, pedidosProntos = true, aoNaveg
       const st = String(p?.status ?? "");
       if (!APROVADOS.has(st)) continue;
       const numero = String(p?.numero ?? ""), cliente = String(p?.cliente ?? ""), id = String(p?.id ?? "");
-      for (const peca of String(p?.cores_desc ?? "").split(/[+,;/\n]/)) {
+      /* as da arte quando a prova foi lida; senão as pedidas */
+      for (const peca of coresEfetivas(p).split(/[+,;/\n]/)) {
         let s = peca.trim().toUpperCase().replace(/\s+/g, " ");
         if (!s) continue;
         s = s.replace(/^PANTONE\s*/, "").replace(/^P\s+/, "").replace(/^P(?=\d)/, "").replace(/(\d)C$/, "$1 C");

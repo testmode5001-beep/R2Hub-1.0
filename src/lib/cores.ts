@@ -22,6 +22,11 @@ const COMPOSTAS = new Set([
   "azul petroleo", "verde oliva", "rosa salmao", "laranja coral", "cinza grafite", "marrom chocolate",
 ]);
 
+/* as mesmas listas, só leitura, para a sugestão de grafia do campo de cores
+   (lib/sugestao-de-cor.ts) */
+export const CORES_BASE: ReadonlySet<string> = BASE;
+export const CORES_COMPOSTAS: ReadonlySet<string> = COMPOSTAS;
+
 const semAcento = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 const ehPantone = (palavra: string) => /^(p|pantone)$/i.test(palavra) || /^\d{2,4}[a-z]{0,2}$/i.test(palavra);
 const ehFimDePantone = (palavra: string) => /^(c|u|cp|up|m|tpx|tcx)$/i.test(palavra);
@@ -69,4 +74,38 @@ export function separarCores(texto: string | null | undefined): string[] {
     .filter(Boolean)
     .flatMap(separarPedaco)
     .map((c) => c.charAt(0).toUpperCase() + c.slice(1));
+}
+
+/* As duas listas do pedido. Desde 07/10/2026 o pedido guarda as cores que a vendedora pediu
+   (cores_desc) e, ao lado, as da arte, lidas da prova no Design criado
+   (cores_arte). Antes a prova gravava por cima do pedido: no que veio antes,
+   cores_desc já são as da arte. */
+type ComCores = { cores?: unknown; cores_desc?: unknown; cores_arte?: unknown } | null | undefined;
+
+/** As cores que a etiqueta tem: as da arte quando a prova foi lida; senão as pedidas. */
+export function coresEfetivas(p: ComCores): string {
+  const daArte = String(p?.cores_arte ?? "").trim();
+  return daArte || String(p?.cores_desc ?? "").trim();
+}
+
+/** Quantas cores: as da arte quando houver; senão o número que a vendedora escreveu. */
+export function numeroDeCores(p: ComCores): string {
+  const daArte = separarCores(String(p?.cores_arte ?? "")).length;
+  return daArte ? String(daArte) : String(p?.cores ?? "").trim();
+}
+
+/* "P 485 C", "Pantone 485 C" e "485C" são a mesma cor (o "C" e o "U" do fim
+   são o papel, não a tinta); "Preta" e "Preto" também */
+function chaveDaCor(cor: string): string {
+  const k = semAcento(cor).trim().replace(/\b(pret|branc|amarel|vermelh|rox|dourad)a\b/g, "$1o");
+  const semPrefixo = k.replace(/^(?:pantone\s*|p\s+|p(?=\d))/, "");
+  if (semPrefixo !== k || /^\d/.test(k)) return "p:" + semPrefixo.replace(/\s*(cp|up|c|u)$/, "").replace(/[^a-z0-9]/g, "");
+  return k.replace(/[^a-z0-9]/g, "");
+}
+
+/** As duas listas têm as mesmas cores, sem contar a ordem nem a grafia? */
+export function mesmasCores(a: string | null | undefined, b: string | null | undefined): boolean {
+  const ka = new Set(separarCores(a).map(chaveDaCor));
+  const kb = new Set(separarCores(b).map(chaveDaCor));
+  return ka.size === kb.size && [...ka].every((k) => kb.has(k));
 }

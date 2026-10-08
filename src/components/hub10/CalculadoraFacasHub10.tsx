@@ -283,6 +283,28 @@ export function CalculadoraFacasHub10({ aoFechar, podeGabarito = false }: {
 
   const Y = num(largura), X = num(altura);
   const completa = Y > 0 && X > 0;
+  /* Que campo está com o foco: a frase do zero só aparece quando a pessoa
+     sai do campo (quem digita "0,5" passa pelo "0"), como na aba de
+     substrato. Começa na largura, que abre com o foco. */
+  const [emFoco, setEmFoco] = useState<null | "largura" | "altura">("largura");
+  useEffect(() => {
+    const pares = [["largura", campoLargura.current], ["altura", campoAltura.current]] as const;
+    const tirar: (() => void)[] = [];
+    for (const [nome, el] of pares) {
+      if (!el) continue;
+      const entra = () => setEmFoco(nome);
+      const sai = () => setEmFoco((atual) => (atual === nome ? null : atual));
+      el.addEventListener("focus", entra);
+      el.addEventListener("blur", sai);
+      tirar.push(() => { el.removeEventListener("focus", entra); el.removeEventListener("blur", sai); });
+    }
+    return () => tirar.forEach((f) => f());
+  }, []);
+  /* Largura ou altura digitada como zero: a conta não roda e o valor ficava
+     no "R$ 000,00" fantasma, sem dizer por quê (simulação 6, 07/10/2026).
+     Com o campo vazio, o fantasma continua sozinho. */
+  const larguraZero = largura !== "" && !(Y > 0) && emFoco !== "largura";
+  const alturaZero = altura !== "" && !(X > 0) && emFoco !== "altura";
   /* Perda apagada, mínima acima da máxima ou 0 a 0 com a faca padrão (0 a 0
      é como a conta antiga liga o modo gap, e a tela mostraria o gap como se
      fosse esqueleto): não calcula, diz o que é. */
@@ -342,7 +364,10 @@ export function CalculadoraFacasHub10({ aoFechar, podeGabarito = false }: {
     return { altura, z: conferida.Z };
   }, [semPortaCliche, valoresDaConta, maquina, gap]);
   /* no lugar do valor, quando não há valor: o que a conta diz */
-  const mensagem = !completa ? "" : perdaInvalida
+  const mensagem = larguraZero && alturaZero ? "A largura e a altura precisam ser maiores que zero."
+    : larguraZero ? "A largura precisa ser maior que zero.\nDigite a largura da etiqueta, em mm."
+    : alturaZero ? "A altura precisa ser maior que zero.\nDigite a altura da etiqueta, em mm."
+    : !completa ? "" : perdaInvalida
     ? (!perdaMin || !perdaMax ? "Falta a perda mínima ou a máxima.\nConfira a perda nas configurações."
       : !(num(perdaMax) > 0) ? "Com perda zero, a faca é de gap.\nEscolha Gap em Faca, nas configurações."
       : "A perda mínima passa da máxima.\nConfira a perda nas configurações.")

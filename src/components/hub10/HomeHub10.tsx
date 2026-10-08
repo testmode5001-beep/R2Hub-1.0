@@ -30,8 +30,8 @@ import {
 import { baseFraunces, baseInter, folgaDireitaInter, folgaFR } from "./grade-hub10";
 import { feriadoEm } from "@/lib/feriados";
 import { prazoDoPedido } from "@/lib/prazo";
-import type { SessionUser } from "@/lib/session";
-import { GRUPOS_DE_TELAS, TELA_GERAL } from "@/lib/telas-do-hub";
+import { hasPerm, type SessionUser } from "@/lib/session";
+import { TELA_GERAL, telasQueAPessoaAbre } from "@/lib/telas-do-hub";
 import { PALETA } from "@/lib/paleta-hub";
 import { getMeuResumo } from "@/lib/api/resumo.functions";
 import { listTutoriais } from "@/lib/api/tutoriais.functions";
@@ -289,6 +289,8 @@ export function HomeHub10({ profile, pedidos, aoNavegar, onNova, onLogout, dispo
   const [sugEnviada, setSugEnviada] = useState(false);
   const [sugTexto, setSugTexto] = useState("");
   const [sugTela, setSugTela] = useState(TELA_GERAL);
+  /* "Sobre qual tela?" só oferece as telas que a pessoa abre */
+  const gruposDeTelas = useMemo(() => telasQueAPessoaAbre(disponiveis, (p) => hasPerm(profile, p)), [disponiveis, profile]);
   useEffect(() => { if (aberta === "sugestoes") setSugEnviada(false); }, [aberta]);
   const enviarSug = () => {
     const t = sugTexto.trim();
@@ -318,6 +320,16 @@ export function HomeHub10({ profile, pedidos, aoNavegar, onNova, onLogout, dispo
   });
   const [tutSel, setTutSel] = useState<TutAberto | null>(null);
   useEffect(() => { if (aberta !== "tutoriais") setTutSel(null); }, [aberta]);
+  /* O player nasce no alto da lista: trocando de vídeo com a lista rolada (o
+     07 depois do 06), ele ficava fora da vista, só os controles aparecendo.
+     A lista volta ao alto e o player fica inteiro à vista (simulação 6,
+     07/10/2026). */
+  const playerNaCamada = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const rolo = playerNaCamada.current?.closest<HTMLElement>(".p10-rola");
+    if (!rolo || rolo.scrollTop <= 0) return;
+    rolo.scrollTo({ top: 0, behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  }, [tutSel?.tut.arquivo]);
   /* O vídeo no lugar do papel de parede (Augusto, 06/10/2026: "a opção de o
      vídeo ficar na área onde o papel de parede fica"; depois, no lugar do texto,
      "o ícone de aumentar tela no player do vídeo, como o YouTube faz"): o ícone
@@ -471,7 +483,7 @@ export function HomeHub10({ profile, pedidos, aoNavegar, onNova, onLogout, dispo
                 const anot = d.key ? (porDia[d.key]?.length ?? 0) : 0;
                 return (
                   <button key={i} type="button" disabled={!d.key} onClick={() => { if (d.key) { setDiaSel(d.key); setRascunhoDia(""); } }} title={d.feriado || undefined}
-                    aria-label={d.key ? `${d.txt} de ${MESES[vMes].toLowerCase()}${d.feriado ? `, ${d.feriado}` : ""}${entregas ? `, ${entregas} entrega(s)` : ""}${anot ? `, ${anot} anotação(ões)` : ""}` : undefined}
+                    aria-label={d.key ? `${d.txt} de ${MESES[vMes].toLowerCase()}${d.feriado ? `, ${d.feriado}` : ""}${entregas ? `, ${entregas} ${entregas === 1 ? "entrega" : "entregas"}` : ""}${anot ? `, ${anot} ${anot === 1 ? "anotação" : "anotações"}` : ""}` : undefined}
                     style={{ position: "relative", display: "grid", placeItems: "center", background: "none", border: "none", padding: 0, cursor: d.key ? "pointer" : "default" }}>
                     {d.key && (
                       <span style={{ width: 38, height: 38, borderRadius: 999, display: "grid", placeItems: "center", fontFamily: INTER, fontSize: 16, fontWeight: d.hoje || d.feriado || sel ? 700 : 400,
@@ -569,7 +581,7 @@ export function HomeHub10({ profile, pedidos, aoNavegar, onNova, onLogout, dispo
               <select value={sugTela} onChange={(e) => setSugTela(e.target.value)}
                 style={{ ...AREA_TEXTO, height: 46, padding: "0 42px 0 14px", fontSize: 16, appearance: "none", WebkitAppearance: "none", cursor: "pointer" }}>
                 <option value={TELA_GERAL}>{TELA_GERAL}</option>
-                {GRUPOS_DE_TELAS.map((g) => (
+                {gruposDeTelas.map((g) => (
                   <optgroup key={g.grupo} label={g.grupo}>
                     {g.telas.map((t) => <option key={t} value={t}>{t}</option>)}
                   </optgroup>
@@ -593,7 +605,7 @@ export function HomeHub10({ profile, pedidos, aoNavegar, onNova, onLogout, dispo
       {aberta === "tutoriais" && camada("tutoriais", "Tutoriais", (
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           {tutSel && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <div ref={playerNaCamada} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               <PlayerTutorial key={tutSel.tut.arquivo} aberto={tutSel} grande={false}
                 aoTrocarTamanho={(t, tocando) => aumentar(tutSel.tut, t, tocando)} estilo={{ width: "100%", aspectRatio: "16 / 9" }} />
               <span style={{ ...FR, fontSize: 22, lineHeight: "26px", letterSpacing: "-.02em" }}>{tutSel.tut.titulo}</span>

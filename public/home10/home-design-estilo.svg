@@ -151,7 +151,7 @@
             </g>
           </g>
           <rect x="872.7" y="382" width="19.9" height="3.5" transform="translate(-69.4 524.8) rotate(-31.9)" />
-          <rect x="936" y="484.4" width="17.3" height="2.7" transform="translate(-115.2 556.8) rotate(-31)" fill="#FFCE22" />
+          <rect x="936" y="484.4" width="17.3" height="2.7" transform="translate(-115.2 556.8) rotate(-31)" fill="#A56EFF" />
           <rect x="929.9" y="413.5" width="19.9" height="3.5" transform="translate(-77.4 559.8) rotate(-31.9)" />
         </g>
         <g>
@@ -1008,9 +1008,9 @@
             <path d="M1660.1,290.1l-26.8-4.3-127.7-67.7,40.9-26.4,117.7,68c5.9,3.4,11.6,8.8,16.3,15.7l1.2,1.8-21.8,12.9ZM1634.9,282.1l24.4,3.9,16.8-10c-4.1-5.6-8.9-10-13.8-12.8l-115.6-66.8-33.1,21.4,121.4,64.4Z" />
           </g>
           <path d="M1669.5,308.8s-48.8,11.5-52,12.7c-2.6,1-50.4,39.6-66.8,57.6,3.3,17,5.5,28.6,5.6,28.7l18.1,42.7,16.3-9.4c1.1-.6,1.5-1.9,1.1-3l-2.5-7,23.4-13.7c-.8-4.1-24.9,5-25.1.4l75.7,44.4,18.5-11.9c.2-.1.4-.2.6-.4h0c4.5-2.8,7.2-8.5,7.2-16.6v-126.2c0-3.1-.4-6.3-1.2-9.6l-19.1,11.4Z" />
-          <rect x="1675.9" y="318.5" width="10.7" height="4" transform="translate(88.5 946.9) rotate(-32.3)" fill="#FFCE22" />
-          <rect x="1675.9" y="435.1" width="10.7" height="4" transform="translate(26.2 964.9) rotate(-32.3)" fill="#FFCE22" />
-          <rect x="1576.3" y="433.3" width="10.7" height="4" transform="translate(11.8 911.5) rotate(-32.3)" fill="#FFCE22" />
+          <rect x="1675.9" y="318.5" width="10.7" height="4" transform="translate(88.5 946.9) rotate(-32.3)" fill="#A56EFF" />
+          <rect x="1675.9" y="435.1" width="10.7" height="4" transform="translate(26.2 964.9) rotate(-32.3)" fill="#A56EFF" />
+          <rect x="1576.3" y="433.3" width="10.7" height="4" transform="translate(11.8 911.5) rotate(-32.3)" fill="#A56EFF" />
         </g>
         <g>
           <path d="M1644.7,273.7l-120.8-69.7c-14.4-8.3-26.1-1.6-26.1,15.1v126.5c0,16.6,11.7,36.8,26.1,45.2l13.8,7.9c2.5,1.4,4.6,4.7,5.1,7.8,1.5,9.3,6.9,29.3,26.5,43.9,3.8,2.8,6.9.4,5.7-4.5-1.4-5.9-2.8-13.8-2.8-21.2,0-3.3,2.4-4.6,5.2-3l67.3,38.8c14.4,8.3,26.1,1.6,26.1-15.1v-126.5c0-16.6-11.7-36.8-26.1-45.2Z" fill="#A56EFF" />
@@ -1327,7 +1327,7 @@
           </g>
         </g>
         <rect x="1543.2" y="673.8" width="16" height="3.5" transform="translate(-122.6 922.4) rotate(-31.9)" />
-        <rect x="1594.1" y="756.4" width="14" height="2.7" transform="translate(-161.5 933.6) rotate(-31)" fill="#FFCE22" />
+        <rect x="1594.1" y="756.4" width="14" height="2.7" transform="translate(-161.5 933.6) rotate(-31)" fill="#A56EFF" />
         <rect x="1585.5" y="697.5" width="16" height="3.5" transform="translate(-128.8 948.3) rotate(-31.9)" />
       </g>
       <g>

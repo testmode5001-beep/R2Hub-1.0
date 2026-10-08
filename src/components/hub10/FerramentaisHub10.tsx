@@ -38,6 +38,9 @@ import {
 import { CAPA_V4, CartaoV4, DENTRO_V4, ResumoDoPeV4, RotuloV4, TituloV4, TrilhaV4, tituloDoPeV4 } from "./CapaV4Hub10";
 import type { SessionUser } from "@/lib/session";
 import { PALETA } from "@/lib/paleta-hub";
+import { listPortaCliches } from "@/lib/api/porta-cliches.functions";
+import type { PortaCliche } from "@/lib/porta-cliches";
+import { PortaClichesHub10 } from "./PortaClichesHub10";
 
 const CINZA = "#8f8f8f";
 
@@ -155,6 +158,21 @@ const MARCA: CSSProperties = { position: "absolute", left: 76, top: 58, fontSize
    dos cartões das Calculadoras */
 const TITULO_CARTAO: CSSProperties = { position: "absolute", left: 76, top: 111, width: 384, ...FR, fontSize: 80, lineHeight: "80px", letterSpacing: "-.04em" };
 
+/* O porta-clichê deitado, para o card da área (08/10/2026): o cilindro com a
+   face da ponta, o eixo dos dois lados e as divisas da fita, em linha preta
+   sobre o branco, como os desenhos das famílias. */
+function IlustracaoPortaCliche() {
+  return (
+    <svg viewBox="0 0 340 170" width={340} height={170} fill="none" stroke={PRETO} strokeWidth={5} strokeLinejoin="round" style={{ display: "block" }}>
+      <rect x="8" y="72" width="52" height="26" rx="6" fill="#fff" />
+      <rect x="282" y="72" width="50" height="26" rx="6" fill="#fff" />
+      <path d="M58 30 L282 30 L282 140 L58 140 A22 55 0 0 1 58 30 Z" fill="#fff" />
+      <ellipse cx="282" cy="85" rx="22" ry="55" fill="#fff" />
+      <path d="M120 30 V140 M196 30 V140" strokeWidth={3} />
+    </svg>
+  );
+}
+
 function Ilustracao({ sistema }: { sistema: string }) {
   const src = ILUSTRACAO[sistema];
   return src ? <img src={src} alt="" width={ICONE_L} height={ICONE_A} draggable={false} style={{ display: "block" }} /> : null;
@@ -228,6 +246,15 @@ export function FerramentaisHub10({ profile, aoNavegar, onNova, onLogout, dispon
     staleTime: 5 * 60_000,
   });
   const zs: Record<string, ZArquivado> = zRaw?.zs ?? {};
+  /* Os porta-clichês de cada máquina: o card no fim da trilha e a área que ele
+     abre (Augusto, 08/10/2026: "vamos criar em um card em facas com os portas") */
+  const { data: portas, isLoading: portasLendo, isError: portasFalhou } = useQuery<PortaCliche[]>({
+    queryKey: ["porta-cliches"],
+    queryFn: () => listPortaCliches() as Promise<PortaCliche[]>,
+    staleTime: 60_000,
+  });
+  const totalPortas = (portas ?? []).reduce((soma, x) => soma + (x.quantidade || 0), 0);
+  const [portasAbertas, setPortasAbertas] = useState(false);
 
   const porSistema = useMemo(() => {
     const m = new Map<string, Faca[]>();
@@ -372,7 +399,7 @@ export function FerramentaisHub10({ profile, aoNavegar, onNova, onLogout, dispon
       <div aria-hidden style={{ position: "absolute", left: 0, top: 0, width: 1920, height: 1080, background: FUNDO_PAGINA, zIndex: 0 }} />
 
       {/* ————— as oito famílias ————— */}
-      <TrilhaV4 quantos={FAMILIAS.length} rotulo="Famílias de facas">
+      <TrilhaV4 quantos={FAMILIAS.length + 1} rotulo="Famílias de facas e porta-clichês">
         {FAMILIAS.map((f, i) => {
           const n = porSistema.get(f.sistema)?.length ?? 0;
           const quantas = `${n} ${n === 1 ? "faca" : "facas"}`;
@@ -398,6 +425,22 @@ export function FerramentaisHub10({ profile, aoNavegar, onNova, onLogout, dispon
             </CartaoV4>
           );
         })}
+        {/* o card dos porta-clichês, depois das famílias, no amarelo: não é
+            uma família de faca, é o que roda com ela */}
+        <CartaoV4 key="porta-cliches" indice={FAMILIAS.length} cor={PALETA.amarelo} aoAbrir={() => setPortasAbertas(true)}
+          rotulo={`Porta-clichês, ${portasLendo ? "lendo os porta-clichês" : `${totalPortas} porta-clichês em quatro máquinas`}`}>
+          <RotuloV4 texto={portasLendo ? "—" : `${totalPortas} porta-clichês`} />
+          <TituloV4 linhas={["Porta-", "clichês"]} />
+          <div aria-hidden style={{ position: "absolute", left: CAPA_V4.cartao / 2 - 170, top: MEIO_DO_ICONE_V4 - 85, width: 340, height: 170, pointerEvents: "none" }}>
+            <IlustracaoPortaCliche />
+          </div>
+          <span aria-hidden className="pn10-seta" style={{ position: "absolute", left: DENTRO_V4.descX, top: CAPA_V4.altura - 46 - 44, width: 44, height: 44, boxSizing: "border-box",
+            border: `1.5px solid ${PRETO}`, borderRadius: 999, display: "grid", placeItems: "center", ["--tinta" as string]: PRETO, ["--faixa" as string]: PALETA.amarelo } as CSSProperties}>
+            <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+              <line x1="7" y1="17" x2="17" y2="7" /><polyline points="8 7 17 7 17 16" />
+            </svg>
+          </span>
+        </CartaoV4>
       </TrilhaV4>
 
       {/* ————— o pé (v4): o título na c1, a ação em pílula 44 depois dele e
@@ -432,6 +475,11 @@ export function FerramentaisHub10({ profile, aoNavegar, onNova, onLogout, dispon
           contagem={Object.fromEntries(FAMILIAS.map((f) => [f.sistema, porSistema.get(f.sistema)?.length ?? 0]))}
           aoTrocarFamilia={setAberta}
           busca={busca} setBusca={setBusca} fechar={fecharPainel} aoAmpliar={abrirDesenho} aoComparar={abrirComparando} />
+      )}
+
+      {/* a área dos porta-clichês */}
+      {portasAbertas && (
+        <PortaClichesHub10 portas={portas ?? []} lendo={portasLendo} falhou={portasFalhou} fechar={() => setPortasAbertas(false)} />
       )}
 
       {desenhoAberto && (
@@ -1381,6 +1429,41 @@ function PainelFamilia({ familia, indice, facas, todas, zs, contagem, aoTrocarFa
       .map((fa) => ({ familia: fa, n: todas.filter((f) => f.sistema === fa.sistema && casaBusca(f)).length }))
       .filter((x) => x.n > 0)
     : [];
+  /* A exata em outra família quando esta não tem a exata, só as parecidas:
+     em Retangular, "60x40" mostrava 59,5×40 e 38,66×60 e calava a 40×60 de
+     Tags, que a Solicitação oferece em 1º lugar (simulação 6, 07/10/2026).
+     Exata é o número igual, reto ou deitado, sem apelido: a 59,5 é o "60" da
+     fábrica, mas não é 60. O recado fica na 1ª casa da lista. */
+  const ladosDaBusca = medidaIgual ? medidaDigitada.split("x").map(Number) : null;
+  const exataDaBusca = (f: Faca): null | "reta" | "deitada" => {
+    if (!ladosDaBusca) return null;
+    const n = MEDIDAS(f.medida);
+    if (n.length < 2) return null;
+    const [l, a] = ladosDaBusca;
+    const igual = (x: number, y: number) => Math.abs(x - y) < 1e-6;
+    if (igual(n[0], l) && igual(n[1], a)) return "reta";
+    return igual(n[0], a) && igual(n[1], l) ? "deitada" : null;
+  };
+  const exatasFora = ladosDaBusca && achadas.length > 0 && !facas.some((f) => exataDaBusca(f))
+    ? FAMILIAS.filter((fa) => fa.sistema !== familia.sistema)
+      .map((fa) => {
+        const tipos = todas.filter((f) => f.sistema === fa.sistema).map(exataDaBusca).filter(Boolean);
+        return { familia: fa, n: tipos.length, deitadas: tipos.filter((t) => t === "deitada").length };
+      })
+      .filter((x) => x.n > 0)
+    : [];
+  /* todas as exatas de fora são deitadas: o recado diz, como a lista diz "deitada" */
+  const exatasForaDeitadas = exatasFora.length > 0 && exatasFora.every((x) => x.deitadas === x.n);
+  /* com o recado, a lista começa na 2ª casa (as linhas continuam na grade) */
+  const topoDaLista = LV_FIL_TOPO + (exatasFora.length ? LV_LINHA : 0);
+  /* O vazio no painel Filtros diz de onde ele vem e o que fazer: sem filtro
+     marcado, "Nenhuma faca com esses filtros" culpava filtros que não
+     existiam, e o vazio era da pesquisa (simulação 6, 07/10/2026). */
+  const vazioDosFiltros = quantosFiltros > 0 ? "Nenhuma faca com esses filtros"
+    : busca.trim()
+      ? (secao ? "Nenhuma faca com essa pesquisa neste recorte. Apague a pesquisa ou tire o recorte." : "Nenhuma faca com essa pesquisa. Apague a pesquisa para ver todas.")
+      : secao ? "Nenhuma faca neste recorte. Clique nele de novo para ver todas."
+        : "Nenhuma faca nesta família.";
 
   /* Mudou a medida pedida: a lista volta ao topo e a ficha abre a mais
      próxima — a escolha anterior era para outra pergunta. */
@@ -1596,10 +1679,32 @@ function PainelFamilia({ familia, indice, facas, todas, zs, contagem, aoTrocarFa
       {/* A lista: oito medidas entre os dois filetes, cada linha com o filete
           embaixo, que sai da divisa. A rolagem encaixa linha a linha, para as
           medidas nunca ficarem cortadas contra as faixas. */}
+      {/* A exata que está em outra família, quando esta só tem as parecidas:
+          na 1ª das oito casas, fora da lista de opções (é recado, não faca),
+          com o filete das linhas embaixo. Até duas linhas de Inter 20, a 1ª
+          base na linha 18 e a 2ª na 20 (a das medidas). */}
+      {exatasFora.length > 0 && (
+        <div style={{ position: "absolute", left: LV_DIVISA + 1, top: LV_FIL_TOPO, width: 1920 - LV_DIVISA - 1, height: LV_LINHA, boxSizing: "border-box", borderBottom: `1px solid ${LV_FILETE}` }}>
+          <div style={{ position: "absolute", left: LV_TEXTO_DIR - LV_DIVISA - 1 - folgaInter(400, 20, "A"), right: 80, top: 3 * LINHA_DA_GRADE - baseInter(20, 2 * LINHA_DA_GRADE),
+            maxHeight: 4 * LINHA_DA_GRADE, overflow: "hidden", fontSize: 20, lineHeight: `${2 * LINHA_DA_GRADE}px`, color: CINZA }}>
+            {exatasForaDeitadas ? "A medida exata, deitada, está em " : "A medida exata está em "}
+            {exatasFora.map(({ familia: fa, n }, i) => (
+              <span key={fa.sistema}>
+                {i > 0 && (i === exatasFora.length - 1 ? " e " : ", ")}
+                <button onClick={() => { setSecao(null); limparFiltros(); aoTrocarFamilia(fa.sistema); }} className="p10-flat"
+                  title={`Abrir ${fa.nome} com a pesquisa “${busca.trim()}”`}
+                  style={{ padding: 0, border: "none", background: "none", cursor: "pointer", fontFamily: INTER, fontSize: 20, fontWeight: 600, color: PRETO,
+                    textDecoration: "underline", textUnderlineOffset: 4 }}>{fa.nome}{n > 1 ? ` (${n})` : ""}</button>
+              </span>
+            ))}
+            .
+          </div>
+        </div>
+      )}
       {/* lista vazia não é lista de opções: o recado de vazio leva botões (a família em que a faca está) */}
       <div ref={lista} className="fer10-lista" role={achadas.length ? "listbox" : undefined} aria-label={`Facas de ${familia.nome}`}
         onKeyDown={teclaLista} onMouseLeave={pararDePassar}
-        style={{ position: "absolute", left: LV_DIVISA + 1, top: LV_FIL_TOPO, width: 1920 - LV_DIVISA - 1, height: LV_FIL_PE - LV_FIL_TOPO,
+        style={{ position: "absolute", left: LV_DIVISA + 1, top: topoDaLista, width: 1920 - LV_DIVISA - 1, height: LV_FIL_PE - topoDaLista,
           overflowY: "auto", overflowX: "hidden", scrollSnapType: "y mandatory" }}>
         {achadas.length === 0 ? (
           <div style={{ padding: `20px 0 0 ${LV_TEXTO_DIR - LV_DIVISA - 1 - folgaInter(400, 20, "N")}px`, fontSize: 20, color: CINZA }}>
@@ -1787,7 +1892,7 @@ function PainelFamilia({ familia, indice, facas, todas, zs, contagem, aoTrocarFa
             <div style={{ marginTop: 22, paddingTop: 15, borderTop: "1px solid rgba(0,0,0,.12)", display: "flex", alignItems: "center", gap: 14 }}>
               <span style={{ flex: 1, fontSize: 15, color: achadas.length ? CINZA : PALETA.perigo }}>
                 {!achadas.length
-                  ? "Nenhuma faca com esses filtros"
+                  ? vazioDosFiltros
                   : foraDaTolerancia
                     ? `Nenhuma até ±${tolerancia} mm · mostrando as ${achadas.length} mais perto`
                     : alvo

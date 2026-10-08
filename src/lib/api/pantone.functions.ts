@@ -8,11 +8,12 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireAuth, type AuthContext } from "./auth-middleware";
-import { getSetting, setSetting } from "@/server/db.server";
+import { getDb, getSetting, setSetting } from "@/server/db.server";
 import { requirePerm } from "@/server/auth.server";
 import { audit } from "@/server/audit.server";
 import { guardarLivroEnviado, lerLivroEnviado, lerLivroPantone, type CorPantone, type LivroPantone } from "@/server/pantone-acb.server";
 import { PANTONE_SC } from "@/components/v1a/dados/pantone";
+import { coresEfetivas } from "@/lib/cores";
 
 const CHAVE = "pantone.extras";
 
@@ -34,7 +35,24 @@ function lerGuardado(): Guardado {
   }
 }
 
-/** As cores extras já aplicadas — a tela junta com a tabela embutida. */
+/** As cores das artes aprovadas em todo o hub, para a "Cores de outros
+    clientes" da Solicitação (Augusto, 07/10/2026: "mostra todas as cores
+    aprovadas no hub"; a vendedora só via as da carteira dela, e a nova não
+    via nenhuma). Só o texto das cores de cada pedido, sem cliente nem número:
+    nenhuma carteira aparece. As da arte quando a prova foi lida; senão as
+    pedidas. Aprovado é a regra da tela Pantones (o pedido em Aprovado,
+    Clicheria, Refazer clichê ou Finalizado). */
+export const listCoresAprovadas = createServerFn({ method: "POST" })
+  .middleware([requireAuth])
+  .handler(async () => {
+    const linhas = getDb()
+      .prepare(`SELECT cores_desc, cores_arte FROM pedidos
+                WHERE status IN ('aprovada', 'cliche', 'refazer_cliche', 'concluido')`)
+      .all() as { cores_desc: string | null; cores_arte: string | null }[];
+    return linhas.map(coresEfetivas).filter(Boolean);
+  });
+
+/** As cores extras já aplicadas: a tela junta com a tabela embutida. */
 export const listPantoneExtras = createServerFn({ method: "POST" })
   .middleware([requireAuth])
   .handler(async () => lerGuardado());

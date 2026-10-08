@@ -5,6 +5,11 @@ import { renderErrorPage } from "./lib/error-page";
 import { servirPapel } from "./server/papel-http.server";
 import { servirTutorial } from "./server/tutoriais.server";
 import { userFromToken } from "./server/auth.server";
+import { iniciarBackupDiario } from "./server/backup-banco.server";
+
+/* o backup diário do banco para a pasta de backup da rede (ver
+   backup-banco.server.ts; só liga na produção) */
+iniciarBackupDiario();
 
 /* Teto do tamanho das requisições (revisão de segurança de 02/10/2026; o
    Augusto mandou fazer). O servidor lia o corpo inteiro e fazia o parse antes
