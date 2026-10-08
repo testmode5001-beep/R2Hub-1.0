@@ -21,6 +21,8 @@ runtime/
 dist
 dist-ssr
 .output
+# a compilação de teste (SAIDA_DO_BUILD=.output-teste)
+.output-teste
 .vinxi
 .tanstack/**
 .nitro
